@@ -1,0 +1,21 @@
+provides:
+{
+    api:
+    {
+        taf_update.api
+        taf_appMgmt.api
+        taf_fwupdate.api
+    }
+}
+
+cxxflags:
+{
+    -I$TELAF_ROOT/include
+}
+
+sources:
+{
+    tafUpdateSvcStub.cpp
+    tafAppMgmtSvcStub.cpp
+    tafFwUpdateSvcStub.cpp
+}

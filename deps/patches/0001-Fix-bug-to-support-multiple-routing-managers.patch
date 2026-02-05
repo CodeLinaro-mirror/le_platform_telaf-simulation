@@ -1,0 +1,45 @@
+From 012379e51b7bd949e6230f1c75e44bdb2ed2fdf5 Mon Sep 17 00:00:00 2001
+From: Andrew Zhao <zhax@qti.qualcomm.com>
+Date: Mon, 22 Jan 2024 13:21:26 +0800
+Subject: [PATCH] Fix bug to support multiple routing managers in single
+ process
+Signed-off-by: Harikrishnan C <harc@qti.qualcomm.com>
+
+---
+ .../service_discovery/src/service_discovery_impl.cpp         | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/implementation/service_discovery/src/service_discovery_impl.cpp b/implementation/service_discovery/src/service_discovery_impl.cpp
+index f23fa43b..2fac3f2e 100644
+--- a/implementation/service_discovery/src/service_discovery_impl.cpp
++++ b/implementation/service_discovery/src/service_discovery_impl.cpp
+@@ -2736,15 +2736,17 @@ service_discovery_impl::check_ipv4_address(
+             unicast_.to_v4().to_bytes();
+     const boost::asio::ip::address_v4::bytes_type endpoint_address =
+             its_address.to_v4().to_bytes();
++#if 0
+     static const boost::asio::ip::address_v4::bytes_type its_netmask =
+             configuration_->get_netmask().to_v4().to_bytes();
+-
++#endif
+     //same address as unicast address of DUT not allowed
+     if (its_unicast_address == endpoint_address) {
+         VSOMEIP_ERROR << "Subscriber's IP address is same as host's address! : "
+                 << its_address;
+         is_valid = false;
+     } else {
++#if 0
+         const std::uint32_t self = VSOMEIP_BYTES_TO_LONG(its_unicast_address[0],
+                 its_unicast_address[1], its_unicast_address[2], its_unicast_address[3]);
+         const std::uint32_t remote = VSOMEIP_BYTES_TO_LONG(endpoint_address[0],
+@@ -2756,6 +2758,7 @@ service_discovery_impl::check_ipv4_address(
+                     << its_address;
+             is_valid = false;
+         }
++#endif
+     }
+     return is_valid;
+ }
+-- 
+2.25.1
+

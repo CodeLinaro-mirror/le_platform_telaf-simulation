@@ -1,0 +1,156 @@
+From 066e1e2e9889e45303540f5ad096efc64a10a558 Mon Sep 17 00:00:00 2001
+From: yunhu <yunhu@qti.qualcomm.com>
+Date: Wed, 16 Apr 2025 11:52:26 +0800
+Subject: [PATCH] Fix vsomeip client not returning to initial wait phase
+Signed-off-by: Harikrishnan C <harc@qti.qualcomm.com>
+---
+ .../routing/include/routing_manager_impl.hpp       |  3 +++
+ .../routing/src/routing_manager_impl.cpp           | 10 ++++++++++
+ .../include/service_discovery.hpp                  |  1 +
+ .../include/service_discovery_host.hpp             |  2 ++
+ .../include/service_discovery_impl.hpp             |  1 +
+ .../src/service_discovery_impl.cpp                 | 14 +++++++++++++-
+ 6 files changed, 30 insertions(+), 1 deletion(-)
+
+diff --git a/implementation/routing/include/routing_manager_impl.hpp b/implementation/routing/include/routing_manager_impl.hpp
+index 987f9d3..922f4b7 100644
+--- a/implementation/routing/include/routing_manager_impl.hpp
++++ b/implementation/routing/include/routing_manager_impl.hpp
+@@ -60,6 +60,7 @@ public:
+     void set_client_host(const std::string &_client_host);
+ 
+     bool is_routing_manager() const;
++    bool is_interface_and_route_ready() const;
+ 
+     void init();
+     void start();
+@@ -495,6 +496,8 @@ private:
+     bool if_state_running_;
+     bool sd_route_set_;
+     bool routing_running_;
++    bool interface_available_;
++    bool route_available_;
+     std::mutex pending_sd_offers_mutex_;
+     std::vector<std::pair<service_t, instance_t>> pending_sd_offers_;
+ #if defined(__linux__) || defined(ANDROID)
+diff --git a/implementation/routing/src/routing_manager_impl.cpp b/implementation/routing/src/routing_manager_impl.cpp
+index 79f4080..4baa5b7 100644
+--- a/implementation/routing/src/routing_manager_impl.cpp
++++ b/implementation/routing/src/routing_manager_impl.cpp
+@@ -79,6 +79,8 @@ routing_manager_impl::routing_manager_impl(routing_manager_host *_host) :
+         if_state_running_(false),
+         sd_route_set_(false),
+         routing_running_(false),
++        interface_available_(false),
++        route_available_(false),
+         status_log_timer_(_host->get_io()),
+         memory_log_timer_(_host->get_io()),
+         ep_mgr_impl_(std::make_shared<endpoint_manager_impl>(this, io_, configuration_)),
+@@ -2703,6 +2705,8 @@ void routing_manager_impl::update_routing_info(std::chrono::milliseconds _elapse
+         for (const auto &i : s.second) {
+             if (discovery_) {
+                 discovery_->unsubscribe_all(s.first, i);
++                // go to Initial Wait Phase
++                discovery_->reset_request_sent_counter(s.first, i);
+             }
+             del_routing_info(s.first, i, true, true);
+             VSOMEIP_INFO << "update_routing_info: elapsed=" << _elapsed.count()
+@@ -3962,6 +3966,7 @@ void routing_manager_impl::on_net_interface_or_route_state_changed(
+         }
+     };
+     if (_is_interface) {
++        interface_available_ = _available;
+         if (if_state_running_
+                 || (_available && !if_state_running_ && routing_running_)) {
+             log_change_message(true);
+@@ -3982,6 +3987,7 @@ void routing_manager_impl::on_net_interface_or_route_state_changed(
+             }
+         }
+     } else {
++        route_available_ = _available;
+         if (sd_route_set_
+                 || (_available && !sd_route_set_ && routing_running_)) {
+             log_change_message(true);
+@@ -3999,6 +4005,10 @@ void routing_manager_impl::on_net_interface_or_route_state_changed(
+     }
+ }
+ 
++bool routing_manager_impl::is_interface_and_route_ready() const {
++    return interface_available_ && route_available_;
++}
++
+ void routing_manager_impl::start_ip_routing() {
+ #if defined(_WIN32) || defined(__QNX__)
+     if_state_running_ = true;
+diff --git a/implementation/service_discovery/include/service_discovery.hpp b/implementation/service_discovery/include/service_discovery.hpp
+index d180960..5a7689b 100644
+--- a/implementation/service_discovery/include/service_discovery.hpp
++++ b/implementation/service_discovery/include/service_discovery.hpp
+@@ -45,6 +45,7 @@ public:
+             eventgroup_t _eventgroup, client_t _client) = 0;
+     virtual void unsubscribe_all(service_t _service, instance_t _instance) = 0;
+     virtual void unsubscribe_all_on_suspend() = 0;
++    virtual void reset_request_sent_counter(service_t _service, instance_t _instance) = 0;
+ 
+     virtual bool send(bool _is_announcing) = 0;
+ 
+diff --git a/implementation/service_discovery/include/service_discovery_host.hpp b/implementation/service_discovery/include/service_discovery_host.hpp
+index c5d3d2a..075f377 100644
+--- a/implementation/service_discovery/include/service_discovery_host.hpp
++++ b/implementation/service_discovery/include/service_discovery_host.hpp
+@@ -41,6 +41,8 @@ public:
+     virtual std::shared_ptr<endpoint> create_service_discovery_endpoint(
+             const std::string &_address, uint16_t _port, bool _reliable) = 0;
+ 
++    virtual bool is_interface_and_route_ready() const = 0;
++
+     virtual services_t get_offered_services() const = 0;
+     virtual std::shared_ptr<eventgroupinfo> find_eventgroup(service_t _service,
+             instance_t _instance, eventgroup_t _eventgroup) const = 0;
+diff --git a/implementation/service_discovery/include/service_discovery_impl.hpp b/implementation/service_discovery/include/service_discovery_impl.hpp
+index 200627c..4d13d93 100644
+--- a/implementation/service_discovery/include/service_discovery_impl.hpp
++++ b/implementation/service_discovery/include/service_discovery_impl.hpp
+@@ -82,6 +82,7 @@ public:
+     void unsubscribe_all(service_t _service, instance_t _instance);
+     void unsubscribe_all_on_suspend();
+     void remove_subscriptions(service_t _service, instance_t _instance);
++    void reset_request_sent_counter(service_t _service, instance_t _instance);
+ 
+     bool send(bool _is_announcing);
+ 
+diff --git a/implementation/service_discovery/src/service_discovery_impl.cpp b/implementation/service_discovery/src/service_discovery_impl.cpp
+index de6e846..33256b8 100644
+--- a/implementation/service_discovery/src/service_discovery_impl.cpp
++++ b/implementation/service_discovery/src/service_discovery_impl.cpp
+@@ -235,6 +235,18 @@ service_discovery_impl::release_service(
+     }
+ }
+ 
++void
++service_discovery_impl::reset_request_sent_counter(service_t _service, instance_t _instance) {
++    std::lock_guard<std::mutex> its_lock(requested_mutex_);
++    auto find_service = requested_.find(_service);
++    if (find_service != requested_.end()) {
++        auto find_instance = find_service->second.find(_instance);
++        if (find_instance != find_service->second.end()) {
++            find_instance->second->set_sent_counter(0);
++        }
++    }
++}
++
+ void
+ service_discovery_impl::update_request(service_t _service, instance_t _instance) {
+     std::lock_guard<std::mutex> its_lock(requested_mutex_);
+@@ -2862,7 +2874,7 @@ service_discovery_impl::on_find_debounce_timer_expired(
+         }
+     }
+ 
+-    if (!new_finds) {
++    if (!new_finds || !host_->is_interface_and_route_ready()) {
+         start_find_debounce_timer(false);
+         return;
+     }
+-- 
+2.17.1
+

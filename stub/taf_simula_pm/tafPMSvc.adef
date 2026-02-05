@@ -1,0 +1,49 @@
+maxThreads: 600
+
+username: telaf
+
+startGroup: 11
+
+capability:
+{
+        CAP_WAKE_ALARM
+        CAP_NET_BIND_SERVICE
+#if ${LE_CONFIG_TEST_COVERAGE} = y
+        CAP_DAC_READ_SEARCH
+        CAP_DAC_OVERRIDE
+#endif
+}
+
+groups:
+{
+        system
+        diag
+        radio
+        inet
+        locclient
+}
+
+sandboxed: false
+
+executables:
+{
+    tafPMSvc = ( tafPMSvc )
+}
+
+start: auto
+
+processes:
+{
+    run:
+    {
+        (tafPMSvc)
+    }
+
+    maxFileBytes: 8192K
+    faultAction: restart
+}
+
+extern:
+{
+    tafPMSvc.tafPMSvc.taf_pm
+}

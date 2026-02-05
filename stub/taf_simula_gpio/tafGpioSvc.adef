@@ -1,0 +1,60 @@
+maxThreads: 600
+
+username: telaf
+
+startGroup: 25
+
+capability:
+{
+        CAP_WAKE_ALARM
+        CAP_SYS_MODULE
+        CAP_DAC_OVERRIDE
+#if ${LE_CONFIG_TEST_COVERAGE} = y
+        CAP_DAC_READ_SEARCH
+#endif
+}
+
+groups:
+{
+        system
+        diag
+        radio
+        inet
+        locclient
+}
+
+sandboxed: false
+
+executables:
+{
+    tafGpioSvc = ( tafGpioSvc )
+}
+start: auto
+
+processes:
+{
+    run:
+    {
+        (tafGpioSvc)
+    }
+
+    maxFileBytes: 8192K
+    faultAction: restart
+}
+
+bundles:
+{
+    file:
+    {
+        [rw]     $TELAF_ROOT/components/tafGpioSvc/gpioWakeupPin.conf     /
+    }
+}
+
+bindings:
+{
+}
+
+extern:
+{
+    tafGpioSvc.tafGpioSvc.taf_gpio
+}

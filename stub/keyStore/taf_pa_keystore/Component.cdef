@@ -1,0 +1,25 @@
+sources:
+{
+    taf_pa_keystore.c
+}
+
+requires:
+{
+    api:
+    {
+        le_appInfo.api
+        taf_ks.api [types-only]
+    }
+
+    component:
+    {
+        $SIMULATION_ROOT/stub/taf_simula_linux/taf_pa_ioctl
+    }
+}
+
+cflags:
+{
+    -I$TELAF_ROOT/components/stub/keyStore/Common
+    -I$LEGATO_ROOT/framework/liblegato/
+}
+

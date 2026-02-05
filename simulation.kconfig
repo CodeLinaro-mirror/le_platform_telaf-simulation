@@ -1,0 +1,16 @@
+#
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+
+config SIMULATION_COMMON_OPTS
+  bool "Simulation common options"
+  default m
+
+menu "sdk"
+
+config BYPASS_SIM_PROFILE_MANAGER
+  bool "Bypass sdk simulation Sim Profile Manager"
+  default y
+
+endmenu

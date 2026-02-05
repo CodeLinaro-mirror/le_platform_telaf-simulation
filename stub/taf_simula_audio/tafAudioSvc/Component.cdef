@@ -1,0 +1,30 @@
+sources:
+{
+    tafAudioSvcStub.cpp
+}
+
+provides:
+{
+    api:
+    {
+        taf_audio.api
+    }
+}
+
+requires:
+{
+    api:
+    {
+        le_cfg.api
+    }
+
+    component:
+    {
+        $LEGATO_ROOT/components/watchdogChain
+    }
+}
+
+cxxflags:
+{
+    -I$LEGATO_ROOT/components/watchdogChain
+}

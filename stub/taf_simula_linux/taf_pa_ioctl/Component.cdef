@@ -1,0 +1,12 @@
+bundles:
+{
+    file:
+    {
+        [rx] ${CURDIR}/taf_pa_ioctl.so /lib/taf_pa_ioctl.so
+    }
+}
+
+externalBuild:
+{
+    "make -f ${CURDIR}/Makefile -C ${CURDIR}/ clean taf_pa_ioctl.so"
+}

@@ -1,0 +1,70 @@
+maxThreads: 600
+
+username: telaf
+
+startGroup: 17
+
+capability:
+{
+    CAP_CHOWN
+    CAP_FOWNER
+    CAP_WAKE_ALARM
+    CAP_SYS_RESOURCE
+    CAP_DAC_OVERRIDE
+    CAP_SYS_BOOT
+#if ${LE_CONFIG_TEST_COVERAGE} = y
+    CAP_DAC_READ_SEARCH
+#endif
+}
+
+groups:
+{
+    ubi
+    disk
+    system
+    diag
+    radio
+    inet
+    locclient
+}
+
+sandboxed: false
+
+maxMemoryBytes: 60000K
+
+executables:
+{
+    tafUpdateSvc = ( tafUpdateSvc )
+}
+
+start: auto
+
+requires :
+{
+    configTree:
+    {
+        [rw] system
+    }
+}
+
+processes:
+{
+    run:
+    {
+        (tafUpdateSvc)
+    }
+
+    maxFileBytes: 1048576K
+    faultAction: restart
+}
+
+bindings:
+{
+}
+
+extern:
+{
+    tafUpdateSvc.tafUpdateSvc.taf_update
+    tafUpdateSvc.tafUpdateSvc.taf_appMgmt
+    tafUpdateSvc.tafUpdateSvc.taf_fwupdate
+}

@@ -1,0 +1,26 @@
+provides:
+{
+    api:
+    {
+        taf_pm.api
+    }
+}
+
+requires:
+{
+    component:
+    {
+        $LEGATO_ROOT/components/watchdogChain
+    }
+}
+
+cxxflags:
+{
+    -I$LEGATO_ROOT/components/watchdogChain
+    -I$TELAF_ROOT/include
+}
+
+sources:
+{
+    tafPMSvc_TestDouble.cpp
+}

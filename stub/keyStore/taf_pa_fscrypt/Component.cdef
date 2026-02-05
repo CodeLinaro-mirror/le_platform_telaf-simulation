@@ -1,0 +1,18 @@
+sources:
+{
+    taf_pa_fscrypt.c
+}
+
+requires:
+{
+    api:
+    {
+	le_appInfo.api
+    }
+}
+
+cflags:
+{
+    -I$LEGATO_ROOT/framework/liblegato/
+    -I$SIMULATION_ROOT/stub/keyStore/taf_pa_fscrypt
+}

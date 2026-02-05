@@ -1,0 +1,62 @@
+maxThreads: 600
+
+username: telaf
+
+startGroup: 13
+
+capability:
+{
+        CAP_WAKE_ALARM
+        CAP_NET_BIND_SERVICE
+        CAP_NET_ADMIN
+        // Need to access some files: tel.conf & .csv files
+        CAP_DAC_OVERRIDE
+#if ${LE_CONFIG_TEST_COVERAGE} = y
+        CAP_DAC_READ_SEARCH
+#endif
+}
+
+groups:
+{
+        system
+        diag
+        radio
+        inet
+        locclient
+}
+
+executables:
+{
+        tafLocationSvc = ( $TELAF_ROOT/components/tafLocationSvc )
+}
+
+start: auto
+
+processes:
+{
+        run:
+        {
+            (tafLocationSvc)
+        }
+
+        envVars:
+        {
+            // LD_PRELOAD = /legato/systems/current/appsWriteable/tafLocationSvc/lib/ReportReaderBypass.so
+        }
+
+        maxFileBytes: 8192K
+        faultAction: restart
+}
+
+sandboxed: false
+
+bindings:
+{
+}
+
+extern:
+{
+        tafLocationSvc.tafLocationSvc.taf_locGnss
+        tafLocationSvc.tafLocationSvc.taf_locPos
+        tafLocationSvc.tafLocationSvc.taf_locPosCtrl
+}

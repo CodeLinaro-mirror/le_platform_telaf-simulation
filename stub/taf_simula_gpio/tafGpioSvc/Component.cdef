@@ -1,0 +1,24 @@
+provides:
+{
+    api:
+    {
+        taf_gpio.api
+    }
+}
+requires:
+{
+    component:
+    {
+        $LEGATO_ROOT/components/watchdogChain
+    }
+}
+
+cxxflags:
+{
+    -I$LEGATO_ROOT/components/watchdogChain
+}
+
+sources:
+{
+    tafGpioSvcStub.cpp
+}

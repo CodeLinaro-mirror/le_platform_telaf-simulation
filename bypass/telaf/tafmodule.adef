@@ -1,0 +1,9 @@
+username: telaf
+maxThreads: 600
+start: manual
+sandboxed: false
+
+executables:
+{
+    tafmodule = ($TELAF_ROOT/apps/tools/tafmodule)
+}

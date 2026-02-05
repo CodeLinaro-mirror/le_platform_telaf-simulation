@@ -1,0 +1,61 @@
+maxThreads: 600
+
+username: telaf
+
+startGroup: 11
+
+capability:
+{
+        CAP_WAKE_ALARM
+        CAP_NET_BIND_SERVICE
+        CAP_NET_ADMIN
+        CAP_DAC_OVERRIDE
+#if ${LE_CONFIG_TEST_COVERAGE} = y
+        CAP_DAC_READ_SEARCH
+#endif
+}
+
+groups:
+{
+        system
+        diag
+        radio
+        inet
+        locclient
+}
+
+sandboxed: false
+
+executables:
+{
+        tafSimCardSvc = ( $SIMULATION_ROOT/bypass/telsdk/sdkSimCardSvcBypass $TELAF_ROOT/components/tafSimCardSvc )
+}
+start: auto
+
+processes:
+{
+        run:
+        {
+                (tafSimCardSvc)
+        }
+
+        envVars:
+        {
+                LD_PRELOAD = /legato/systems/current/appsWriteable/tafSimCardSvc/lib/PhoneFactoryImplStubBypass.so
+        }
+
+        maxFileBytes: 8192K
+        faultAction: restart
+}
+
+bindings:
+{
+       tafSimCardSvc.tafSimCardSvc.taf_pm -> tafPMSvc.taf_pm
+}
+
+extern:
+{
+        tafSimCardSvc.tafSimCardSvc.taf_sim
+        tafSimCardSvc.tafSimCardSvc.taf_simRsp
+}
+

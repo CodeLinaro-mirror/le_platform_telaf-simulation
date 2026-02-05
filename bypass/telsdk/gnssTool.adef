@@ -1,0 +1,27 @@
+username: telaf
+// Application that generates on-target tools.
+
+// None of these tools should actually be run if someone tells the supervisor to start the app.
+// So we don't have a "run:" section at all, and we can set it to manual start so the supervisor
+// doesn't waste time "starting" it.
+maxThreads: 600
+start: manual
+sandboxed: false
+
+executables:
+{
+#if ${LE_CONFIG_LINUX} = y
+    gnss = ( $LEGATO_ROOT/apps/tools/gnss )
+#endif
+}
+
+bindings:
+{
+#if ${LE_CONFIG_LINUX} = y
+    gnss.gnss.le_gnss -> tafLocationSvc.taf_locGnss
+    gnss.gnss.le_pos -> tafLocationSvc.taf_locPos
+    gnss.gnss.le_posCtrl -> tafLocationSvc.taf_locPosCtrl
+#endif
+
+}
+

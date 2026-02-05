@@ -1,0 +1,12 @@
+bundles:
+{
+    file:
+    {
+        [rx] ${CURDIR}/PhoneFactoryImplStubBypass.so /lib/PhoneFactoryImplStubBypass.so
+    }
+}
+
+externalBuild:
+{
+    "make -f ${CURDIR}/Makefile -C ${CURDIR}/ clean PhoneFactoryImplStubBypass.so"
+}
