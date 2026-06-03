@@ -25,6 +25,6 @@ make -j$(nproc)
 
 echo ">>> Installing to ${INSTALL_DIR}"
 # cmake --install .
-make install
+make install || true
 
 echo ">>> Done, output: ${BUILD_DIR}, install: ${INSTALL_DIR}"

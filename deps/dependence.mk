@@ -404,3 +404,52 @@ capi_core_tools_: _cmake
 	  && echo "[$@] installing ..." \
 	    && $(SIMULATION_HOST_XTOOLS)/bin/cmake --build . --target install > ./__install.log 2>&1
 	$Q echo "[$@] Done"
+
+
+.PHONY: _dlt simula-dlt dlt_
+
+# DLT (Diagnostic Log and Trace) - required by taf_pa_common and friends
+DLT_URL?=https://github.com/COVESA/dlt-daemon/archive/refs/tags/v2.18.10.tar.gz
+_DLT_VERSION=$(notdir $(lastword $(subst /, ,$(DLT_URL))))
+DLT_VERSION=$(_DLT_VERSION:v%.tar.gz=dlt-daemon-%)
+
+_dlt: $(SIMULATION_DEPS_ROOTFS)/include/dlt/dlt.h
+	$Q echo "[$@] Already preparation"
+
+$(SIMULATION_DEPS_ROOTFS)/include/dlt/dlt.h:
+	$Q $(MAKE) --no-print-directory simula-dlt
+
+simula-dlt: dlt_
+dlt_: _cmake
+#-> 1. [clean]
+	$Q echo "[$@] cleaning compression and directories" \
+	  && rm -rf $(SIMULATION_DEPS_SOURCE)/$(_DLT_VERSION) $(SIMULATION_DEPS_SOURCE)/$@ $(SIMULATION_DEPS_SOURCE)/__download_$(_DLT_VERSION).log
+#-> 2. [download]
+	$Q echo "[$@] downloading from [$(DLT_URL)]" \
+	  && wget -O $(SIMULATION_DEPS_SOURCE)/$(_DLT_VERSION) $(DLT_URL) > $(SIMULATION_DEPS_SOURCE)/__download_$(_DLT_VERSION).log 2>&1
+	$Q echo "[$@] extract to [$(SIMULATION_DEPS_SOURCE)/$@]" \
+	  && cd $(SIMULATION_DEPS_SOURCE) \
+	  && tar xfz $(_DLT_VERSION) && mv $(DLT_VERSION) $@
+#-> 3. [compile]
+	$Q cd $(SIMULATION_DEPS_SOURCE)/$@ \
+	  && echo "[$@] configure firstly" \
+	    && mkdir -p build && cd build \
+	    && $(SIMULATION_HOST_XTOOLS)/bin/cmake \
+	         -DCMAKE_INSTALL_PREFIX=${SIMULATION_DEPS_ROOTFS} \
+	         -DCMAKE_PREFIX_PATH=${SIMULATION_DEPS_ROOTFS} \
+	         -DCMAKE_BUILD_TYPE=Release \
+	         -DBUILD_SHARED_LIBS=ON \
+	         -DWITH_DLT_CONSOLE=OFF \
+	         -DWITH_DLT_EXAMPLES=OFF \
+	         -DWITH_DLT_TESTS=OFF \
+	         -DWITH_DLT_UNIT_TESTS=OFF \
+	         -DWITH_MAN=OFF \
+	         -DWITH_DOC=OFF \
+	         .. > ./__config.log 2>&1 \
+	  && echo "[$@] compiling ..." \
+	    && $(SIMULATION_HOST_XTOOLS)/bin/cmake --build . -- -j $(shell nproc) > ./__build.log 2>&1
+#-> 4. [install]
+	$Q cd $(SIMULATION_DEPS_SOURCE)/$@/build \
+	  && echo "[$@] installing ..." \
+	    && $(SIMULATION_HOST_XTOOLS)/bin/cmake --build . --target install > ./__install.log 2>&1
+	$Q echo "[$@] Done"

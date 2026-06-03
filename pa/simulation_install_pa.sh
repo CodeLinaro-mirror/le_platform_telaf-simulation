@@ -82,4 +82,5 @@ install_libs_to_runtime()
 
 # Install the generated to the combined directory
 install_libs_to_runtime "SIMULA_PA"   telaf-pa-simula/staging
+install_libs_to_runtime "TARGET_PA"   telaf-pa-target/staging
 install_libs_to_runtime "DEFAULT_PA"  telaf-pa-default/staging

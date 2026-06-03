@@ -47,7 +47,7 @@ OS_VERSION=$(shell grep -oP 'VERSION_ID=\K"(.+)"' /etc/os-release | tr -d '"')
 # Sub-Makefile to handle all target dependencies and extended host tools
 include $(SIMULATION_HOME)/deps/dependence.mk
 
-SIMULATION_DEPS += _openssl _curl _boost
+SIMULATION_DEPS += _openssl _curl _boost _dlt
 SIMULATION_DEPS_ALL = _pre_deps $(SIMULATION_DEPS) _post_deps
 
 # [1] Another way: (not in container)

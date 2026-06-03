@@ -16,7 +16,7 @@ cd ${PA_ROOT_DIR}
 
 # Try to compile the valid PA one by one
 info "[simulation]: building PA layers"
-for PA in telaf-pa-default telaf-pa-simula
+for PA in telaf-pa-default telaf-pa-simula telaf-pa-target
 do
     bash ${PA}/build_pa.simula.sh
 done

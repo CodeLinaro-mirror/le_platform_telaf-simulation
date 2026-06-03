@@ -1,7 +1,7 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
-ARG UBUNTU_DISTRO_ORIGIN
+ARG UBUNTU_DISTRO_ORIGIN=ubuntu:22.04
 FROM $UBUNTU_DISTRO_ORIGIN
 
 RUN apt-get -qq update
@@ -23,6 +23,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install wg
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install unzip
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install openjdk-8-jre-headless
 RUN apt-get -y --no-install-recommends install libboost-serialization-dev
+RUN apt-get -y --no-install-recommends install bear
 
 RUN apt-get -y --no-install-recommends install python2
 RUN apt-get -y --no-install-recommends install python-pip
@@ -57,7 +58,12 @@ ARG DEVELOPER_UID=1000
 ARG DEVELOPER_GID=1000
 
 # Create a non-root user: [developer] for development, with password: [simula]
-RUN addgroup --gid $DEVELOPER_GID developer && \
+# If the GID already exists in the base image, rename that group instead of creating a new one.
+RUN if getent group $DEVELOPER_GID > /dev/null 2>&1; then \
+        groupmod -n developer $(getent group $DEVELOPER_GID | cut -d: -f1); \
+    else \
+        addgroup --gid $DEVELOPER_GID developer; \
+    fi && \
     adduser --uid $DEVELOPER_UID --ingroup developer --home /home/developer \
             --shell /bin/bash --disabled-password --gecos "" developer
 

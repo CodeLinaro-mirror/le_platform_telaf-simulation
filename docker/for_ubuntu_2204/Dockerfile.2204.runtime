@@ -1,7 +1,7 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
-ARG UBUNTU_DISTRO_ORIGIN
+ARG UBUNTU_DISTRO_ORIGIN=ubuntu:22.04
 FROM $UBUNTU_DISTRO_ORIGIN
 
 RUN apt-get -qq update

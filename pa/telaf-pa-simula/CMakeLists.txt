@@ -15,8 +15,8 @@ set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 set(CMAKE_INSTALL_RPATH "$ORIGIN:")
 
 set(MODULE_LIST
-    component/taf_pa_common
-    component/taf_pa_location
+    component/common
+    component/tel
 )
 
 foreach(module ${MODULE_LIST})
