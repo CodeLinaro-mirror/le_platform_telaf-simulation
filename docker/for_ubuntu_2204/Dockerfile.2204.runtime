@@ -4,66 +4,94 @@
 ARG UBUNTU_DISTRO_ORIGIN=ubuntu:22.04
 FROM $UBUNTU_DISTRO_ORIGIN
 
-RUN apt-get -qq update
-RUN apt-get -y install sudo
-RUN apt-get update --fix-missing
+# APT_INSECURE: set to "yes" to disable apt GPG signature verification.
+#   - Default ("no"): standard, secure apt behavior.
+#   - "yes":  Use only in TRUSTED networks (e.g. corporate intranet behind an
+#             HTTPS-inspecting proxy that breaks Ubuntu repository GPG signatures).
+#             Typical symptom that requires this:
+#               "W: GPG error: ... At least one invalid signature was encountered."
+#   Usage:
+#     docker build --build-arg APT_INSECURE=yes ...
+#     make simula-build-runtime APT_INSECURE=yes
+ARG APT_INSECURE=no
 
-RUN apt-get -y --no-install-recommends install ca-certificates
-RUN update-ca-certificates
-RUN apt-get -y --no-install-recommends install build-essential
-RUN apt-get -y --no-install-recommends install coreutils
-RUN apt-get -y --no-install-recommends install psmisc
-RUN apt-get -y --no-install-recommends install policycoreutils
-RUN apt-get -y --no-install-recommends install busybox-syslogd
-RUN apt-get -y --no-install-recommends install kmod
-RUN apt-get -y --no-install-recommends install file
-RUN apt-get -y --no-install-recommends install openssh-client
-RUN apt-get -y --no-install-recommends install openssh-server
-RUN apt-get -y --no-install-recommends install network-manager
-RUN apt-get -y --no-install-recommends install tree
-RUN apt-get -y --no-install-recommends install net-tools
-RUN apt-get -y --no-install-recommends install iproute2
-RUN apt-get -y --no-install-recommends install iputils-ping
-RUN apt-get -y --no-install-recommends install strace
-RUN apt-get -y --no-install-recommends install cgroup-tools
-RUN apt-get -y --no-install-recommends install less
-RUN apt-get -y --no-install-recommends install gdb
-RUN apt-get -y --no-install-recommends install tcpdump
-RUN apt-get -y --no-install-recommends install lsb-release
-RUN apt-get -y --no-install-recommends install libcap-dev
-RUN apt-get -y --no-install-recommends install libasound2-dev
-RUN apt-get -y --no-install-recommends install alsa alsa-utils alsa-tools
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install pulseaudio pulseaudio-utils
-RUN apt-get -y --no-install-recommends install libboost-serialization-dev
+# Avoid interactive prompts for all apt operations
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get -y --no-install-recommends install python2
-RUN apt-get -y --no-install-recommends install python3
-RUN apt-get -y --no-install-recommends install python3-pip
-RUN apt-get -y --no-install-recommends install python3-venv
-RUN python3 -m pip install doipclient==1.1.1
-RUN python3 -m pip install udsoncan==1.23.2
-RUN python3 -m pip install pyyaml==6.0.1
-RUN python3 -m pip install oyaml==1.0
-RUN python3 -m pip install supervisor==4.2.5
-RUN python3 -m pip install supervisor-stdout==0.1.1
+# Step 1: Optionally disable apt signature verification (only when APT_INSECURE=yes),
+#         then install all apt packages in one layer.
+#         Combining update + install + cleanup in a single RUN prevents:
+#           - stale apt cache across layers (GPG signature failures)
+#           - leftover cache files bloating the image (/var/cache/apt/archives)
+RUN if [ "$APT_INSECURE" = "yes" ]; then \
+        echo ">>> WARNING: APT signature verification is DISABLED (APT_INSECURE=yes) <<<"; \
+        echo 'Acquire::AllowInsecureRepositories "true";'             >  /etc/apt/apt.conf.d/99-insecure; \
+        echo 'Acquire::AllowDowngradeToInsecureRepositories "true";'  >> /etc/apt/apt.conf.d/99-insecure; \
+        echo 'APT::Get::AllowUnauthenticated "true";'                 >> /etc/apt/apt.conf.d/99-insecure; \
+    fi \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get update \
+    && apt-get -y --no-install-recommends install ca-certificates gnupg \
+    && update-ca-certificates \
+    && apt-get -y --no-install-recommends install \
+        sudo \
+        build-essential \
+        coreutils \
+        psmisc \
+        policycoreutils \
+        busybox-syslogd \
+        kmod \
+        file \
+        lsb-release \
+        less \
+        nano \
+        tree \
+        strace \
+        gdb \
+        tcpdump \
+        vlan \
+        cgroup-tools \
+        openssh-client \
+        openssh-server \
+        network-manager \
+        net-tools \
+        iproute2 \
+        iputils-ping \
+        libasound2-dev \
+        alsa-utils \
+        alsa-tools \
+        pulseaudio \
+        pulseaudio-utils \
+        libcap-dev \
+        libboost-serialization-dev \
+        libsqlite3-dev \
+        libglib2.0-dev \
+        python2 \
+        python3 \
+        python3-pip \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-RUN apt-get -y --no-install-recommends install libsqlite3-dev
-RUN apt-get -y --no-install-recommends install nano
-RUN apt-get -y --no-install-recommends install libglib2.0-dev
-RUN apt-get -y --no-install-recommends install vlan
+# Step 2: Install all Python packages in one layer, no pip cache left behind.
+RUN python3 -m pip install --no-cache-dir \
+        doipclient==1.1.1 \
+        udsoncan==1.23.2 \
+        pyyaml==6.0.1 \
+        oyaml==1.0 \
+        supervisor==4.2.5 \
+        supervisor-stdout==0.1.1
 
-# Change default shell from dash to bash
-RUN ln -sf /bin/bash /bin/sh
-
-# Make root password to: [simula]
-RUN echo 'root:simula' | chpasswd
+# Step 3: System configuration.
+RUN ln -sf /bin/bash /bin/sh \
+    && echo 'root:simula' | chpasswd
 
 WORKDIR /root
 
-# Distinguish between container and host
+# Distinguish between container and host (process-level env var)
 ENV TELAF_IN_CONTAINER=yes
-RUN echo "TELAF_IN_CONTAINER=yes" >> ~/.bashrc
 
-# Injects the script of simulation
-RUN echo 'if [ "`id -u`" -eq 0 ]; then PS1="[TelAF Simulation] \\u:\\w # "; else PS1="[TelAF Simulation] \\u:\\w $ "; fi' >> ~/.bashrc
-RUN echo 'if [ -f $HOME/simulation/up_simulation.sh ]; then . $HOME/simulation/up_simulation.sh; else echo "Not found $HOME/simulation/up_simulation.sh --> NO simulation"; exit 0; fi' >> ~/.bashrc
+# Step 4: Shell environment for interactive sessions.
+RUN echo "TELAF_IN_CONTAINER=yes" >> ~/.bashrc \
+    && echo 'if [ "`id -u`" -eq 0 ]; then PS1="[TelAF Simulation] \\u:\\w # "; else PS1="[TelAF Simulation] \\u:\\w $ "; fi' >> ~/.bashrc \
+    && echo 'if [ -f $HOME/simulation/up_simulation.sh ]; then . $HOME/simulation/up_simulation.sh; else echo "Not found $HOME/simulation/up_simulation.sh --> NO simulation"; exit 0; fi' >> ~/.bashrc

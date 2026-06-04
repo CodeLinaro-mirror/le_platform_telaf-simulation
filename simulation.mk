@@ -232,6 +232,15 @@ define up_simulation_container
 	$Q echo "Down Simulation with [$(1:up_%.sh=%)], see you ~"
 endef
 
+# APT_INSECURE: pass-through flag for docker image builds.
+#   Default "no" -> standard secure apt behavior (recommended for end users).
+#   Set to "yes" only in TRUSTED networks (e.g. corporate intranet behind an
+#   HTTPS-inspecting proxy that breaks Ubuntu repo GPG signatures).
+#   Symptom that requires this:
+#     "W: GPG error: ... At least one invalid signature was encountered."
+#   Usage: make simula-build-runtime APT_INSECURE=yes
+export APT_INSECURE ?= no
+
 # Configure the UID & GID during docker build image times along with environment variables
 # Rebuild all docker images for special UID:GID. please check: DEVELOPER_UID & DEVELOPER_GID
 define build_simulation_docker_image
@@ -239,6 +248,7 @@ define build_simulation_docker_image
 	$Q export UBUNTU_DISTRO_ORIGIN=$(from) \
 	    && export DEVELOPER_UID=$(shell id -u) \
 	    && export DEVELOPER_GID=$(shell id -g) \
+	    && export APT_INSECURE=$(APT_INSECURE) \
 	    && docker compose -f "$(SIMULATION_HOME)/docker/for_ubuntu_$(get_which_one)/docker-compose.yml" \
 	    build $(docker_build_opts) telaf_simulation_$(1)_$(get_which_one)
 	$Q echo "[$@] image build done."
@@ -263,6 +273,7 @@ simula-help:
 	@echo "  >> simula-action-args"
 	@echo "    - from='hub-address'"
 	@echo "    - sdk_rootfs='/absolute/path/to/sdk/rootfs'"
+	@echo "    - APT_INSECURE=yes  (only for trusted intranet behind GPG-breaking proxies)"
 	@echo
 	@echo "  >> simula-action supported list as follows"
 	@echo "    - List & Switch simulation container distro system versions (default Ubuntu18.04)"

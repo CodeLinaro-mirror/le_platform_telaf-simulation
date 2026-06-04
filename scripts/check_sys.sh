@@ -111,7 +111,7 @@ total_packages_checking="
     python3
     ninja-build
     cmake
-    python-setuptools
+    python3-setuptools
     git
     fakeroot
     file

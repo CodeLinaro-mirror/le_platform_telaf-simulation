@@ -4,72 +4,103 @@
 ARG UBUNTU_DISTRO_ORIGIN=ubuntu:22.04
 FROM $UBUNTU_DISTRO_ORIGIN
 
-RUN apt-get -qq update
-RUN apt-get -y install sudo
-RUN apt-get update --fix-missing
+# APT_INSECURE: set to "yes" to disable apt GPG signature verification.
+#   - Default ("no"): standard, secure apt behavior.
+#   - "yes":  Use only in TRUSTED networks (e.g. corporate intranet behind an
+#             HTTPS-inspecting proxy that breaks Ubuntu repository GPG signatures).
+#             Typical symptom that requires this:
+#               "W: GPG error: ... At least one invalid signature was encountered."
+#   Usage:
+#     docker build --build-arg APT_INSECURE=yes ...
+#     make simula-build-develop APT_INSECURE=yes
+ARG APT_INSECURE=no
 
-RUN apt-get -y --no-install-recommends install ca-certificates
-RUN update-ca-certificates
-RUN apt-get -y --no-install-recommends install build-essential
-RUN apt-get -y --no-install-recommends install curl
-RUN apt-get -y --no-install-recommends install ninja-build
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install cmake
-RUN apt-get -y --no-install-recommends install git
-RUN apt-get -y --no-install-recommends install fakeroot
-RUN apt-get -y --no-install-recommends install file
-RUN apt-get -y --no-install-recommends install libcap-dev
-RUN apt-get -y --no-install-recommends install libssl-dev
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install wget
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install unzip
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install openjdk-8-jre-headless
-RUN apt-get -y --no-install-recommends install libboost-serialization-dev
-RUN apt-get -y --no-install-recommends install bear
+# Avoid interactive prompts for all apt operations
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get -y --no-install-recommends install python2
-RUN apt-get -y --no-install-recommends install python-pip
-RUN apt-get -y --no-install-recommends install python-setuptools
+# Step 1: Optionally disable apt signature verification (only when APT_INSECURE=yes),
+#         then install all apt packages in one layer.
+#         Combining update + install + cleanup in a single RUN prevents:
+#           - stale apt cache across layers (GPG signature failures)
+#           - leftover cache files bloating the image (/var/cache/apt/archives)
+RUN if [ "$APT_INSECURE" = "yes" ]; then \
+        echo ">>> WARNING: APT signature verification is DISABLED (APT_INSECURE=yes) <<<"; \
+        echo 'Acquire::AllowInsecureRepositories "true";'             >  /etc/apt/apt.conf.d/99-insecure; \
+        echo 'Acquire::AllowDowngradeToInsecureRepositories "true";'  >> /etc/apt/apt.conf.d/99-insecure; \
+        echo 'APT::Get::AllowUnauthenticated "true";'                 >> /etc/apt/apt.conf.d/99-insecure; \
+    fi \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get update \
+    && apt-get -y --no-install-recommends install ca-certificates gnupg \
+    && update-ca-certificates \
+    && apt-get -y --no-install-recommends install \
+        sudo \
+        build-essential \
+        curl \
+        wget \
+        unzip \
+        git \
+        file \
+        fakeroot \
+        nano \
+        pkg-config \
+        bear \
+        attr \
+        ninja-build \
+        cmake \
+        openjdk-8-jre-headless \
+        squashfs-tools \
+        mtd-utils \
+        libcap-dev \
+        libssl-dev \
+        libboost-serialization-dev \
+        libsqlite3-dev \
+        libasound2-dev \
+        libglib2.0-dev \
+        python2 \
+        python3 \
+        python3-pip \
+        python3-setuptools \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+# Step 2: Install pip for Python 2.
+#         Ubuntu 22.04 dropped the 'python-pip' apt package (it conflicts with python3-pip).
+#         The standard workaround is to bootstrap pip via get-pip.py, then clean up.
 # MakeTool 'ifgen' just depend on python version 2, keep it.
-RUN python2 -m pip install jinja2
+RUN curl -sS https://bootstrap.pypa.io/pip/2.7/get-pip.py | python2 \
+    && python2 -m pip install --no-cache-dir jinja2 \
+    && rm -rf ~/.cache/pip
 
-RUN apt-get -y --no-install-recommends install python3
-RUN apt-get -y --no-install-recommends install python3-pip
-RUN apt-get -y --no-install-recommends install python3-venv
-RUN python3 -m pip install doipclient==1.1.1
-RUN python3 -m pip install udsoncan==1.23.2
-RUN python3 -m pip install pyyaml==6.0.1
-RUN python3 -m pip install MarkupSafe==2.0.1
-RUN python3 -m pip install Jinja2==3.0.3
-RUN python3 -m pip install oyaml==1.0
+# Step 3: Install all Python 3 packages in one layer, no pip cache left behind.
+RUN python3 -m pip install --no-cache-dir \
+        doipclient==1.1.1 \
+        udsoncan==1.23.2 \
+        pyyaml==6.0.1 \
+        MarkupSafe==2.0.1 \
+        Jinja2==3.0.3 \
+        oyaml==1.0
 
-RUN apt-get -y --no-install-recommends install pkg-config
-RUN apt-get -y --no-install-recommends install libsqlite3-dev
-RUN apt-get -y --no-install-recommends install libasound2-dev
-RUN apt-get -y --no-install-recommends install nano
-RUN apt-get -y --no-install-recommends install libglib2.0-dev
-
-RUN apt-get -y --no-install-recommends install attr
-RUN apt-get -y --no-install-recommends install squashfs-tools
-RUN apt-get -y --no-install-recommends install mtd-utils
-
-# Change default shell from dash to bash
+# Step 4: System configuration.
 RUN ln -sf /bin/bash /bin/sh
 
 ARG DEVELOPER_UID=1000
 ARG DEVELOPER_GID=1000
 
-# Create a non-root user: [developer] for development, with password: [simula]
-# If the GID already exists in the base image, rename that group instead of creating a new one.
+# Step 5: Create a non-root user: [developer] for development, with password: [simula].
+#         If the GID already exists in the base image, rename that group instead of creating a new one.
+#         Merge all user-setup commands into one layer.
 RUN if getent group $DEVELOPER_GID > /dev/null 2>&1; then \
         groupmod -n developer $(getent group $DEVELOPER_GID | cut -d: -f1); \
     else \
         addgroup --gid $DEVELOPER_GID developer; \
-    fi && \
-    adduser --uid $DEVELOPER_UID --ingroup developer --home /home/developer \
-            --shell /bin/bash --disabled-password --gecos "" developer
-
-RUN adduser developer sudo
-RUN echo 'developer:simula' | chpasswd
-RUN echo 'developer ALL=(ALL:ALL) ALL' >> /etc/sudoers
+    fi \
+    && adduser --uid $DEVELOPER_UID --ingroup developer --home /home/developer \
+               --shell /bin/bash --disabled-password --gecos "" developer \
+    && adduser developer sudo \
+    && echo 'developer:simula' | chpasswd \
+    && echo 'developer ALL=(ALL:ALL) ALL' >> /etc/sudoers
 
 WORKDIR /home/developer/
 USER developer:developer

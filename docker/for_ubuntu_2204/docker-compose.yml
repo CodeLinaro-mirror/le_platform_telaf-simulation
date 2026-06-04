@@ -11,6 +11,7 @@ services:
         - DEVELOPER_UID=$DEVELOPER_UID
         - DEVELOPER_GID=$DEVELOPER_GID
         - UBUNTU_DISTRO_ORIGIN=$UBUNTU_DISTRO_ORIGIN
+        - APT_INSECURE=$APT_INSECURE
     image: telaf_simulation_develop_2204:1.0.0
 
   telaf_simulation_runtime_2204:
@@ -19,4 +20,5 @@ services:
       dockerfile: Dockerfile.2204.runtime
       args:
         - UBUNTU_DISTRO_ORIGIN=$UBUNTU_DISTRO_ORIGIN
+        - APT_INSECURE=$APT_INSECURE
     image: telaf_simulation_runtime_2204:1.0.0
