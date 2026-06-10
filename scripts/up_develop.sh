@@ -38,13 +38,17 @@ IMG_NAME=${IMG_NAME:="telaf_simulation_develop_$WHICH"}
 IMG_VERSION=${IMG_VERSION:="1.0.0"}
 CONTAINER_OPTIONS=${CONTAINER_OPTIONS:=""}
 
+# Allocate a TTY only when stdin is a real terminal (not a CI pipe).
+TTY_OPT=""
+[ -t 0 ] && TTY_OPT="-t"
+
 if [ "$i_shell" == "TRUE" ]; then
     CONTAINER_NAME=${CONTAINER_NAME:="telaf_simulation_develop_$WHICH"}
 
     # Caution: when we use '-d' to run container, you should check the log for aync jobs.
-    BUILTIN_CONTAINER_OPTIONS=${BUILTIN_CONTAINER_OPTIONS:="-d -i -t"} # --privileged=true --net=bridge
+    BUILTIN_CONTAINER_OPTIONS=${BUILTIN_CONTAINER_OPTIONS:="-d -i ${TTY_OPT}"} # --privileged=true --net=bridge
 
-    attach_container="docker exec -i -t ${CONTAINER_NAME} /bin/bash"
+    attach_container="docker exec -i ${TTY_OPT} ${CONTAINER_NAME} /bin/bash"
 
     cd ${simulation_workstation}
 
@@ -71,7 +75,7 @@ else
     # For now, fix the name of the script, not customize
     SHELL_ACTIONS=${simulation_workstation}/.simula.dev.action.sh
 
-    BUILTIN_CONTAINER_OPTIONS=${BUILTIN_CONTAINER_OPTIONS:="--rm -i -t"}
+    BUILTIN_CONTAINER_OPTIONS=${BUILTIN_CONTAINER_OPTIONS:="--rm -i ${TTY_OPT}"}
     # Caution: random name for this once command-container.
     # For 'within', it's passed from environment, like export.
     # Example: make simula within="'hostname && make simula-clean && make simulac'"
