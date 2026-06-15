@@ -18,6 +18,13 @@ if [ -e /legato/taf_rootfs/etc/vsomeip/E01HelloWorld/commonapi4someip.ini ]; the
     export LD_LIBRARY_PATH=/legato/taf_rootfs/lib:$LD_LIBRARY_PATH
 fi
 
+# Mosquitto persistence directory (must exist before broker starts).
+mkdir -p /tmp/mosquitto_persist/
+
+# Config lives in /root/sml/ (volume-mounted) — edit without rebuilding.
+# Use supervisorctl -c /root/sml/supervisord.sml.conf <status|restart|stop>
+supervisord -c /root/sml/supervisord.sml.conf
+
 # Adjust DefaultCallbackDelay to resolve missing Dialling state in Ecall flow
 ICALL_MANAGER_JSON=/data/telux/json/api/tel/ICallManagerSlot1.json
 if [ -e "$ICALL_MANAGER_JSON"  ]; then

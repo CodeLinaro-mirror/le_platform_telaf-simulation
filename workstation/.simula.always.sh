@@ -30,3 +30,6 @@ if [ -e /legato/taf_rootfs/etc/vsomeip/E01HelloWorld/commonapi4someip.ini ]; the
     export VSOMEIP_CONFIGURATION=/legato/taf_rootfs/etc/vsomeip/E01HelloWorld/vsomeip-local.json
     export LD_LIBRARY_PATH=/legato/taf_rootfs/lib:$LD_LIBRARY_PATH
 fi
+
+# sml simulation module (sub-packages live under /root/sml)
+export PYTHONPATH=/root:${PYTHONPATH}

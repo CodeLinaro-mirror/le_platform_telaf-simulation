@@ -397,6 +397,7 @@ else # [Non-Docker-Container-Env]
         -e CONTAINER_NAME=$CONTAINER_NAME \
         -e SIMULATION_TARBALL_NAME=$SIMULATION_TARBALL_NAME \
         -v $SML_WORKSPACE:/root/simulation:rw \
+        -v $SML_WORKSPACE/../sml:/root/sml:rw \
         -v $SML_APP_VOLUME:/app:rw \
         -v $SML_DATA_VOLUME:/data:rw \
         -v $SML_PERSIST_VOLUME:/persist:rw \
