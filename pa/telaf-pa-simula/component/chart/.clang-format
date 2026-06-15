@@ -1,0 +1,15 @@
+BasedOnStyle: Google
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+ColumnLimit: 100
+AccessModifierOffset: -4
+NamespaceIndentation: None
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AlignAfterOpenBracket: Align
+PointerAlignment: Left
+SpaceAfterCStyleCast: false
+DerivePointerAlignment: false

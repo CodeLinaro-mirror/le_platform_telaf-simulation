@@ -3,12 +3,18 @@
 
 #include "Log.hpp"
 
+#include <chart/spy.hpp>
+
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <mutex>
+#include <memory>
+#include <ostream>
+#include <streambuf>
+#include <string>
 #include <syslog.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -106,6 +112,45 @@ log_impl(LogLevel level, const char* file, int line, const char* fmt, ...)
         std::fprintf(g_log_file, "%s\n", msg);
         std::fflush(g_log_file);
     }
+}
+
+// Routes chart::Spy live output into syslog at LOG_DEBUG priority.
+// Each '\n'-terminated line from Spy becomes one syslog entry.
+class SpySyslogBuf : public std::streambuf {
+protected:
+    int overflow(int c) override {
+        if (c == traits_type::eof())
+            return traits_type::not_eof(c);
+        if (c == '\n') {
+            if (!buf_.empty()) {
+                std::lock_guard<std::mutex> lk(g_log_mutex);
+                syslog(LOG_DEBUG, "%s", buf_.c_str());
+                if (g_log_file) {
+                    std::fprintf(g_log_file, "%s\n", buf_.c_str());
+                    std::fflush(g_log_file);
+                }
+                buf_.clear();
+            }
+        } else {
+            buf_ += static_cast<char>(c);
+        }
+        return c;
+    }
+
+private:
+    std::string buf_;
+};
+
+namespace {
+struct SpyWire {
+    SpyWire() {
+        os_.reset(new std::ostream(&buf_));
+        chart::Spy::live_sink(os_.get());
+        chart::Spy::live_trace_sink(os_.get());
+    }
+    SpySyslogBuf buf_;
+    std::unique_ptr<std::ostream> os_;
+} g_spy_wire;
 }
 
 }  // namespace simula

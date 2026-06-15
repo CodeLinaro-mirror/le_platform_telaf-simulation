@@ -1,0 +1,18 @@
+# Build artifacts
+build/
+build_san/
+build-*/
+.codegraph/
+CLAUDE.md
+.claude/
+
+# Editor / OS
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Compiled binaries
+*.o
+*.a
+*.so

@@ -9,7 +9,8 @@ set(LIBRARY_VERSION "1.0.0")
 set(LIBRARY_SOVERSION "1")
 
 set(TELUX_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../sdk-include)
-include_directories(${TELUX_SDK_INCLUDE})
+set(CHART_INCLUDE     ${CMAKE_CURRENT_SOURCE_DIR}/../chart/include)
+include_directories(${TELUX_SDK_INCLUDE} ${CHART_INCLUDE})
 
 add_library(telux_common SHARED Common.cpp Log.cpp)
 set_target_properties(telux_common PROPERTIES
