@@ -17,6 +17,7 @@ set(CMAKE_INSTALL_RPATH "$ORIGIN:")
 set(MODULE_LIST
     component/common
     component/tel
+    component/platform
 )
 
 foreach(module ${MODULE_LIST})

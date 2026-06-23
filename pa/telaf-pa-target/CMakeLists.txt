@@ -42,6 +42,7 @@ set(CMAKE_INSTALL_RPATH "$ORIGIN:")
 # Only build the components that the simulation currently needs.
 set(MODULE_LIST
     component/taf_pa_common
+    component/taf_pa_deviceinfo
 )
 
 foreach(module ${MODULE_LIST})

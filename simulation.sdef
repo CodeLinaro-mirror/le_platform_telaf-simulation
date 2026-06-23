@@ -63,6 +63,9 @@ apps:
     $SIMULATION_ROOT/stub/taf_simula_gpio/tafGpioSvc.adef
 #endif
 
+#if ${TELAF_SIMULATION_ENABLE_DEVICE_INFO} = y
+    $TELAF_ROOT/apps/tafServices/tafDevInfoSvc
+#endif
     $LEGATO_ROOT/apps/sample/helloIpc/printClient
     $LEGATO_ROOT/apps/sample/helloIpc/printServer
 
@@ -88,6 +91,7 @@ apps:
     // $TELAF_ROOT/apps/test/tafSomeipGWTest/multiRoutingManagersTest/multiRoutMgrsTestAppA
     // $TELAF_ROOT/apps/sample/eCallDemo/tafECallApp
     // $TELAF_ROOT/apps/test/tafECallTest/tafECallUnitTest/tafECallUnitTest
+    // $TELAF_ROOT/apps/test/tafDevInfoTest/tafDevInfoIntTest
 }
 
 commands:
