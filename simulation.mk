@@ -125,6 +125,10 @@ MKTOOLS_FLAGS_SIMULATION_EX += \
   --cxxflags=-I$(SIMULATION_DEPS_ROOTFS)/include \
   --ldflags=-L$(SIMULATION_DEPS_ROOTFS)/lib
 
+# Bake RUNPATH into all built binaries/libs so 3rd-party deps' libs are found at runtime
+MKTOOLS_FLAGS_SIMULATION_EX += \
+  --ldflags=-Wl,--enable-new-dtags,-rpath,/legato/taf_rootfs/lib,-rpath,/legato/taf_rootfs/lib64
+
 export MKTOOLS_FLAGS_SIMULATION_EX
 
 # Command line can override the option of CGROUP feature
@@ -183,6 +187,7 @@ post-simulation-build:
 ifneq ($(TELAF_SIMULATION_ENABLE_MNGD_CONN),n)
 	$Q cp $(TELAF_ROOT)/apps/tafMngdServices/Connectivity/Components/tafMngdConnSvc/Config/mngdConnectivity.json $(SIMULATION_HOME)/deps/taf_rootfs
 endif
+	$Q chmod a+rx $(SIMULATION_HOME)/deps/taf_rootfs
 	$Q tar rf $(SIMULATION_TARBALL) --exclude=taf_rootfs/include \
 	                                --exclude=taf_rootfs/lib/cmake \
 	                                --exclude=taf_rootfs/lib/pkgconfig \

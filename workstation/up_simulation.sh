@@ -16,7 +16,7 @@ if [ -n "${TELAF_IN_CONTAINER}" ]; then # [Docker-Container-Env]
 
     # Modify global environment variables for all users
     TOP_ENV=/etc/environment
-    echo 'PATH="/legato/systems/current/bin:/legato/taf_rootfs/bin:/legato/sdk_rootfs/bin:/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"' >> $TOP_ENV
+    echo 'PATH="/legato/systems/current/bin:/legato/taf_rootfs/bin:/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"' >> $TOP_ENV
     echo 'TELAF_IN_CONTAINER=yes' >> $TOP_ENV
     source "$TOP_ENV"
 
@@ -186,10 +186,9 @@ if [ -n "${TELAF_IN_CONTAINER}" ]; then # [Docker-Container-Env]
     MOUNTPOINT_TELAF="/mnt/legato"
     mount -o bind $MOUNTPOINT_TELAF /legato
 
-    # Update the runtime library pathes for taf & sdk.
-    echo "/legato/taf_rootfs/lib"   >> /etc/ld.so.conf
-    echo "/legato/taf_rootfs/lib64" >> /etc/ld.so.conf
-    echo "/legato/sdk_rootfs/lib"   >> /etc/ld.so.conf
+    # Update the runtime library pathes for telaf.
+    echo "/legato/taf_rootfs/lib"   >> /etc/ld.so.conf.d/00-taf.conf
+    echo "/legato/taf_rootfs/lib64" >> /etc/ld.so.conf.d/00-taf.conf
 
     sync && ldconfig
 
@@ -200,26 +199,6 @@ if [ -n "${TELAF_IN_CONTAINER}" ]; then # [Docker-Container-Env]
 
         # extract the tarball to /mnt/legato without the 'install/' directory
         tar zxf $SML_RO_TARBALL --no-same-owner --overwrite -C $MOUNTPOINT_TELAF --exclude up_simulation.sh
-
-        # If we have SDK simulation dependencies, deploy the stuff into our system
-        SDK_ROOTFS=/legato/sdk_rootfs
-        if [ -d ${SDK_ROOTFS} ]; then
-            # Follow SDK Dockerfile configuration
-            cp -a -r -d ${SDK_ROOTFS}/bin/* /usr/bin/
-            cp -a -r -d ${SDK_ROOTFS}/lib/* /usr/lib/
-            cp -a -r -d ${SDK_ROOTFS}/include/* /usr/include/
-            cp -a -r -d ${SDK_ROOTFS}/share/* /usr/share/
-            cp -a -r -d ${SDK_ROOTFS}/etc/* /etc/
-            cp -a -r -d -n ${SDK_ROOTFS}/data/* /data/
-
-            # Change the dirs' mode for others access
-            chmod 0755 /etc/telux
-            chmod 0766 /etc/telux/*
-            chmod -R 0777 /data/telux
-
-            # Use supervisord to start and monitor telsdk_simulation_server
-            supervisord -c /etc/supervisord.conf
-        fi
 
         CONTAINER_DISTRO_VERSION=$(grep -oP 'VERSION_ID="\K[^"]+' /etc/os-release)
 
