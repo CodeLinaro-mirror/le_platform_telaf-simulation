@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.sim.hotswap.req",
+  "title": "Hotswap Installed SIM",
+  "description": "Simulate physically swapping the installed SIM card. Sets the new iccid/imsi and drives the full remove->insert->app-ready sequence: card_state ABSENT/UNKNOWN, then sub_info_changed with the new identity, then card_state PRESENT/UNKNOWN, then PRESENT/READY. Emits 3 card_state + 1 sub_info_changed indication, synchronously.",
+  "type": "object",
+  "required": ["iccid", "imsi"],
+  "properties": {
+    "iccid": { "type": "string" },
+    "imsi": { "type": "string" },
+    "slot": {
+      "type": "integer",
+      "const": 1,
+      "default": 1,
+      "description": "Which SIM slot to hotswap. Only slot 1 is supported."
+    }
+  },
+  "additionalProperties": false
+}

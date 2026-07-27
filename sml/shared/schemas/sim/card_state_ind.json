@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sim.card_state.ind",
+  "title": "Card State Indication",
+  "description": "Published on any cardState/appState change (power on/off, hotswap, forced state) -- drives ICardListener::onCardInfoChanged on the PA side.",
+  "type": "object",
+  "required": ["cardState", "appState"],
+  "properties": {
+    "cardState": { "type": "string", "enum": ["ABSENT", "PRESENT", "ERROR", "RESTRICTED", "UNKNOWN"] },
+    "appState": { "type": "string", "enum": ["READY", "ILLEGAL", "UNKNOWN"] }
+  },
+  "additionalProperties": false
+}

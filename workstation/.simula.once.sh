@@ -21,6 +21,20 @@ fi
 # Mosquitto persistence directory (must exist before broker starts).
 mkdir -p /tmp/mosquitto_persist/
 
+# Simulation PA runtime config (log level / log file / chart::Spy mode).
+# The PA reads the absolute path /etc/sml_pa.conf (hardcoded as kConfPath in
+# pa/telaf-pa-simula/component/common/Log.cpp), but the editable source of
+# truth lives in the volume-mounted /root/sml/ tree -- so install it here
+# rather than baking it into the image. Copied (not symlinked) because the
+# PA opens it with a plain ifstream very early in process start, before any
+# of the mount juggling below.
+#
+# `cp -n` on purpose: never clobber a copy someone already hand-edited in
+# /etc to reproduce an issue. Delete /etc/sml_pa.conf to re-seed from sml/.
+if [ -e /root/sml/sml_pa.conf ]; then
+    cp -n /root/sml/sml_pa.conf /etc/sml_pa.conf
+fi
+
 # Config lives in /root/sml/ (volume-mounted) — edit without rebuilding.
 # Use supervisorctl -c /root/sml/supervisord.sml.conf <status|restart|stop>
 supervisord -c /root/sml/supervisord.sml.conf

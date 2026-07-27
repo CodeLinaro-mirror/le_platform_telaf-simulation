@@ -26,7 +26,8 @@ apps:
 
 #if ${TELAF_SIMULATION_ENABLE_SIM} = y
     // from --> $TELAF_ROOT/apps/tafServices/tafSimCardSvc
-    $SIMULATION_ROOT/bypass/telsdk/tafSimCardSvc
+    $TELAF_ROOT/apps/tafServices/tafSimCardSvc
+    // $SIMULATION_ROOT/bypass/telsdk/tafSimCardSvc
 #endif
 
 #if ${TELAF_SIMULATION_ENABLE_LOC} = y
@@ -76,6 +77,7 @@ apps:
     // $TELAF_ROOT/apps/test/tafSmsTest/tafSMSUnitTest
     // $TELAF_ROOT/apps/test/tafDataCallTest/tafDataCallUnitTest/tafDataCallUnitTest
     // $TELAF_ROOT/apps/test/tafSimTest/tafSimUnitTest/tafSimUnitTest
+    // $TELAF_ROOT/apps/test/tafSimTest/tafSimIntegrationTest/tafSimIntTest
     // $TELAF_ROOT/apps/test/tafLocationTest/tafLocationUnitTest/tafLocationUnitTest
     // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdConnUnitTest/tafMngdConnUnitTest
     // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdConnIntTest/tafMngdConnIntTest

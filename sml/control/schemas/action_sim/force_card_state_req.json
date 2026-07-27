@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.sim.force_card_state.req",
+  "title": "Force Card/App State",
+  "type": "object",
+  "properties": {
+    "cardState": {
+      "type": "string",
+      "enum": ["ABSENT", "PRESENT", "ERROR", "RESTRICTED"]
+    },
+    "appState": {
+      "type": "string",
+      "enum": ["READY", "ILLEGAL", "UNKNOWN"]
+    },
+    "slot": {
+      "type": "integer",
+      "const": 1,
+      "default": 1,
+      "description": "Which SIM slot's card/app state to force. Only slot 1 is supported."
+    }
+  },
+  "additionalProperties": false
+}

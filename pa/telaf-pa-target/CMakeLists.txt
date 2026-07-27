@@ -44,6 +44,7 @@ set(MODULE_LIST
     component/taf_pa_common
     component/taf_pa_deviceinfo
     component/taf_pa_data
+    component/taf_pa_sim
 )
 
 foreach(module ${MODULE_LIST})

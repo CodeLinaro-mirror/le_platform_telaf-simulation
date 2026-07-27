@@ -35,7 +35,12 @@ def load_registries() -> list[dict]:
     scenarios = []
     actions = []
     for path in sorted(registry_dir.glob("*.yaml")):
-        doc = yaml.safe_load(path.read_text())
+        # encoding pinned -- a bare read_text() decodes with the platform
+        # locale, so a non-UTF-8 build host (cp1252, or LANG unset -> ascii)
+        # dies on any non-ASCII description byte and writes no generated code.
+        # See sml/shared/tools/schema_common.py's load_registries() for the
+        # full failure chain.
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
         if doc.get("kind") == "scenario":
             doc.setdefault("commands", [])
             scenarios.append(doc)
@@ -87,7 +92,8 @@ def build_messages(registries: dict) -> list[dict]:
             return
         seen_topic_ids.add(topic_id)
         schema_path = CONTRACT_ROOT / payload_rel_path
-        schema = json.loads(schema_path.read_text())
+        # encoding pinned -- see load_registries() above.
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
         messages.append({
             "topic_id": topic_id,
             "class_name": to_pascal_case(f"{prefix}_{name}_{suffix}"),

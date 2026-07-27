@@ -1,0 +1,56 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Sim-domain ctrl/cmd/action/sim/** registry (mirrors action_data.yaml's
+# structure/rationale). Actions inject environment/hardware-side changes
+# MPSS would normally drive itself with no AP-facing RPC for triggering
+# them -- there is no taf_sim_* call for "the SIM was physically swapped"
+# or "the card lost power due to a hardware fault", so these are the
+# test-only entry points for exercising sim.yaml's indications
+# (mp/ind/sim/card_state, mp/ind/sim/sub_info_changed).
+#
+# Scope: only the sim domain, once it has an MPSS implementation (see
+# sml/mpss/sim/).
+
+kind: action
+domain: sim
+
+actions:
+  - method: force_card_state
+    req_topic: "ctrl/cmd/action/sim/force_card_state"
+    req_payload: schemas/action_sim/force_card_state_req.json
+    qos: 1
+    description: >-
+      Force CardManager's card/app state (cardState/appState),
+      re-publishing mp/ind/sim/card_state with the new values. Simulates
+      a hardware-side card fault/restriction the AP did not request.
+
+  - method: force_power
+    req_topic: "ctrl/cmd/action/sim/force_power"
+    req_payload: schemas/action_sim/force_power_req.json
+    qos: 1
+    description: >-
+      Force the card's power state, re-publishing mp/ind/sim/card_state.
+      Simulates an unrequested power loss/restore independent of
+      taf_sim_SetPower.
+
+  - method: hotswap
+    req_topic: "ctrl/cmd/action/sim/hotswap"
+    req_payload: schemas/action_sim/hotswap_req.json
+    qos: 1
+    description: >-
+      Simulate physically swapping the installed SIM card. Sets the new
+      iccid/imsi and drives the realistic remove -> insert -> app-ready
+      sequence, since a real swap is several observable transitions and
+      the PA reacts to each: card_state ABSENT/UNKNOWN (old card out),
+      then card_state PRESENT/UNKNOWN (detected, USIM not up), then
+      PRESENT/READY (usable), and finally sub_info_changed with the new
+      identity. 3 card_state + 1 sub_info_changed, all synchronous.
+      sub_info_changed comes LAST by necessity: the PA caches identity
+      only for a live slot, and its PRESENT handling never re-reads it, so
+      an identity announced while the card is ABSENT is discarded and the
+      service keeps serving the pre-swap card. Sequenced by
+      SimActionDispatcher._hotswap() because it spans both SubscriptionAO
+      (iccid/imsi) and SimCardAO (card/app state) and neither AO may write
+      the other's World State. Bypasses any AP-driven flow since there is
+      no AP-facing "swap the SIM" RPC.

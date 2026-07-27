@@ -1,0 +1,18 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Restore the card to a usable state, e.g. after `sim_force_power_off.yaml`.
+#
+#   sml mqttcli pub sml/tools/mqttcli/commands/sim_card_ready.yaml
+#
+# Needed because force_power is deliberately asymmetric: powerOn=false forces
+# ABSENT/UNKNOWN, but powerOn=true only clears the flag and does NOT restore
+# PRESENT/READY (a powered rail does not imply an initialised USIM). So a
+# power bounce alone will not get you back to TAF_SIM_READY -- this does.
+
+topic: ctrl/cmd/action/sim/force_card_state
+qos: 1
+data:
+  cardState: PRESENT
+  appState: READY
+  slot: 1

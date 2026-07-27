@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sim.get_state.req",
+  "title": "Get Card State Request",
+  "type": "object",
+  "required": ["slot"],
+  "properties": {
+    "slot": { "type": "integer", "const": 1 }
+  },
+  "additionalProperties": false
+}

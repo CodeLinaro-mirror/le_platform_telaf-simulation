@@ -1,0 +1,33 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Swap the installed SIM card at runtime -- new ICCID + IMSI, with the full
+# remove -> insert -> app-ready transition sequence a real swap produces.
+#
+#   sml mqttcli sub 'mp/ind/sim/#' -v          # terminal 1: watch the wire
+#   sml mqttcli pub sml/tools/mqttcli/commands/sim_hotswap.yaml
+#   app runProc tafSimUnitTest tafSimUnitTest -- slot1 1234 1234
+#
+# Expect on the wire, in order (4 indications):
+#   mp/ind/sim/card_state       {cardState: ABSENT,  appState: UNKNOWN}
+#   mp/ind/sim/card_state       {cardState: PRESENT, appState: UNKNOWN}
+#   mp/ind/sim/card_state       {cardState: PRESENT, appState: READY}
+#   mp/ind/sim/sub_info_changed {iccid: ...999, imsi: ...999}
+#
+# sub_info_changed is LAST on purpose. The PA copies identity into its cache
+# only while the card is present, and its PRESENT path never re-reads it -- so
+# an identity published while the card is ABSENT is silently dropped and
+# `info slot1` would keep printing the OLD ICCID/IMSI forever.
+#
+# ...then the test app reports the NEW ICCID/IMSI and TAF_SIM_READY again.
+#
+# Both `iccid` and `imsi` are REQUIRED (action.sim.hotswap.req). Sending only
+# one is a hard validation failure: nothing is published and the card is left
+# untouched -- it does not get stranded ABSENT.
+
+topic: ctrl/cmd/action/sim/hotswap
+qos: 1
+data:
+  iccid: "8986011234567890999"
+  imsi: "460000999999999"
+  slot: 1

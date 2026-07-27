@@ -1,0 +1,108 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# sim domain registry -- source of truth for PA<->MPSS SIM-card wire
+# contract (card state/power via CardManager, ICCID/IMSI via
+# SubscriptionManager). Mirrors sml/shared/registry/data.yaml's structure;
+# see .claude/md/design/architecture.md and pa/telaf-pa-simula/component/sim/
+# for the C++ side, sml/mpss/sim/ for the MPSS side.
+#
+# Scope: only the 7 taf_sim_* APIs this domain currently backs --
+# GetState/IsReady/SetPower/GetICCID/GetIMSI/AddNewStateHandler/
+# RemoveNewStateHandler. getSimProfileManager is out of scope (no registry
+# entries for RPCs nothing here answers).
+#
+# getMultiSimManager needs NO new RPC of its own: SimulaMultiSimManager
+# (pa/telaf-pa-simula/component/sim/MultiSimManager.cpp) exists only because
+# taf_pa_sim_Init() hard-fails without it, and it answers requestSlotStatus
+# by reusing the get_state RPC below rather than adding a slot_status topic.
+# It deliberately does NOT subscribe_event() to card_state/subsys_ready_card
+# -- IModemBridge::subscribe_event replaces by topic, so that would silently
+# steal SimulaCardManager's callback.
+
+domain: sim
+
+rpcs:
+  # --- sim.card.* — CardManager ---------------------------------------------
+
+  - method: get_state
+    req_topic: "ap/req/sim/get_state"
+    rsp_topic: "mp/rsp/sim/get_state"
+    req_payload: schemas/sim/get_state_req.json
+    rsp_payload: schemas/sim/get_state_rsp.json
+    qos: 1
+    description: >-
+      Query current card + USIM app state. cardState/appState together
+      let the PA derive taf_sim_GetState's PRESENT/READY/ERROR distinction
+      exactly as tafSimPa.cpp's taf_pa_sim_GetState does from
+      ICard::getState() + ICardApp::getAppState().
+
+  - method: set_power
+    req_topic: "ap/req/sim/set_power"
+    rsp_topic: "mp/rsp/sim/set_power"
+    req_payload: schemas/sim/set_power_req.json
+    rsp_payload: schemas/sim/set_power_rsp.json
+    qos: 1
+    description: "Power the card up or down (ICardManager::cardPowerUp/cardPowerDown)."
+
+  # --- sim.sub.* — SubscriptionManager ---------------------------------------
+
+  - method: get_iccid
+    req_topic: "ap/req/sim/get_iccid"
+    rsp_topic: "mp/rsp/sim/get_iccid"
+    req_payload: schemas/sim/get_iccid_req.json
+    rsp_payload: schemas/sim/get_iccid_rsp.json
+    qos: 1
+    description: "Query the SIM's ICCID (ISubscription::getIccId)."
+
+  - method: get_imsi
+    req_topic: "ap/req/sim/get_imsi"
+    rsp_topic: "mp/rsp/sim/get_imsi"
+    req_payload: schemas/sim/get_imsi_req.json
+    rsp_payload: schemas/sim/get_imsi_rsp.json
+    qos: 1
+    description: "Query the SIM's IMSI (ISubscription::getImsi)."
+
+indications:
+  # --- sim.card.* -------------------------------------------------------------
+
+  - event: card_state
+    ind_topic: "mp/ind/sim/card_state"
+    payload: schemas/sim/card_state_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      Card/app state transition (power on/off, hotswap, forced state) --
+      drives ICardListener::onCardInfoChanged on the PA side.
+
+  # --- sim.sub.* ----------------------------------------------------------
+
+  - event: sub_info_changed
+    ind_topic: "mp/ind/sim/sub_info_changed"
+    payload: schemas/sim/sub_info_changed_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      ICCID/IMSI changed (e.g. a hotswap action) -- drives
+      ISubscriptionListener::onSubscriptionInfoChanged on the PA side.
+
+  # --- sim.subsys_ready — one retained topic per manager ---------------------
+  # CardManager and SubscriptionManager map to two independently-booting
+  # subsystems on real hardware -- each publishes its own readiness,
+  # mirroring data.yaml's subsys_ready_data/profile/serv split. Reuses
+  # data's subsys_ready_ind.json payload shape (domain-agnostic {ready,
+  # status} pair) rather than duplicating an identical schema file.
+
+  - event: subsys_ready_card
+    ind_topic: "mp/ind/sim/subsys_ready/card"
+    payload: schemas/data/subsys_ready_ind.json
+    qos: 1
+    retain: true
+    description: "CardManager subsystem readiness."
+
+  - event: subsys_ready_sub
+    ind_topic: "mp/ind/sim/subsys_ready/sub"
+    payload: schemas/data/subsys_ready_ind.json
+    qos: 1
+    retain: true
+    description: "SubscriptionManager subsystem readiness."

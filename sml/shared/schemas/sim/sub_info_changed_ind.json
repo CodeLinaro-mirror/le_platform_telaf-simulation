@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sim.sub_info_changed.ind",
+  "title": "Subscription Info Changed Indication",
+  "description": "Published when iccid/imsi change (e.g. a hotswap action) -- drives ISubscriptionListener::onSubscriptionInfoChanged on the PA side.",
+  "type": "object",
+  "required": ["iccid", "imsi"],
+  "properties": {
+    "iccid": { "type": "string" },
+    "imsi": { "type": "string" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sim.set_power.rsp",
+  "title": "Set Card Power Response",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

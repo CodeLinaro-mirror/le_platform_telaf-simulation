@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sim.get_imsi.rsp",
+  "title": "Get IMSI Response",
+  "type": "object",
+  "required": ["imsi"],
+  "properties": {
+    "imsi": { "type": "string" }
+  },
+  "additionalProperties": false
+}

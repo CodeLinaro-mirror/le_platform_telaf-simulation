@@ -86,6 +86,7 @@ endforeach()
 set(CODEGEN_CONSUMERS
     telux_common   # component/common/ModemBridge.cpp -> validators.h
     telux_data     # component/data/*.cpp             -> topics.h
+    telux_tel      # component/sim/*.cpp (compiled into it)   -> topics.h
 )
 foreach(consumer ${CODEGEN_CONSUMERS})
     if(NOT TARGET ${consumer})
@@ -95,3 +96,4 @@ foreach(consumer ${CODEGEN_CONSUMERS})
     endif()
     add_dependencies(${consumer} simula_codegen)
 endforeach()
+

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sim.get_state.rsp",
+  "title": "Get Card State Response",
+  "description": "cardState mirrors telux::tel::CardState; appState mirrors the USIM ICardApp's AppState (READY/ILLEGAL/UNKNOWN) used to refine PRESENT into READY/ERROR -- see tafSimPa.cpp's taf_pa_sim_GetState.",
+  "type": "object",
+  "required": ["cardState", "appState"],
+  "properties": {
+    "cardState": { "type": "string", "enum": ["ABSENT", "PRESENT", "ERROR", "RESTRICTED", "UNKNOWN"] },
+    "appState": { "type": "string", "enum": ["READY", "ILLEGAL", "UNKNOWN"] }
+  },
+  "additionalProperties": false
+}

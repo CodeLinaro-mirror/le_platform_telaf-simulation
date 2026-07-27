@@ -18,6 +18,7 @@ from sml.mpss.mqtt_client import MqttClient
 from sml.mpss.config import ConfigError, load_config
 from sml.mpss.data import DataSubsystem
 from sml.mpss import instrumentation as _instr
+from sml.mpss.sim import SimSubsystem
 from sml.runtime.action_dispatcher import ActionDispatcher
 from sml.runtime.loader import (
     LoaderError,
@@ -121,10 +122,21 @@ def main() -> int:
         )
         dispatcher.register_domain("data", data_subsystem)
         client.register_subsystem(data_subsystem)
+
+        sim_subsystem = SimSubsystem(
+            # Same resolved SimSlotRuntime the data domain seeds from, so the
+            # card the sim domain reports and the slot the data domain runs
+            # calls on can never disagree. `installed_sim` is optional (a
+            # `removed` slot legitimately has none) -> ABSENT/UNKNOWN card.
+            installed_sim=target_slot_runtime.installed_sim if target_slot_runtime else None,
+        )
+        dispatcher.register_domain("sim", sim_subsystem)
+        client.register_subsystem(sim_subsystem)
+
         client.register_subsystem(runner)
         log.info("scenario runner registered (mpss.scenario=%s)", cfg.scenario)
     else:
-        log.info("no mpss.scenario configured; data domain not started")
+        log.info("no mpss.scenario configured; data/sim domains not started")
 
     client.start()
 

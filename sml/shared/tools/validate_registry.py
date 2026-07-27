@@ -74,7 +74,7 @@ def _check_payload_path(rel_path: str, field: str, errs: list[str]) -> None:
         errs.append(f"{field} {rel_path!r} does not exist (resolved: {p})")
         return
     try:
-        json.loads(p.read_text())
+        json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         errs.append(f"{field} {rel_path!r} is not valid JSON: {exc}")
 
@@ -83,7 +83,7 @@ def validate_registry_file(path: Path) -> list[str]:
     """Return a list of error strings (empty = file is clean)."""
     errs: list[str] = []
     try:
-        doc = yaml.safe_load(path.read_text())
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
         return [f"{path.name}: YAML parse error: {exc}"]
 

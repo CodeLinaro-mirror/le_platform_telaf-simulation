@@ -73,7 +73,7 @@ def _check_payload_path(rel_path, field: str, errs: list[str]) -> None:
         errs.append(f"{field} {rel_path!r} does not exist (resolved: {p})")
         return
     try:
-        json.loads(p.read_text())
+        json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         errs.append(f"{field} {rel_path!r} is not valid JSON: {exc}")
 
@@ -173,7 +173,7 @@ def _validate_action_file(path: Path, doc: dict) -> tuple[list[str], set[str], s
 def validate_registry_file(path: Path) -> tuple[list[str], set[str], set[str]]:
     """Return (errors, topics_used, canonical_action_names)."""
     try:
-        doc = yaml.safe_load(path.read_text())
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
         return [f"{path.name}: YAML parse error: {exc}"], set(), set()
 

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.sim.force_power.req",
+  "title": "Force Card Power",
+  "type": "object",
+  "required": ["powerOn"],
+  "properties": {
+    "powerOn": { "type": "boolean" },
+    "slot": {
+      "type": "integer",
+      "const": 1,
+      "default": 1,
+      "description": "Which SIM slot's power to force. Only slot 1 is supported."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sim.set_power.req",
+  "title": "Set Card Power Request",
+  "type": "object",
+  "required": ["slot", "powerOn"],
+  "properties": {
+    "slot": { "type": "integer", "const": 1 },
+    "powerOn": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

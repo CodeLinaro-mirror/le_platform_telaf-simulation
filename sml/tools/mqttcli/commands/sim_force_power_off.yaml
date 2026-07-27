@@ -1,0 +1,21 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Force an unrequested card power loss -- simulates a hardware fault, NOT an
+# AP-requested taf_sim_SetPower (that is ap/req/sim/set_power, a different
+# path the app drives itself).
+#
+#   sml mqttcli pub sml/tools/mqttcli/commands/sim_force_power_off.yaml
+#   app runProc tafSimUnitTest tafSimUnitTest -- slot1 1234 1234
+#
+# Expect: card_state {ABSENT, UNKNOWN} -> the app reports
+#   SIM Availability: No / SIM Ready: False / State: Unknown SIM state
+#
+# To get back to READY use sim_card_ready.yaml -- powerOn:true alone does NOT
+# restore PRESENT/READY (see that file's comment).
+
+topic: ctrl/cmd/action/sim/force_power
+qos: 1
+data:
+  powerOn: false
+  slot: 1

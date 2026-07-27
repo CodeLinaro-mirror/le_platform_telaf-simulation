@@ -9,6 +9,16 @@
 // issue is resolved (see ModemBridge / initDataServingSystemManagers timeout).
 //
 // TODO: replace with MQTT-driven implementation once ModemBridge connects.
+//
+// getCardManager()/getSubscriptionManager()/getMultiSimManager() delegate
+// to SimulaSimFactory (../sim/SimFactory.hpp) -- real, MQTT-driven
+// implementations covering the taf_sim_* API surface (see
+// ../sim/SimFactory.hpp's class-level comment for scope). Every other
+// getter here stays a stub/nullptr; PhoneFactory::getInstance() must stay a
+// single definition (this file's), so ../sim/*.cpp are compiled into this
+// same telux_tel target rather than a separate .so.
+
+#include "../sim/SimFactory.hpp"
 
 #include <future>
 #include <memory>
@@ -102,18 +112,18 @@ public:
     {
         return nullptr;
     }
-    std::shared_ptr<ICardManager> getCardManager(telux::common::InitResponseCb) override
+    std::shared_ptr<ICardManager> getCardManager(telux::common::InitResponseCb cb) override
     {
-        return nullptr;
+        return simFactory_.getCardManager(std::move(cb));
     }
     std::shared_ptr<ISapCardManager> getSapCardManager(int, telux::common::InitResponseCb) override
     {
         return nullptr;
     }
-    std::shared_ptr<ISubscriptionManager> getSubscriptionManager(telux::common::InitResponseCb
+    std::shared_ptr<ISubscriptionManager> getSubscriptionManager(telux::common::InitResponseCb cb
     ) override
     {
-        return nullptr;
+        return simFactory_.getSubscriptionManager(std::move(cb));
     }
     std::shared_ptr<IServingSystemManager>
     getServingSystemManager(int, telux::common::InitResponseCb) override
@@ -130,9 +140,9 @@ public:
     {
         return nullptr;
     }
-    std::shared_ptr<IMultiSimManager> getMultiSimManager(telux::common::InitResponseCb) override
+    std::shared_ptr<IMultiSimManager> getMultiSimManager(telux::common::InitResponseCb cb) override
     {
-        return nullptr;
+        return simFactory_.getMultiSimManager(std::move(cb));
     }
     std::shared_ptr<ICellBroadcastManager>
     getCellBroadcastManager(SlotId, telux::common::InitResponseCb) override
@@ -172,6 +182,9 @@ public:
     {
         return nullptr;
     }
+
+private:
+    telux::tel::simula::SimulaSimFactory simFactory_;
 };
 
 PhoneFactory::PhoneFactory() = default;

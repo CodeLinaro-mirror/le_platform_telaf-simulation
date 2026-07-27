@@ -45,7 +45,17 @@ def load_registries() -> list[dict]:
     registry_dir = CONTRACT_ROOT / "registry"
     out = []
     for path in sorted(registry_dir.glob("*.yaml")):
-        doc = yaml.safe_load(path.read_text())
+        # encoding="utf-8" is REQUIRED, not cosmetic: bare read_text() decodes
+        # with locale.getpreferredencoding(), so on a build host whose locale is
+        # not UTF-8 (e.g. cp1252, or a container with LANG unset -> POSIX/ascii)
+        # any non-ASCII byte in a registry/schema file raises UnicodeDecodeError
+        # and the generator dies WITHOUT writing generated/cpp/*.h. The C++
+        # build then fails far away with
+        #     fatal error: generated/cpp/validators.h: No such file or directory
+        # which reads as a missing dependency rather than a decode fault.
+        # These files legitimately contain non-ASCII (en dashes, arrows) in
+        # descriptions, so the encoding must be pinned at every read site.
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
         doc.setdefault("rpcs", [])
         doc.setdefault("indications", [])
         out.append(doc)
@@ -119,7 +129,9 @@ def build_messages(registries: list[dict], lang: str) -> list[dict]:
             return
         seen_topic_ids.add(topic_id)
         schema_path = CONTRACT_ROOT / payload_rel_path
-        schema = json.loads(schema_path.read_text())
+        # encoding pinned -- see load_registries() for why a bare read_text()
+        # here silently breaks the C++ build on a non-UTF-8 locale.
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
         messages.append({
             "topic_id": topic_id,
             "class_name": to_pascal_case(f"{domain}_{name}_{suffix}"),
