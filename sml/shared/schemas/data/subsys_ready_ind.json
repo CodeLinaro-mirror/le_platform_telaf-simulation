@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.subsys_ready.ind",
+  "title": "Subsystem Ready Indication",
+  "description": "Shared shape for subsys_ready_data/profile/serv -- one retained topic per manager, see registry description.",
+  "type": "object",
+  "required": ["ready", "status"],
+  "properties": {
+    "ready": { "type": "boolean" },
+    "status": { "type": "string", "enum": ["AVAILABLE", "UNAVAILABLE"] }
+  },
+  "additionalProperties": false
+}

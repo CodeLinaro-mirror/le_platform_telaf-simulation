@@ -275,6 +275,15 @@ else # [Non-Docker-Container-Env]
         export CONTAINER_WHO_AM_I="master"
     fi
 
+    # INSTANCE tags a runtime container/volume set for multi-instance debugging.
+    # Empty INSTANCE preserves legacy names. Allowed chars follow docker's rules.
+    if [ -n "$INSTANCE" ]; then
+        if ! echo "$INSTANCE" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$'; then
+            echo "Invalid INSTANCE=$INSTANCE (allowed: [a-zA-Z0-9][a-zA-Z0-9_.-]*)"
+            exit 1
+        fi
+    fi
+
     function try_to_create_volume () {
         if docker volume inspect $1 > /dev/null 2>&1; then
             echo "[Volume Reuse] --> $1"
@@ -311,10 +320,44 @@ else # [Non-Docker-Container-Env]
     CONTAINER_NAME=${CONTAINER_NAME:="telaf_simulation_runtime"}
     IMG_NAME=${IMG_NAME:="telaf_simulation_runtime"}
     IMG_VERSION=${IMG_VERSION:="1.0.0"}
-    IPV6_NETWORK_NAME=${IPV6_NETWORK_NAME:="${CONTAINER_NAME%??}_ipv6net"}
+    # Network is shared across all instances of the same which-one — strip the INSTANCE
+    # suffix (leading '_<tag>') from CONTAINER_NAME before deriving the network name so
+    # that '..._m' and '..._m_test' both resolve to the same '..._ipv6net'.
+    if [ -n "$INSTANCE" ]; then
+        NETNAME_BASE="${CONTAINER_NAME%_$INSTANCE}"
+    else
+        NETNAME_BASE="$CONTAINER_NAME"
+    fi
+    IPV6_NETWORK_NAME=${IPV6_NETWORK_NAME:="${NETNAME_BASE%??}_ipv6net"}
     IPV6_DEFAULT_SUBNET=${IPV6_DEFAULT_SUBNET:="2001:0DB8::/112"}
-    BUILTIN_CONTAINER_OPTIONS=${BUILTIN_CONTAINER_OPTIONS:="-i -t --privileged=true --net=$IPV6_NETWORK_NAME"}
-    CONTAINER_OPTIONS=${CONTAINER_OPTIONS:="-p 9022:22 --rm"}
+
+    # SIMULA_MODE selects how the container is started:
+    #   interactive : human shell, -t, --rm, /bin/bash as PID 1  (default, legacy behavior)
+    #   headless    : long-lived container for AI/CI, detached, no TTY, no --rm, tail -f /dev/null
+    # Users should not set TTY_OPT/RM_OPT/CONTAINER_CMD directly.
+    SIMULA_MODE=${SIMULA_MODE:-interactive}
+    case "$SIMULA_MODE" in
+        interactive)
+            SML_TTY_OPT="-t"
+            SML_RM_OPT="--rm"
+            SML_DETACH_OPT=""
+            SML_CONTAINER_CMD="/bin/bash"
+            ;;
+        headless)
+            SML_TTY_OPT=""
+            SML_RM_OPT=""
+            SML_DETACH_OPT="-d"
+            SML_CONTAINER_CMD="tail -f /dev/null"
+            ;;
+        *)
+            echo "Unknown SIMULA_MODE=$SIMULA_MODE (want: interactive|headless)"
+            exit 1
+            ;;
+    esac
+
+    BUILTIN_CONTAINER_OPTIONS=${BUILTIN_CONTAINER_OPTIONS:="-i $SML_TTY_OPT $SML_DETACH_OPT --privileged=true --net=$IPV6_NETWORK_NAME"}
+    SSH_PORT=${SSH_PORT:-9022}
+    CONTAINER_OPTIONS=${CONTAINER_OPTIONS:="-p ${SSH_PORT}:22 $SML_RM_OPT $EX_DOCKER_OPTS"}
     SIMULATION_TARBALL_NAME=${SIMULATION_TARBALL_NAME:="telaf_simulation.tar.gz"}
 
     # Get recorded CGROUP version
@@ -393,6 +436,7 @@ else # [Non-Docker-Container-Env]
         $BUILTIN_CONTAINER_OPTIONS \
         $CONTAINER_OPTIONS \
         $CGROUP_OPTIONS \
+        $EX_DOCKER_OPTS \
         -e CONTAINER_WHO_AM_I=$CONTAINER_WHO_AM_I \
         -e CONTAINER_NAME=$CONTAINER_NAME \
         -e SIMULATION_TARBALL_NAME=$SIMULATION_TARBALL_NAME \
@@ -403,7 +447,7 @@ else # [Non-Docker-Container-Env]
         -v $SML_PERSIST_VOLUME:/persist:rw \
         -v $SML_MNT_LEGATO_VOLUME:/mnt/legato:rw \
         -v $SML_SSH_INFO_VOLUME:/root/simulation/.ssh:rw \
-        $IMG_NAME:$IMG_VERSION /bin/bash"
+        $IMG_NAME:$IMG_VERSION $SML_CONTAINER_CMD"
     echo
     echo "> "$CMD
     eval $CMD

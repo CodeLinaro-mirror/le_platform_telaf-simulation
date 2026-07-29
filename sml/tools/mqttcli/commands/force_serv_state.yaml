@@ -1,0 +1,10 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.data.force_serv_state.req before send.
+
+topic: ctrl/cmd/action/data/force_serv_state
+data:
+  serviceState: IN_SERVICE
+  networkRat: WCDMA

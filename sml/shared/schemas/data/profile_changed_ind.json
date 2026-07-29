@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.profile_changed.ind",
+  "title": "Profile Changed Indication",
+  "type": "object",
+  "required": ["profileId", "techPref", "event"],
+  "properties": {
+    "profileId": { "type": "integer" },
+    "techPref": { "type": "string", "enum": ["TP_3GPP", "TP_3GPP2", "TP_ANY", "UNKNOWN"] },
+    "event": { "type": "string", "enum": ["CREATE", "MODIFY", "DELETE"] }
+  },
+  "additionalProperties": false
+}

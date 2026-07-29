@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.qos_status.ind",
+  "title": "QoS Status Indication",
+  "type": "object",
+  "required": ["profileId", "qosId", "stateChange", "mask"],
+  "properties": {
+    "profileId": { "type": "integer" },
+    "qosId": { "type": "integer" },
+    "stateChange": { "type": "string", "enum": ["ACTIVATED", "MODIFIED", "DEACTIVATED"] },
+    "mask": { "type": "integer" },
+    "txGranted": { "type": "object" },
+    "rxGranted": { "type": "object" },
+    "txFilters": { "type": "array", "items": { "type": "object" } },
+    "rxFilters": { "type": "array", "items": { "type": "object" } }
+  },
+  "additionalProperties": false
+}

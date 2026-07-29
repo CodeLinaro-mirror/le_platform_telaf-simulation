@@ -3,6 +3,7 @@
 
 #include "Log.hpp"
 
+#include <chart/spy_bootstrap.hpp>
 #include <chart/spy.hpp>
 
 #include <atomic>
@@ -10,6 +11,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <fstream>
+#include <map>
 #include <mutex>
 #include <memory>
 #include <ostream>
@@ -33,10 +36,61 @@ basename_(const char* p)
     return s ? s + 1 : p;
 }
 
-// Optional file sink — opened once at process start from SML_PA_LOG_FILE.
-// nullptr means syslog-only.
+constexpr const char* kConfPath = "/etc/sml_pa.conf";
+
+// Parses KEY=VALUE lines from kConfPath ('#' comments, blank lines ignored).
+// Read once and cached; missing file yields an empty map (no error).
+const std::map<std::string, std::string>&
+conf_file()
+{
+    static const std::map<std::string, std::string> conf = []() {
+        std::map<std::string, std::string> result;
+        std::ifstream f(kConfPath);
+        std::string line;
+        while (std::getline(f, line)) {
+            auto hash = line.find('#');
+            if (hash != std::string::npos)
+                line.erase(hash);
+            auto eq = line.find('=');
+            if (eq == std::string::npos)
+                continue;
+            std::string key = line.substr(0, eq);
+            std::string val = line.substr(eq + 1);
+            auto trim = [](std::string& s) {
+                const char* ws = " \t\r\n";
+                auto b = s.find_first_not_of(ws);
+                auto e = s.find_last_not_of(ws);
+                s = (b == std::string::npos) ? "" : s.substr(b, e - b + 1);
+            };
+            trim(key);
+            trim(val);
+            if (!key.empty())
+                result[key] = val;
+        }
+        return result;
+    }();
+    return conf;
+}
+
+// Looks up key in the environment first, falling back to the conf file.
+// Returns nullptr if neither has it.
+const char*
+setting(const char* env_name, const char* conf_key)
+{
+    const char* v = std::getenv(env_name);
+    if (v && v[0] != '\0')
+        return v;
+    const auto& conf = conf_file();
+    auto it = conf.find(conf_key);
+    if (it != conf.end() && !it->second.empty())
+        return it->second.c_str();
+    return nullptr;
+}
+
+// Optional file sink — opened once at process start from SML_PA_LOG_FILE
+// (or LOG_FILE in /etc/sml_pa.conf). nullptr means syslog-only.
 FILE* g_log_file = []() -> FILE* {
-    const char* path = std::getenv("SML_PA_LOG_FILE");
+    const char* path = setting("SML_PA_LOG_FILE", "LOG_FILE");
     if (!path || path[0] == '\0')
         return nullptr;
     return std::fopen(path, "a");  // nullptr on failure → syslog-only
@@ -59,7 +113,7 @@ to_syslog_priority(LogLevel level)
 }  // anonymous namespace
 
 std::atomic<LogLevel> g_log_level{ []() -> LogLevel {
-    const char* v = std::getenv("SML_PA_LOG_LEVEL");
+    const char* v = setting("SML_PA_LOG_LEVEL", "LOG_LEVEL");
     if (!v)
         return LogLevel::INFO;
     if (std::strcmp(v, "DEBUG") == 0)
@@ -107,7 +161,8 @@ log_impl(LogLevel level, const char* file, int line, const char* fmt, ...)
     // Primary sink: syslog — correct facility/level visible in logread.
     syslog(to_syslog_priority(level), "%s", msg);
 
-    // Optional secondary sink: file (set SML_PA_LOG_FILE to enable).
+    // Optional secondary sink: file (set SML_PA_LOG_FILE or LOG_FILE in
+    // /etc/sml_pa.conf to enable).
     if (g_log_file) {
         std::fprintf(g_log_file, "%s\n", msg);
         std::fflush(g_log_file);
@@ -115,8 +170,14 @@ log_impl(LogLevel level, const char* file, int line, const char* fmt, ...)
 }
 
 // Routes chart::Spy live output into syslog at LOG_DEBUG priority.
-// Each '\n'-terminated line from Spy becomes one syslog entry.
+// Each '\n'-terminated line from Spy becomes one syslog entry, prefixed with
+// a caller-supplied tag so spy lines and trace lines are grep-separable:
+//   [sml-pa spy]   — verbose visit / HOOK / IGNORED lines
+//   [sml-pa trace] — transition lines (On and Verbose modes)
 class SpySyslogBuf : public std::streambuf {
+public:
+    explicit SpySyslogBuf(const char* prefix) : prefix_(prefix) {}
+
 protected:
     int overflow(int c) override {
         if (c == traits_type::eof())
@@ -124,9 +185,9 @@ protected:
         if (c == '\n') {
             if (!buf_.empty()) {
                 std::lock_guard<std::mutex> lk(g_log_mutex);
-                syslog(LOG_DEBUG, "%s", buf_.c_str());
+                syslog(LOG_DEBUG, "%s %s", prefix_, buf_.c_str());
                 if (g_log_file) {
-                    std::fprintf(g_log_file, "%s\n", buf_.c_str());
+                    std::fprintf(g_log_file, "%s %s\n", prefix_, buf_.c_str());
                     std::fflush(g_log_file);
                 }
                 buf_.clear();
@@ -138,18 +199,28 @@ protected:
     }
 
 private:
+    const char* prefix_;
     std::string buf_;
 };
 
 namespace {
 struct SpyWire {
-    SpyWire() {
-        os_.reset(new std::ostream(&buf_));
-        chart::Spy::live_sink(os_.get());
-        chart::Spy::live_trace_sink(os_.get());
+    SpyWire()
+        : spy_buf_("[sml-pa spy]"), trace_buf_("[sml-pa trace]")
+    {
+        spy_os_.reset(new std::ostream(&spy_buf_));
+        trace_os_.reset(new std::ostream(&trace_buf_));
+        chart::Spy::live_sink(spy_os_.get());
+        chart::Spy::live_trace_sink(trace_os_.get());
+        // Signal / state-handler names and Spy enable knob. Idempotent; runs
+        // once at process start. Must happen AFTER the live sinks are attached
+        // so no dispatch line is lost between enable and sink hookup.
+        chart::init_from_env("TELAF_CHART_SPY", "/etc/sml_pa.conf", "LOG_SPY");
     }
-    SpySyslogBuf buf_;
-    std::unique_ptr<std::ostream> os_;
+    SpySyslogBuf spy_buf_;
+    SpySyslogBuf trace_buf_;
+    std::unique_ptr<std::ostream> spy_os_;
+    std::unique_ptr<std::ostream> trace_os_;
 } g_spy_wire;
 }
 

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.data.force_qos.req",
+  "title": "Force QoS Flow State Change",
+  "type": "object",
+  "required": ["profileId", "qosId", "stateChange"],
+  "properties": {
+    "profileId": { "type": "integer" },
+    "qosId": { "type": "integer" },
+    "stateChange": { "type": "string", "enum": ["ACTIVATED", "MODIFIED", "DEACTIVATED"] },
+    "mask": { "type": "integer", "default": 0 }
+  },
+  "additionalProperties": false
+}

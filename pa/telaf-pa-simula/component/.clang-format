@@ -1,0 +1,110 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# .clang-format for pa/telaf-pa-simula/component/data/
+#
+# Base:  Mozilla
+# Style: Allman braces everywhere, 4-space indent, 100-column limit,
+#        each parameter one per line (BlockIndent), constructor initializer
+#        list one entry per line (comma-first), case labels indented,
+#        trailing comments aligned.
+#
+# Tested with: Ubuntu clang-format 14.0.0
+#
+# TODO (upgrade to clang-format >= 16):
+#   Add BreakBeforeParens: Custom / ParenWrapping.AfterFunctionDefinitionName
+#   to put opening ( on its own line for function definitions.
+
+---
+Language: Cpp
+BasedOnStyle: Mozilla
+
+# ---------------------------------------------------------------------------
+# Core metrics
+# ---------------------------------------------------------------------------
+IndentWidth:  4
+TabWidth:     4
+UseTab:       Never
+ColumnLimit:  100
+
+# ---------------------------------------------------------------------------
+# Allman braces — opening { always on its own line
+# ---------------------------------------------------------------------------
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel:        true   # case Label:\n{
+  AfterClass:            true   # class Foo\n{
+  AfterControlStatement: Always # if/for/while/do\n{
+  AfterEnum:             true
+  AfterFunction:         true   # void foo()\n{
+  AfterNamespace:        false  # namespace foo { — keep on same line
+  AfterObjCDeclaration:  true
+  AfterStruct:           true
+  AfterUnion:            true
+  AfterExternBlock:      true
+  BeforeCatch:           true   # }\ncatch
+  BeforeElse:            true   # }\nelse
+  BeforeWhile:           false  # do { } while keeps compact
+  IndentBraces:          false
+  SplitEmptyFunction:    false  # empty bodies: {}
+  SplitEmptyRecord:      false
+  SplitEmptyNamespace:   false
+
+# ---------------------------------------------------------------------------
+# Each argument / parameter on its own line (BlockIndent)
+# ---------------------------------------------------------------------------
+AlignAfterOpenBracket:                     BlockIndent
+BinPackArguments:                          false
+BinPackParameters:                         false
+AllowAllArgumentsOnNextLine:               false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# ---------------------------------------------------------------------------
+# Constructor initializer list: one entry per line, comma-first
+#   : member1_(v1)
+#   , member2_(v2)
+# ---------------------------------------------------------------------------
+BreakConstructorInitializers:      BeforeComma
+PackConstructorInitializers:       Never
+ConstructorInitializerIndentWidth: 4
+
+# ---------------------------------------------------------------------------
+# switch / case: case labels indented relative to switch
+# ---------------------------------------------------------------------------
+IndentCaseLabels:  true
+IndentCaseBlocks:  false
+
+# ---------------------------------------------------------------------------
+# Trailing // comments: align within a block
+# ---------------------------------------------------------------------------
+AlignTrailingComments:        true
+SpacesBeforeTrailingComments: 2
+
+# ---------------------------------------------------------------------------
+# Pointer / reference alignment: left  (Type* p, Type& r)
+# ---------------------------------------------------------------------------
+PointerAlignment:   Left
+ReferenceAlignment: Left
+
+# ---------------------------------------------------------------------------
+# Access modifiers (public: / private:) flush with class keyword
+# ---------------------------------------------------------------------------
+AccessModifierOffset:    -4
+IndentAccessModifiers:   false
+
+# ---------------------------------------------------------------------------
+# Namespace contents: NOT indented
+# ---------------------------------------------------------------------------
+NamespaceIndentation: None
+
+# ---------------------------------------------------------------------------
+# Miscellaneous
+# ---------------------------------------------------------------------------
+SortIncludes:                        CaseInsensitive
+IncludeBlocks:                       Regroup
+SpaceAfterCStyleCast:                false
+SpaceBeforeParens:                   ControlStatements
+AllowShortFunctionsOnASingleLine:    Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine:        false
+MaxEmptyLinesToKeep:                 1

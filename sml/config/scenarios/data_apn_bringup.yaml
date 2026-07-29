@@ -1,0 +1,36 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Data-domain APN scenario -- exercises the one domain with a real MPSS
+# implementation (sml/mpss/data/).
+#
+# The AP is expected to bring the call up itself via ap/req/data/
+# start_data_call (that's a production RPC, not a timeline action --
+# action execution logic is out of the control contract's scope). This
+# scenario's timeline only injects the network-side events the control
+# contract *can* express: a RAT/service change followed by a
+# network-initiated call drop, both registered in
+# sml/control/registry/action_data.yaml.
+
+version: "1.0"
+name: data_apn_bringup
+
+setup:
+  devices_config: devices/default.yaml
+  environment_config: environments/default.yaml
+  duration: "30s"
+
+initial_state:
+  modems: [modem_0_online]
+  sim_slots: [sim_slot_0_inserted_sim001]
+  radio:
+    serving_cell: cell_urban_A
+    signal_model: stable_urban
+
+timeline:
+  - at: "10s"
+    action: data.force_serv_state
+    args: {networkRat: WCDMA}
+  - at: "20s"
+    action: data.force_call_drop
+    args: {profileId: 1}

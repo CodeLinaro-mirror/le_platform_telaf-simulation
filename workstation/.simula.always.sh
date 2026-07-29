@@ -16,6 +16,9 @@ function list_between_marks()
 alias mark='append_msg_to_syslogd'
 alias listm='list_between_marks'
 
+# Need to know which CONF file we are using for 'supervisorctl' CLI
+alias supervisorctl='supervisorctl -c /root/sml/supervisord.sml.conf'
+
 # To use a proxy server for your container,remove the comment from the following lines and replace <your_proxy> with your
 # proxy address and replace <your_port> with the appropriate port number for the proxy.
 # Once you have set the proxy,docker will route network requests through the specified proxy server.
@@ -33,3 +36,7 @@ fi
 
 # sml simulation module (sub-packages live under /root/sml)
 export PYTHONPATH=/root:${PYTHONPATH}
+
+# `sml <tool> [args...]` CLI wrapper (e.g. `sml mqttcli sub`) -- see
+# sml/tools/bin/sml and sml/tools/__main__.py.
+export PATH=/root/sml/tools/bin:${PATH}

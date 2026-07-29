@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.request_throughput_info.req",
+  "title": "Request Throughput Info Request",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

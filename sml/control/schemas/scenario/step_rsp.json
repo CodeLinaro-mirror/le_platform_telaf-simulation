@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scenario.step.rsp",
+  "title": "Scenario Step Response",
+  "type": "object",
+  "required": ["executed_steps", "current_time_ms"],
+  "properties": {
+    "executed_steps": {
+      "type": "integer",
+      "description": "Number of steps actually executed."
+    },
+    "current_time_ms": {
+      "type": "integer",
+      "description": "Timeline's current time point after execution, in milliseconds."
+    },
+    "reached_end": {
+      "type": "boolean",
+      "description": "Whether the timeline's end was reached."
+    }
+  },
+  "additionalProperties": false
+}

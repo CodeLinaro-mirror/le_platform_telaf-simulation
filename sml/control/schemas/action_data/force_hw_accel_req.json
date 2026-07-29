@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.data.force_hw_accel.req",
+  "title": "Force Hardware Acceleration State",
+  "type": "object",
+  "required": ["state"],
+  "properties": {
+    "state": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] }
+  },
+  "additionalProperties": false
+}

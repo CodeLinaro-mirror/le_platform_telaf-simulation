@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.set_throughput_interval.req",
+  "title": "Set Throughput Report Interval Request",
+  "type": "object",
+  "required": ["intervalMs"],
+  "properties": {
+    "intervalMs": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

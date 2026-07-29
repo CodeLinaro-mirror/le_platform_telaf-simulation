@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.data.force_roaming.req",
+  "title": "Force Roaming Status",
+  "type": "object",
+  "required": ["isRoaming"],
+  "properties": {
+    "isRoaming": {
+      "type": "boolean"
+    },
+    "roamingType": {
+      "type": "string",
+      "enum": ["DOMESTIC", "INTERNATIONAL"]
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's roaming status to force."
+    }
+  },
+  "additionalProperties": false
+}

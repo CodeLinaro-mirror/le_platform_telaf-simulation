@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.create_profile.rsp",
+  "title": "Create Profile Response",
+  "type": "object",
+  "required": ["profileId"],
+  "properties": {
+    "profileId": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

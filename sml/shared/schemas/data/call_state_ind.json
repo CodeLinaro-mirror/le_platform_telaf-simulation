@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.call_state.ind",
+  "title": "Data Call State Indication",
+  "type": "object",
+  "required": ["profileId", "ifname", "ipFamily", "status", "slot"],
+  "properties": {
+    "profileId": { "type": "integer" },
+    "ifname": { "type": "string" },
+    "ipFamily": { "type": "string", "enum": ["IPV4", "IPV6", "IPV4V6", "UNKNOWN"] },
+    "status": {
+      "type": "string",
+      "enum": ["IDLE", "CONNECTING", "CONNECTED", "DISCONNECTING", "NO_NET"]
+    },
+    "slot": { "type": "integer", "minimum": 0 },
+    "bearer_tech": { "type": "string" },
+    "end_reason": {
+      "type": "object",
+      "required": ["type", "code"],
+      "properties": {
+        "type": { "type": "integer" },
+        "code": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "ipv4": {
+      "type": "object",
+      "required": ["if_address", "gw_address", "primary_dns_address", "secondary_dns_address"],
+      "properties": {
+        "if_address": { "type": "string" },
+        "gw_address": { "type": "string" },
+        "primary_dns_address": { "type": "string" },
+        "secondary_dns_address": { "type": "string" },
+        "subnet_mask": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "ipv6": {
+      "type": "object",
+      "required": ["if_address", "gw_address", "primary_dns_address", "secondary_dns_address"],
+      "properties": {
+        "if_address": { "type": "string" },
+        "gw_address": { "type": "string" },
+        "primary_dns_address": { "type": "string" },
+        "secondary_dns_address": { "type": "string" },
+        "prefix_len": { "type": "integer" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

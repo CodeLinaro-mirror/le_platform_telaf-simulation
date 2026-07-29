@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.data.force_call_drop.req",
+  "title": "Force Network-Initiated Call Drop",
+  "type": "object",
+  "required": ["profileId"],
+  "properties": {
+    "profileId": {
+      "type": "integer",
+      "description": "Profile id of the active call session to drop."
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's call session to drop."
+    }
+  },
+  "additionalProperties": false
+}

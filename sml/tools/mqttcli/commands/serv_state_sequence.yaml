@@ -1,0 +1,12 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# data-list + interval example: fires each entry in order, 500ms apart.
+
+topic: ctrl/cmd/action/data/force_serv_state
+interval: 500ms
+data:
+  - serviceState: OUT_OF_SERVICE
+    networkRat: UNKNOWN
+  - serviceState: IN_SERVICE
+    networkRat: LTE

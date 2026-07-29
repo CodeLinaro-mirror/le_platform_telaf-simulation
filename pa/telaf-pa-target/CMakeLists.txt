@@ -43,6 +43,7 @@ set(CMAKE_INSTALL_RPATH "$ORIGIN:")
 set(MODULE_LIST
     component/taf_pa_common
     component/taf_pa_deviceinfo
+    component/taf_pa_data
 )
 
 foreach(module ${MODULE_LIST})

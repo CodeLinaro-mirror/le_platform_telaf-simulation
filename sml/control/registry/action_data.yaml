@@ -1,0 +1,79 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Data-domain ctrl/cmd/action/data/** registry (Sim-Test-Contract-Spec.md
+# §5.2). Actions inject environment/network-side changes that MPSS itself
+# would normally drive (serving-system state churn, network-initiated call
+# teardown) -- there is no AP-facing RPC for "the network changed my RAT"
+# or "the network dropped my call", so these are the test-only entry points
+# for exercising that side of the data domain's indications
+# (mp/ind/data/serv_state, mp/ind/data/serv_roaming, mp/ind/data/call_state).
+#
+# Scope: only the data domain, since it's the only one with an MPSS
+# implementation so far (phone/sim/network/sms domains not yet implemented).
+
+kind: action
+domain: data
+
+actions:
+  - method: force_serv_state
+    req_topic: "ctrl/cmd/action/data/force_serv_state"
+    req_payload: schemas/action_data/force_serv_state_req.json
+    qos: 1
+    description: >-
+      Force ServingSystemManager's serving-system state (serviceState/
+      networkRat/drbStatus), re-publishing mp/ind/data/serv_state with the
+      new values. Simulates a network-side RAT/service change the AP did
+      not request.
+
+  - method: force_roaming
+    req_topic: "ctrl/cmd/action/data/force_roaming"
+    req_payload: schemas/action_data/force_roaming_req.json
+    qos: 1
+    description: >-
+      Force the roaming status (isRoaming/roamingType), re-publishing
+      mp/ind/data/serv_roaming with the new values.
+
+  - method: force_call_drop
+    req_topic: "ctrl/cmd/action/data/force_call_drop"
+    req_payload: schemas/action_data/force_call_drop_req.json
+    qos: 1
+    description: >-
+      Force a network-initiated teardown of an active data call (profileId
+      identifies the call), transitioning it straight to NO_NET and
+      publishing mp/ind/data/call_state -- bypasses the normal AP-driven
+      stop_data_call RPC flow to simulate the network dropping the call.
+
+  - method: force_throughput
+    req_topic: "ctrl/cmd/action/data/force_throughput"
+    req_payload: schemas/action_data/force_throughput_req.json
+    qos: 1
+    description: >-
+      Force the fixed per-profile throughput snapshot values, re-publishing
+      mp/ind/data/throughput_info if reporting is enabled and updating what
+      request_throughput_info returns.
+
+  - method: force_qos
+    req_topic: "ctrl/cmd/action/data/force_qos"
+    req_payload: schemas/action_data/force_qos_req.json
+    qos: 1
+    description: >-
+      Force a QoS flow state change for a profile, publishing
+      mp/ind/data/qos_status. Simulates a network-driven QoS flow event.
+
+  - method: force_hw_accel
+    req_topic: "ctrl/cmd/action/data/force_hw_accel"
+    req_payload: schemas/action_data/force_hw_accel_req.json
+    qos: 1
+    description: >-
+      Force the hardware acceleration state, publishing
+      mp/ind/data/hw_accel_state.
+
+  - method: force_throttle
+    req_topic: "ctrl/cmd/action/data/force_throttle"
+    req_payload: schemas/action_data/force_throttle_req.json
+    qos: 1
+    description: >-
+      Force the APN throttle status for a profile, publishing
+      mp/ind/data/throttle_status and updating what request_throttle_status
+      returns.

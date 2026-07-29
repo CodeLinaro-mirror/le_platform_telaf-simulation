@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.request_profile_list.req",
+  "title": "Request Profile List Request",
+  "description": "No filter fields -- lists every stored profile unfiltered.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

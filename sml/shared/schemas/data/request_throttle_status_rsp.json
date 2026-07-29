@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.request_throttle_status.rsp",
+  "title": "Request Throttle Status Response",
+  "type": "object",
+  "required": ["apn", "profileIds", "ipv4Time", "ipv6Time", "isBlocked", "mcc", "mnc"],
+  "properties": {
+    "apn": { "type": "string" },
+    "profileIds": { "type": "array", "items": { "type": "integer" } },
+    "ipv4Time": { "type": "integer" },
+    "ipv6Time": { "type": "integer" },
+    "isBlocked": { "type": "boolean" },
+    "mcc": { "type": "string" },
+    "mnc": { "type": "string" }
+  },
+  "additionalProperties": false
+}

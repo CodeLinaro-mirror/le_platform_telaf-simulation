@@ -1,0 +1,46 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Full data-domain demo scenario -- same online/inserted initial_state as
+# baseline, plus a timeline that fires force_qos/force_hw_accel/
+# force_throttle/force_serv_state (RAT change -> bearer re-stamp) so those
+# indications actually fan out over the wire. baseline.yaml itself stays
+# untouched/empty.
+
+version: "1.0"
+name: data_full_demo
+
+setup:
+  devices_config: devices/default.yaml
+  environment_config: environments/default.yaml
+  duration: "60s"
+
+initial_state:
+  modems: [modem_0_online]
+  sim_slots: [sim_slot_0_inserted_sim001]
+  radio:
+    serving_cell: cell_urban_A
+    signal_model: stable_urban
+
+timeline:
+  - at: "5s"
+    action: data.force_serv_state
+    args: {networkRat: LTE}
+  - at: "10s"
+    action: data.force_qos
+    args: {profileId: 1, qosId: 1, stateChange: ACTIVATED}
+  - at: "15s"
+    action: data.force_hw_accel
+    args: {state: ACTIVE}
+  - at: "20s"
+    action: data.force_throttle
+    args: {profileId: 1, isBlocked: true, ipv4Time: 30000, ipv6Time: 30000}
+  - at: "30s"
+    action: data.force_throttle
+    args: {profileId: 1, isBlocked: false}
+  - at: "35s"
+    action: data.force_serv_state
+    args: {networkRat: NR5G}
+  - at: "40s"
+    action: data.force_qos
+    args: {profileId: 1, qosId: 1, stateChange: DEACTIVATED}

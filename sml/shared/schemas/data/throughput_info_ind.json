@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.throughput_info.ind",
+  "title": "Throughput Info Indication",
+  "type": "object",
+  "required": ["infos"],
+  "properties": {
+    "infos": {
+      "type": "array",
+      "items": { "type": "object" }
+    }
+  },
+  "additionalProperties": false
+}

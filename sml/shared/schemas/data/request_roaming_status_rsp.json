@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.request_roaming_status.rsp",
+  "title": "Request Roaming Status Response",
+  "type": "object",
+  "required": ["isRoaming", "roamingType"],
+  "properties": {
+    "isRoaming": { "type": "boolean" },
+    "roamingType": { "type": "string", "enum": ["DOMESTIC", "INTERNATIONAL", "UNKNOWN"] }
+  },
+  "additionalProperties": false
+}

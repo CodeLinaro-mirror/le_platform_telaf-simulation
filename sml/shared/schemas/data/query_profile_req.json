@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.query_profile.req",
+  "title": "Query Profile Request",
+  "description": "Shared by two real-SDK methods: requestProfile(profileId, techPref) sends {profileId, techPref}; queryProfile(filter) sends any subset of the filterable fields below. Disambiguated server-side on presence of profileId.",
+  "type": "object",
+  "properties": {
+    "profileId": { "type": "integer" },
+    "techPref": { "type": "string", "enum": ["TP_3GPP", "TP_3GPP2", "TP_ANY", "UNKNOWN"] },
+    "apn": { "type": "string" },
+    "profileName": { "type": "string" },
+    "ipFamilyType": { "type": "string", "enum": ["IPV4", "IPV6", "IPV4V6", "UNKNOWN"] }
+  },
+  "additionalProperties": false
+}

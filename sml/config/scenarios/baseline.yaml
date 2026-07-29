@@ -1,0 +1,23 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Baseline scenario: steady-state fluctuation under healthy network
+# conditions -- not absolute silence. Empty timeline is intentional: this
+# scenario only exercises World State initialization, no scripted actions.
+
+version: "1.0"
+name: baseline
+
+setup:
+  devices_config: devices/default.yaml
+  environment_config: environments/default.yaml
+  duration: "60s"
+
+initial_state:
+  modems: [modem_0_online]
+  sim_slots: [sim_slot_0_inserted_sim001]
+  radio:
+    serving_cell: cell_urban_A
+    signal_model: stable_urban
+
+timeline: []

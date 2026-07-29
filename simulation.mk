@@ -12,6 +12,8 @@ Q ?=@
 
 # Sometimes, due to docker's caching, it can lead docker image rebuilding failure.
 # So we need to add some options for building images, such as "--no-cache"
+# DOCKER_BUILD_OPTS is the canonical name; docker_build_opts kept as legacy alias.
+DOCKER_BUILD_OPTS ?= $(docker_build_opts)
 docker_build_opts ?=
 
 # Some work needs to be done earlier or later, so we prevent the real simulation goal.
@@ -187,7 +189,7 @@ post-simulation-build:
 ifneq ($(TELAF_SIMULATION_ENABLE_MNGD_CONN),n)
 	$Q cp $(TELAF_ROOT)/apps/tafMngdServices/Connectivity/Components/tafMngdConnSvc/Config/mngdConnectivity.json $(SIMULATION_HOME)/deps/taf_rootfs
 endif
-	$Q chmod a+rx $(SIMULATION_HOME)/deps/taf_rootfs
+	$Q chmod -R a+rX $(SIMULATION_HOME)/deps/taf_rootfs
 	$Q tar rf $(SIMULATION_TARBALL) --exclude=taf_rootfs/include \
 	                                --exclude=taf_rootfs/lib/cmake \
 	                                --exclude=taf_rootfs/lib/pkgconfig \
@@ -255,7 +257,7 @@ define build_simulation_docker_image
 	    && export DEVELOPER_GID=$(shell id -g) \
 	    && export APT_INSECURE=$(APT_INSECURE) \
 	    && docker compose -f "$(SIMULATION_HOME)/docker/for_ubuntu_$(get_which_one)/docker-compose.yml" \
-	    build $(docker_build_opts) telaf_simulation_$(1)_$(get_which_one)
+	    build $(DOCKER_BUILD_OPTS) telaf_simulation_$(1)_$(get_which_one)
 	$Q echo "[$@] image build done."
 endef
 
@@ -307,8 +309,22 @@ simula-help:
 	@echo "    - Docker operation helper commands"
 	@echo "      + simula-listimg                 -- List all docker images on your host"
 	@echo "      + simula-listv                   -- List all volumes named along with 'telaf'"
-	@echo "      + simula-rmv                     -- Delete all volumes named along with 'telaf'"
 	@echo "      + simula-rm-app                  -- Delete the app volume"
+	@echo
+	@echo "    - Standalone 3rd-party deps build (see deps/dependence.mk)"
+	@echo "      + simula-deps                    -- Build menuconfig-selected deps (idempotent)"
+	@echo "      + simula-deps DEPS=\"boost curl\" -- Build only listed deps"
+	@echo "      + simula-deps FORCE=1            -- Force rebuild (clean+download+compile)"
+	@echo
+	@echo "    - Debug helpers"
+	@echo "      + simula-in-dev CMD='<shell>'    -- Run one shell command inside a fresh develop container"
+	@echo "      + simula-up-headless             -- Start long-lived runtime (no TTY, no --rm) for docker exec"
+	@echo "      + simula-up-headless INSTANCE=<tag> SSH_PORT=<port>"
+	@echo "                                       -- Start a tagged runtime side-by-side with others"
+	@echo "      + simula-shell [INSTANCE=<tag>]  -- Attach interactive shell to a running runtime"
+	@echo "      + simula-ls                      -- List all runtime containers on the host"
+	@echo "      + simula-rm-instance INSTANCE=<tag>"
+	@echo "                                       -- Remove tagged runtime container and its volumes"
 
 
 simula-buildall simula-build-all simula-build-all-docker-images: simula-build-runtime simula-build-develop
@@ -327,12 +343,71 @@ simula-upx simula-upx-runtime:
 	$(call up_simulation_container,up_runtime_slavex.sh)
 	$(call up_simulation_container,up_runtime_master.sh)
 
+# --------------------------------------------------------------------------------------------------
+# Multi-instance runtime for debugging.
+#   make simula-up-headless                          - long-lived default runtime, no TTY, no --rm
+#   make simula-up-headless INSTANCE=dcs SSH_PORT=9023
+#                                                    - tagged instance on a distinct SSH port
+#   make simula-shell                                - attach interactive shell to default runtime
+#   make simula-shell INSTANCE=dcs                   - attach to tagged instance
+#   make simula-ls                                   - list all runtime containers on this host
+#   make simula-rm-instance                          - remove default runtime + its volumes
+#   make simula-rm-instance INSTANCE=dcs             - remove tagged container + its volumes
+# The container name pattern is:
+#   telaf_simulation_runtime_<which>_m[_<INSTANCE>]
+# Volumes inherit the container name via '<container>_sml_{app,data,persist,mnt_legato}'.
+# --------------------------------------------------------------------------------------------------
+SIMULA_INSTANCE_SUFFIX = $(if $(strip $(INSTANCE)),_$(strip $(INSTANCE)),)
+SIMULA_RT_CTR = telaf_simulation_runtime_$(get_which_one)_m$(SIMULA_INSTANCE_SUFFIX)
+
+.PHONY: simula-up-headless simula-shell simula-ls simula-rm-instance
+
+simula-up-headless:
+	$Q echo "Up Simulation with [runtime_master headless]"
+	$Q SIMULA_MODE=headless \
+	   INSTANCE='$(INSTANCE)' \
+	   SSH_PORT='$(SSH_PORT)' \
+	   EX_DOCKER_OPTS='$(EX_DOCKER_OPTS)' \
+	   /bin/bash $(SIMULATION_SCRIPTS)/up_runtime_master.sh $(get_which_one)
+	$Q echo "Runtime up as [$(SIMULA_RT_CTR)]"
+	$Q echo "Attach:  make simula-shell$(if $(INSTANCE), INSTANCE=$(INSTANCE),)"
+	$Q echo "Exec:    docker exec -i $(SIMULA_RT_CTR) bash -lc '<cmd>'"
+
+simula-shell:
+	$Q docker exec -it $(SIMULA_RT_CTR) bash -l || true
+
+simula-ls:
+	$Q docker ps -a --filter "name=telaf_simulation_runtime_" \
+	       --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+
+simula-rm-instance:
+	$Q docker rm -f $(SIMULA_RT_CTR) 2>/dev/null || true
+	$Q for v in app data persist mnt_legato; do \
+	       docker volume rm $(SIMULA_RT_CTR)_sml_$$v 2>/dev/null || true ; \
+	   done
+	$Q echo "Removed container + volumes for [$(SIMULA_RT_CTR)]"
+
 simula-up-develop:
 	$Q /bin/bash $(SIMULATION_SCRIPTS)/up_develop.sh -i $(get_which_one)
 
 simula-up-develop-for-c:
 	$Q /bin/bash $(SIMULATION_SCRIPTS)/up_develop.sh -v -m $(get_which_one)
 	$Q echo "Compiled from --> [$@] [dversion: $(get_which_one)]"
+
+# Run an arbitrary command inside a one-shot develop container.
+#   make simula-in-dev CMD='make simula-clean && make simulac'
+# Writes CMD to .simula.dev.action.sh, then reuses simula-up-develop-for-c.
+# Rationale: develop container is the shared build environment and must stay
+# pristine — do not exec into a long-lived develop container. Every invocation
+# spins up a fresh --rm container.
+.PHONY: simula-in-dev
+simula-in-dev:
+	$Q if [ -z '$(CMD)' ]; then \
+	     echo "Usage: make simula-in-dev CMD='<shell command>'" ; exit 1 ; \
+	   fi
+	$Q printf '%s\n' '#!/bin/bash' 'set -e' '$(CMD)' > $(SIMULATION_WORKDIR)/.simula.dev.action.sh
+	$Q chmod +x $(SIMULATION_WORKDIR)/.simula.dev.action.sh
+	$Q $(MAKE) --no-print-directory simula-up-develop-for-c
 
 simula-list simula-list-distro:
 	$Q echo "TelAF Simulation support list:"
@@ -374,7 +449,7 @@ simula-rm-app simula-remove-simulation-app-volume:
 
 simula-remove-all-volumes:
 	$Q echo "[$@] detele all volumes ..."
-	$Q volumes=$$(docker volume ls -q) && { for volume in $$volumes ; do docker volume rm $$volume ; done }
+	$Q volumes=$$(docker volume ls -q) && for volume in $$volumes ; do docker volume rm $$volume ; done
 	$Q echo "[$@] detele all volumes done."
 
 simula-clean: simula-clean-config
@@ -407,6 +482,38 @@ simula-clean-deps:
 	$Q rm -f $(SIMULATION_HOME)/deps/.deps.origin
 	$Q echo "Remove $(SIMULATION_HOME)/deps/.deps.origin [Done]"
 
+# --------------------------------------------------------------------------------------------------
+# Standalone 3rd-party deps build.
+#   make simula-deps                          - build menuconfig-selected deps (idempotent)
+#   make simula-deps DEPS="boost curl"        - build subset only (idempotent)
+#   make simula-deps FORCE=1                  - force rebuild the full menuconfig set
+#   make simula-deps DEPS="boost" FORCE=1     - force rebuild only listed deps
+# DEPS values map to targets in deps/dependence.mk (boost, curl, openssl, dlt, vsomeip,
+# capi_core_rt, capi_someip_rt, capi_tools, cmake). Unknown names produce "No rule to
+# make target" from make itself; no whitelist enforced here.
+# --------------------------------------------------------------------------------------------------
+SIMULA_DEPS_SELECTED := $(if $(strip $(DEPS)),$(addprefix _,$(DEPS)),$(SIMULATION_DEPS))
+ifeq ($(FORCE),1)
+  SIMULA_DEPS_TARGETS := $(SIMULA_DEPS_SELECTED:_%=simula-%)
+else
+  SIMULA_DEPS_TARGETS := $(SIMULA_DEPS_SELECTED)
+endif
+
+# Deps prereqs alias share _cmake/_openssl and _pre_deps performs a destructive rm.
+# Force sequential execution via a -j1 sub-make; parent -j is preserved for everything
+# else (see .NOTPARALLEL caveat: it is file-scoped in GNU make).
+# NOTE: impl target name must start with 'simula' — parent telaf/Makefile only re-includes
+# simulation.mk when MAKECMDGOALS matches 'simula%'. A leading-underscore target name
+# would slip past that filter and fail with "No rule to make target" in the sub-make.
+_SIMULA_MAKEFILE := $(firstword $(MAKEFILE_LIST))
+.PHONY: simula-deps simula-deps-impl
+simula-deps:
+	$Q $(MAKE) -j1 -f $(_SIMULA_MAKEFILE) --no-print-directory simula-deps-impl \
+	    DEPS='$(DEPS)' FORCE='$(FORCE)'
+
+simula-deps-impl: _pre_deps $(SIMULA_DEPS_TARGETS) _post_deps
+	$Q echo "[simula-deps] Built: $(SIMULA_DEPS_TARGETS)"
+
 simula-clean-config:
 	$Q rm -f $(LEGATO_ROOT)/.config.simulation
 
@@ -414,7 +521,7 @@ simula-clean-system:
 	$Q rm -rf $(TELAF_ROOT)/build/simulation/{_staging_system.simulation.update,system}
 
 simula-rm-network:
-	$Q docker network ls -q --filter="name=telaf_simulation_runtime" | xargs -r docker network rm
+	$Q docker network ls -q --filter="name=telaf" | xargs -r docker network rm
 
 simula-build-config simula-bc:
 	$Q cat $(TELAF_ROOT)/simulation/.simulation.build

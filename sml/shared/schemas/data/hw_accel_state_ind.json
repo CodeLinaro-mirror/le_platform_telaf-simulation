@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.hw_accel_state.ind",
+  "title": "Hardware Acceleration State Indication",
+  "type": "object",
+  "required": ["state"],
+  "properties": {
+    "state": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] }
+  },
+  "additionalProperties": false
+}

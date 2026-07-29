@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.list_data_call.rsp",
+  "title": "List Data Call Response",
+  "type": "object",
+  "required": ["calls"],
+  "properties": {
+    "calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["profileId", "ifname", "ipFamily", "status", "slot"],
+        "properties": {
+          "profileId": { "type": "integer" },
+          "ifname": { "type": "string" },
+          "ipFamily": { "type": "string", "enum": ["IPV4", "IPV6", "IPV4V6", "UNKNOWN"] },
+          "status": {
+            "type": "string",
+            "enum": ["IDLE", "CONNECTING", "CONNECTED", "DISCONNECTING", "NO_NET"]
+          },
+          "slot": { "type": "integer", "minimum": 0 },
+          "ipv4": {
+            "type": "object",
+            "required": ["if_address", "gw_address", "primary_dns_address", "secondary_dns_address"],
+            "properties": {
+              "if_address": { "type": "string" },
+              "gw_address": { "type": "string" },
+              "primary_dns_address": { "type": "string" },
+              "secondary_dns_address": { "type": "string" }
+            },
+            "additionalProperties": false
+          },
+          "ipv6": {
+            "type": "object",
+            "required": ["if_address", "gw_address", "primary_dns_address", "secondary_dns_address"],
+            "properties": {
+              "if_address": { "type": "string" },
+              "gw_address": { "type": "string" },
+              "primary_dns_address": { "type": "string" },
+              "secondary_dns_address": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.data.force_throughput.req",
+  "title": "Force Throughput Snapshot",
+  "type": "object",
+  "required": ["profileId"],
+  "properties": {
+    "profileId": { "type": "integer" },
+    "ulThroughput": { "type": "integer" },
+    "ulMaxThroughput": { "type": "integer" },
+    "ulQueueSize": { "type": "integer" },
+    "dlThroughput": { "type": "integer" },
+    "slot": { "type": "integer", "minimum": 0, "default": 1 }
+  },
+  "additionalProperties": false
+}
