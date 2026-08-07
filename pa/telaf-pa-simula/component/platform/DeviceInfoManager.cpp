@@ -17,10 +17,12 @@
 #include <string>
 #include <fstream>
 #include <cerrno>
+#include <algorithm>
 #include <sys/stat.h>
 
 #define DEVICEINFO_JSON_FILE "/tmp/IDeviceInfoManager.json"
 #define DEFAULT_IMEI "000000000000000"
+#define IMEI_LENGTH 15
 
 namespace telux
 {
@@ -132,6 +134,15 @@ Status DeviceInfoManager::getPlatformVersion(PlatformVersion& pv)
     return Status::NOTSUPPORTED;
 }
 
+static bool isValidImei(const std::string& imei)
+{
+    if (imei.length() != IMEI_LENGTH)
+    {
+        return false;
+    }
+    return std::all_of(imei.begin(), imei.end(), ::isdigit);
+}
+
 Status DeviceInfoManager::getIMEI(std::string& imei)
 {
     LOG_INFO("[DeviceInfoManager] getIMEI() called");
@@ -144,9 +155,19 @@ Status DeviceInfoManager::getIMEI(std::string& imei)
         {
             boost::property_tree::ptree pt;
             boost::property_tree::read_json(DEVICEINFO_JSON_FILE, pt);
-            imei = pt.get<std::string>("IDeviceInfoManager.GetIMEI.imei");
-            LOG_INFO("[DeviceInfoManager] getIMEI() from file - IMEI: '%s'", imei.c_str());
-            return Status::SUCCESS;
+            std::string parsedImei = pt.get<std::string>("IDeviceInfoManager.GetIMEI.imei");
+            if (!isValidImei(parsedImei))
+            {
+                LOG_WARN("[DeviceInfoManager] IMEI '%s' from '%s' is invalid "
+                         "(must be exactly %d digits) - using default IMEI",
+                         parsedImei.c_str(), DEVICEINFO_JSON_FILE, IMEI_LENGTH);
+            }
+            else
+            {
+                imei = parsedImei;
+                LOG_INFO("[DeviceInfoManager] getIMEI() from file - IMEI: '%s'", imei.c_str());
+                return Status::SUCCESS;
+            }
         }
         catch (const std::exception& e)
         {
