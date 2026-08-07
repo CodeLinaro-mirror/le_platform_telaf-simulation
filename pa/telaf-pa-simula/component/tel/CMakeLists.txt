@@ -9,6 +9,11 @@ set(LIBRARY_SOVERSION "1")
 
 # nlohmann/json: needed directly by ../sim/*.cpp (payload construction),
 # same find-or-fallback pattern as component/common/CMakeLists.txt and
+find_package(Threads REQUIRED)
+
+# nlohmann/json: needed directly here for payload construction in the
+# Manager .cpp files, even though ModemBridge itself lives in telux_common.
+# Same find-or-fallback pattern as component/common/CMakeLists.txt and
 # component/data/CMakeLists.txt.
 find_package(nlohmann_json CONFIG QUIET)
 if(NOT nlohmann_json_FOUND)
@@ -50,6 +55,13 @@ add_library(telux_tel SHARED
     ../sim/SubscriptionManager.cpp
     ../sim/MultiSimManager.cpp
     ../sim/SimFactory.cpp
+    Phone.cpp
+    PhoneManager.cpp
+    ServingSystemManager.cpp
+    NetworkSelectionManager.cpp
+    VoiceServiceInfo.cpp   # taf_radio_GetNetRegState
+    SignalStrength.cpp     # taf_radio_MeasureSignalMetrics + per-RAT getters
+    CellInfo.cpp           # taf_radio_GetServingCellId / GetCurrentNetworkMccMnc
 )
 set_target_properties(telux_tel PROPERTIES
     VERSION ${LIBRARY_VERSION}
@@ -58,9 +70,11 @@ set_target_properties(telux_tel PROPERTIES
 
 target_link_libraries(telux_tel PUBLIC
     nlohmann_json::nlohmann_json
+    Threads::Threads
     telux_common
 )
 
 target_compile_options(telux_tel PRIVATE -fvisibility=default)
 
 install(TARGETS telux_tel LIBRARY DESTINATION lib)
+

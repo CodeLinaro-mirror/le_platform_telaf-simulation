@@ -19,11 +19,13 @@ from typing import Optional
 
 from sml.config.models import (
     CallTimingPreset,
+    Cell,
     DataProfile,
     InterfacePreset,
     IpPreset,
     Modem,
     ModemStateEnum,
+    SignalModel,
     SimCard,
     SimSlot,
     SimSlotStateEnum,
@@ -66,4 +68,22 @@ class SimSlotRuntime:
     ip_preset: Optional[IpPreset] = None
 
 
-__all__ = ["ModemRuntime", "SimSlotRuntime"]
+@dataclass
+class RadioRuntime:
+    """Example (from a scenario's initial_state.radio block)::
+
+        RadioRuntime(
+            serving_cell=Cell(id="cell_urban_A", plmn="46000", rat="LTE",
+                               default_rsrp_dbm=-85),
+            signal_model=SignalModel(id="stable_urban", kind="variance", variance_db=3),
+        )
+
+    Holds the resolved catalog objects, not bare id strings, mirroring
+    ModemRuntime/SimSlotRuntime above. sml.runtime.loader.resolve_radio_seed()
+    flattens this into the RadioSeed shape sml.mpss.radio's AOs consume.
+    """
+    serving_cell: Cell
+    signal_model: SignalModel
+
+
+__all__ = ["ModemRuntime", "SimSlotRuntime", "RadioRuntime"]

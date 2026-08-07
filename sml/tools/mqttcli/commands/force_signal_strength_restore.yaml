@@ -1,0 +1,32 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_signal_strength.req before send.
+#
+# Resets all RATs to their boot-time default values (INT32_MAX sentinels for
+# GSM/WCDMA/NR5G = "no signal"; LTE values match the scenario seed).
+# Run after a force_signal_strength_all / force_signal_strength_gsm / etc.
+# to undo the override.
+
+topic: ctrl/cmd/action/radio/force_signal_strength
+data:
+  gsm:
+    gsmSignalStrength: 2147483647
+    gsmBitErrorRate: 2147483647
+  wcdma:
+    signalStrength: 2147483647
+    bitErrorRate: 2147483647
+    ecio: 2147483647
+    rscp: 2147483647
+  lte:
+    lteSignalStrength: 31
+    lteRsrp: -83
+    lteRsrq: -10
+    lteRssnr: 29
+    lteCqi: 2147483647
+    timingAdvance: 1
+  nr5g:
+    rsrp: 2147483647
+    rsrq: 2147483647
+    rssnr: 2147483647

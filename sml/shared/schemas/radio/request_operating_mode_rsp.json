@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_operating_mode.rsp",
+  "title": "Request Operating Mode Response",
+  "type": "object",
+  "required": ["mode"],
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": [
+        "ONLINE",
+        "AIRPLANE",
+        "FACTORY_TEST",
+        "OFFLINE",
+        "RESETTING",
+        "SHUTTING_DOWN",
+        "PERSISTENT_LOW_POWER"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,10 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_sys_info.req before send.
+#
+# Drives taf_radio_AddRatChangeHandler.
+topic: ctrl/cmd/action/radio/force_sys_info
+data:
+  rat: RADIO_TECH_NR5G

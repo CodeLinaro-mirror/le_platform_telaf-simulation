@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_lte_cs_capability.req",
+  "title": "Force LTE CS Capability",
+  "type": "object",
+  "required": ["lteCsCapability"],
+  "properties": {
+    "lteCsCapability": {
+      "type": "string",
+      "enum": ["UNKNOWN", "FULL_SERVICE", "CSFB_NOT_PREFERRED", "SMS_ONLY", "LIMITED", "BARRED"]
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's LTE CS capability to force."
+    }
+  },
+  "additionalProperties": false
+}

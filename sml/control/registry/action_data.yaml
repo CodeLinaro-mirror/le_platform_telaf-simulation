@@ -34,6 +34,15 @@ actions:
       Force the roaming status (isRoaming/roamingType), re-publishing
       mp/ind/data/serv_roaming with the new values.
 
+  - method: force_nr_icon_type
+    req_topic: "ctrl/cmd/action/data/force_nr_icon_type"
+    req_payload: schemas/action_data/force_nr_icon_type_req.json
+    qos: 1
+    description: >-
+      Force the NR icon type World State (BASIC/UWB/NONE) that
+      request_nr_icon_type answers. Simulates the network-side 5G icon
+      indicator the AP has no other way to control in simulation.
+
   - method: force_call_drop
     req_topic: "ctrl/cmd/action/data/force_call_drop"
     req_payload: schemas/action_data/force_call_drop_req.json

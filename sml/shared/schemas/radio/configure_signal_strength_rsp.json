@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.configure_signal_strength.rsp",
+  "title": "Configure Signal Strength Response",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

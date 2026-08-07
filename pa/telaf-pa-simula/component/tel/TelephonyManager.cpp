@@ -2,26 +2,21 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 //
 // libtelux_tel.so — simulated telux::tel subset.
-//
-// PhoneManager is declared immediately available so tafDataCallSvc's
-// initPhoneManager() does not waste 90 seconds waiting. Full MQTT-driven
-// readiness can be added once the Legato-process ↔ mosquitto connectivity
-// issue is resolved (see ModemBridge / initDataServingSystemManagers timeout).
-//
-// TODO: replace with MQTT-driven implementation once ModemBridge connects.
-//
-// getCardManager()/getSubscriptionManager()/getMultiSimManager() delegate
-// to SimulaSimFactory (../sim/SimFactory.hpp) -- real, MQTT-driven
-// implementations covering the taf_sim_* API surface (see
-// ../sim/SimFactory.hpp's class-level comment for scope). Every other
-// getter here stays a stub/nullptr; PhoneFactory::getInstance() must stay a
-// single definition (this file's), so ../sim/*.cpp are compiled into this
-// same telux_tel target rather than a separate .so.
+
 
 #include "../sim/SimFactory.hpp"
 
-#include <future>
+
+#include "NetworkSelectionManager.hpp"
+#include "PhoneManager.hpp"
+#include "ServingSystemManager.hpp"
+
+#include "../common/ListenerDispatchAO.hpp"
+#include "../common/ModemBridge.hpp"
+
+#include <map>
 #include <memory>
+#include <mutex>
 #include <telux/tel/PhoneFactory.hpp>
 #include <telux/tel/PhoneManager.hpp>
 #include <vector>
@@ -30,79 +25,33 @@ namespace telux {
 namespace tel {
 
 // ---------------------------------------------------------------------------
-// PhoneManager stub
-// ---------------------------------------------------------------------------
-class PhoneManagerStub : public IPhoneManager
-{
-public:
-    telux::common::ServiceStatus getServiceStatus() override
-    {
-        return telux::common::ServiceStatus::SERVICE_AVAILABLE;
-    }
-    bool isSubsystemReady() override
-    {
-        return true;
-    }
-    std::future<bool> onSubsystemReady() override
-    {
-        std::promise<bool> p;
-        p.set_value(true);
-        return p.get_future();
-    }
-    telux::common::Status getPhoneIds(std::vector<int>& phoneIds) override
-    {
-        phoneIds = { 1 };
-        return telux::common::Status::SUCCESS;
-    }
-    int getPhoneIdFromSlotId(int slotId) override
-    {
-        return slotId;
-    }
-    int getSlotIdFromPhoneId(int phoneId) override
-    {
-        return phoneId;
-    }
-    std::shared_ptr<IPhone> getPhone(int) override
-    {
-        return nullptr;
-    }
-    telux::common::Status
-    requestCellularCapabilityInfo(std::shared_ptr<ICellularCapabilityCallback>) override
-    {
-        return telux::common::Status::FAILED;
-    }
-    telux::common::Status requestOperatingMode(std::shared_ptr<IOperatingModeCallback>) override
-    {
-        return telux::common::Status::FAILED;
-    }
-    telux::common::Status setOperatingMode(OperatingMode, telux::common::ResponseCallback) override
-    {
-        return telux::common::Status::FAILED;
-    }
-    telux::common::Status resetWwan(telux::common::ResponseCallback) override
-    {
-        return telux::common::Status::FAILED;
-    }
-    telux::common::Status registerListener(std::weak_ptr<IPhoneListener>) override
-    {
-        return telux::common::Status::FAILED;
-    }
-    telux::common::Status removeListener(std::weak_ptr<IPhoneListener>) override
-    {
-        return telux::common::Status::FAILED;
-    }
-};
-
-// ---------------------------------------------------------------------------
-// PhoneFactory stub
+// PhoneFactory stub -- owns the shared bridge + lazily-constructed managers.
 // ---------------------------------------------------------------------------
 class PhoneFactoryStub : public PhoneFactory
 {
 public:
-    std::shared_ptr<IPhoneManager> getPhoneManager(telux::common::InitResponseCb) override
+    PhoneFactoryStub()
+        : bridge_(common::simula::ModemBridge::instance())
     {
-        static auto mgr = std::make_shared<PhoneManagerStub>();
-        return mgr;
+        bridge_.start();
+        // Same rationale as SimulaDataFactory's ctor (component/data/
+        // DataFactory.cpp): boot the shared listener-dispatch worker so
+        // registerListener() callbacks actually reach app code.
+        common::simula::ListenerDispatchAO::instance().start();
+    }
+
+    std::shared_ptr<IPhoneManager> getPhoneManager(telux::common::InitResponseCb callback) override
+    {
+        std::lock_guard<std::mutex> lk(managers_mutex_);
+        if (phone_manager_)
+        {
+            if (callback)
+                phone_manager_->setInitCallback(std::move(callback));
+            return phone_manager_;
+        }
+        phone_manager_ = std::make_shared<simula::SimulaPhoneManager>(bridge_, std::move(callback));
+        phone_manager_->start();
+        return phone_manager_;
     }
     std::shared_ptr<ISmsManager> getSmsManager(int, telux::common::InitResponseCb) override
     {
@@ -126,14 +75,42 @@ public:
         return simFactory_.getSubscriptionManager(std::move(cb));
     }
     std::shared_ptr<IServingSystemManager>
-    getServingSystemManager(int, telux::common::InitResponseCb) override
+    getServingSystemManager(int slotId, telux::common::InitResponseCb callback) override
     {
-        return nullptr;
+        std::lock_guard<std::mutex> lk(managers_mutex_);
+        auto it = serving_systems_.find(slotId);
+        if (it != serving_systems_.end())
+        {
+            // See getPhoneManager(): never drop the caller's InitResponseCb.
+            if (callback)
+                it->second->setInitCallback(std::move(callback));
+            return it->second;
+        }
+        auto mgr = std::make_shared<simula::SimulaTelServingSystemManager>(
+          slotId, bridge_, std::move(callback)
+        );
+        serving_systems_.emplace(slotId, mgr);
+        mgr->start();
+        return mgr;
     }
     std::shared_ptr<INetworkSelectionManager>
-    getNetworkSelectionManager(int, telux::common::InitResponseCb) override
+    getNetworkSelectionManager(int slotId, telux::common::InitResponseCb callback) override
     {
-        return nullptr;
+        std::lock_guard<std::mutex> lk(managers_mutex_);
+        auto it = network_selections_.find(slotId);
+        if (it != network_selections_.end())
+        {
+            // See getPhoneManager(): never drop the caller's InitResponseCb.
+            if (callback)
+                it->second->setInitCallback(std::move(callback));
+            return it->second;
+        }
+        auto mgr = std::make_shared<simula::SimulaNetworkSelectionManager>(
+          slotId, bridge_, std::move(callback)
+        );
+        network_selections_.emplace(slotId, mgr);
+        mgr->start();
+        return mgr;
     }
     std::shared_ptr<IRemoteSimManager> getRemoteSimManager(int, telux::common::InitResponseCb)
       override
@@ -185,6 +162,12 @@ public:
 
 private:
     telux::tel::simula::SimulaSimFactory simFactory_;
+    common::simula::IModemBridge& bridge_;
+
+    std::mutex managers_mutex_;
+    std::shared_ptr<simula::SimulaPhoneManager> phone_manager_;
+    std::map<int, std::shared_ptr<simula::SimulaTelServingSystemManager>> serving_systems_;
+    std::map<int, std::shared_ptr<simula::SimulaNetworkSelectionManager>> network_selections_;
 };
 
 PhoneFactory::PhoneFactory() = default;

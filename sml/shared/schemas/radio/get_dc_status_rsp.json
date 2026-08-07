@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.get_dc_status.rsp",
+  "title": "Get DC Status Response",
+  "description": "Mirrors telux::tel::DcStatus. Both fields are read by taf_radio_GetNrDualConnectivityStatus, through taf_pa_radio_GetEndcAvailability and taf_pa_radio_GetDcnrRestriction respectively.",
+  "type": "object",
+  "required": ["endcAvailability", "dcnrRestriction"],
+  "properties": {
+    "endcAvailability": {
+      "type": "string",
+      "enum": ["UNKNOWN", "AVAILABLE", "UNAVAILABLE"]
+    },
+    "dcnrRestriction": {
+      "type": "string",
+      "enum": ["UNKNOWN", "RESTRICTED", "UNRESTRICTED"]
+    }
+  },
+  "additionalProperties": false
+}

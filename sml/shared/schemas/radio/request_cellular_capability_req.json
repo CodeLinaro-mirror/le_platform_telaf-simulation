@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_cellular_capability.req",
+  "title": "Request Cellular Capability Request",
+  "description": "Device-scoped, not slot-scoped -- the SDK's requestCellularCapabilityInfo() took no slot argument (PhoneManagerServerImpl reads it with DEFAULT_SLOT_ID). Kept parameterless for that reason.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

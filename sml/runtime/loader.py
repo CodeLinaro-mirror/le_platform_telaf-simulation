@@ -29,12 +29,13 @@ from sml.config.models import (
     IpConfigSeed,
     IpPreset,
     Modem,
+    RadioSeed,
     ScenarioDoc,
     SeedProfile,
     SimCard,
     SimSlot,
 )
-from sml.runtime.world_state import ModemRuntime, SimSlotRuntime
+from sml.runtime.world_state import ModemRuntime, RadioRuntime, SimSlotRuntime
 
 _T = TypeVar("_T")
 _log = logging.getLogger("sml.runtime.loader")
@@ -96,17 +97,20 @@ def resolve_initial_state(
     scenario: ScenarioDoc,
     devices: DevicesDoc,
     environments: EnvironmentsDoc,
-) -> tuple[dict[str, ModemRuntime], dict[str, SimSlotRuntime]]:
+) -> tuple[dict[str, ModemRuntime], dict[str, SimSlotRuntime], Optional[RadioRuntime]]:
     """Resolve `scenario.initial_state` against `devices`/`environments`.
 
-    Returns `(modem_runtimes, sim_slot_runtimes)` keyed by their catalog id.
-    `scenario.initial_state.modems`/`sim_slots` are just lists of instance
-    ids -- each id's `Modem`/`SimSlot` catalog entry already carries its
-    own baked `state` (and, for sim_slots, `installed_sim`/preset ids), so
-    there is nothing to override here, only to look up and carry across.
-    Raises :class:`LoaderError` on any id that doesn't resolve.
+    Returns `(modem_runtimes, sim_slot_runtimes, radio_runtime)`. The first
+    two are keyed by their catalog id. `scenario.initial_state.modems`/
+    `sim_slots` are just lists of instance ids -- each id's `Modem`/`SimSlot`
+    catalog entry already carries its own baked `state` (and, for sim_slots,
+    `installed_sim`/preset ids), so there is nothing to override here, only
+    to look up and carry across. `radio_runtime` is `None` when the scenario
+    has no `initial_state.radio` block. Raises :class:`LoaderError` on any id
+    that doesn't resolve.
 
-    Example return value (single online modem, single inserted sim_slot)::
+    Example return value (single online modem, single inserted sim_slot, no
+    radio block)::
 
         (
             {"modem_0_online": ModemRuntime(modem=Modem(id="modem_0_online", ...),
@@ -117,6 +121,7 @@ def resolve_initial_state(
                 installed_sim=SimCard(id="sim_card_001", ...),
                 active_profile=None, interface_preset=None,
                 call_timing_preset=None, ip_preset=None)},
+            None,
         )
     """
     modems_idx = _index_by_id(devices.modems)
@@ -176,12 +181,14 @@ def resolve_initial_state(
             ip_preset=ip_preset,
         )
 
+    radio_runtime: Optional[RadioRuntime] = None
     if scenario.initial_state.radio is not None:
         radio = scenario.initial_state.radio
-        _lookup(cells_idx, radio.serving_cell, "environments.cells")
-        _lookup(signal_models_idx, radio.signal_model, "environments.signal_models")
+        serving_cell = _lookup(cells_idx, radio.serving_cell, "environments.cells")
+        signal_model = _lookup(signal_models_idx, radio.signal_model, "environments.signal_models")
+        radio_runtime = RadioRuntime(serving_cell=serving_cell, signal_model=signal_model)
 
-    return modem_runtimes, sim_slot_runtimes
+    return modem_runtimes, sim_slot_runtimes, radio_runtime
 
 
 def _resolve_optional(item_id: Optional[str], index: dict, kind: str) -> Optional[object]:
@@ -213,6 +220,25 @@ def resolve_seed_profiles(slot: SimSlotRuntime, devices: DevicesDoc) -> list[See
         )
         for p in devices.data_profiles
     ]
+
+
+def resolve_radio_seed(radio_runtime: Optional[RadioRuntime]) -> Optional[RadioSeed]:
+    """Flattens a resolved RadioRuntime into the scalar fields
+    sml.mpss.radio's AOs actually consume -- the radio-domain equivalent of
+    resolve_seed_profiles() above. Returns None if the scenario had no
+    initial_state.radio block, in which case the AOs keep their own
+    built-in defaults."""
+    if radio_runtime is None:
+        return None
+    cell = radio_runtime.serving_cell
+    mcc, mnc = cell.plmn[:3], cell.plmn[3:]
+    return RadioSeed(
+        mcc=mcc,
+        mnc=mnc,
+        rat=cell.rat,
+        rsrp_dbm=cell.default_rsrp_dbm,
+        variance_db=radio_runtime.signal_model.variance_db,
+    )
 
 
 def resolve_interface_preset(slot: SimSlotRuntime) -> InterfacePresetSeed:

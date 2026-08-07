@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_operating_mode.req",
+  "title": "Set Operating Mode Request",
+  "description": "Operating-mode names are the telux::tel::OperatingMode enumerators verbatim (PhoneDefines.hpp). taf_radio_SetRadioPower maps LE_ON->ONLINE and LE_OFF->AIRPLANE (the PA's LOW_POWER) before reaching here.",
+  "type": "object",
+  "required": ["mode", "slot"],
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": [
+        "ONLINE",
+        "AIRPLANE",
+        "FACTORY_TEST",
+        "OFFLINE",
+        "RESETTING",
+        "SHUTTING_DOWN",
+        "PERSISTENT_LOW_POWER"
+      ]
+    },
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

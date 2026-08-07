@@ -1,0 +1,353 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# radio domain registry -- source of truth for the PA<->MPSS radio-domain
+# wire contract. Structured exactly like registry/data.yaml (same generators,
+# same templates, no tooling change): `shared/tools/gen_{cpp,python}.py`
+# picks this file up from registry/*.yaml automatically and emits
+# generated/{cpp,python}/{topics,payloads,validators}.* for both sides.
+#
+# Provenance. Every method/indication below is the MQTT replacement for one
+# gRPC call in the old SDK simulation server, reached through the same three
+# layer chain the radio APIs have always used:
+#
+#     taf_radio_*      telaf/components/tafRadioSvc/tafRadioSvc.cpp
+#       v
+#     taf_pa_radio_*   telaf-pa/component/taf_pa_radio/tafRadioPa.cpp
+#       v
+#     telux managers   IPhoneManager / IPhone / tel::IServingSystemManager /
+#                      INetworkSelectionManager / data::IServingSystemManager
+#
+# The gRPC services these replace (sdk/simulation/services/
+# sdk-simulation-server/tel/) are:
+#   PhoneManagerServerImpl            -> radio.phone.* + radio.signal.* below
+#   ServingManagerServerImpl          -> radio.rat.* / radio.dc.* / radio.sys.*
+#   NetworkSelectionManagerServerImpl -> radio.netsel.*
+#
+
+
+domain: radio
+
+rpcs:
+  # --- radio.phone.* -- IPhoneManager (PhoneManagerServerImpl) -------------
+
+  - method: set_operating_mode
+    req_topic: "ap/req/radio/set_operating_mode"
+    rsp_topic: "mp/rsp/radio/set_operating_mode"
+    req_payload: schemas/radio/set_operating_mode_req.json
+    rsp_payload: schemas/radio/set_operating_mode_rsp.json
+    qos: 1
+    description: >-
+      Set the modem operating mode. Backs taf_radio_SetRadioPower (which maps
+      LE_ON->ONLINE, LE_OFF->LOW_POWER/AIRPLANE before calling
+      taf_pa_radio_SetOperatingMode) and taf_radio_SetOperatingMode directly.
+      Server-side mirror of PhoneManagerServerImpl::SetOperatingMode,
+      including its INVALID_ARGUMENTS range check and its
+      notifyAndUpdateOperatingMode() op_mode indication.
+
+  - method: request_operating_mode
+    req_topic: "ap/req/radio/request_operating_mode"
+    rsp_topic: "mp/rsp/radio/request_operating_mode"
+    req_payload: schemas/radio/request_operating_mode_req.json
+    rsp_payload: schemas/radio/request_operating_mode_rsp.json
+    qos: 1
+    description: >-
+      Query the modem operating mode. Backs taf_radio_GetRadioPower (ONLINE ->
+      LE_ON, anything else -> LE_OFF) and taf_radio_GetOperatingMode.
+      Mirrors PhoneManagerServerImpl::GetOperatingMode.
+
+  - method: request_cellular_capability
+    req_topic: "ap/req/radio/request_cellular_capability"
+    rsp_topic: "mp/rsp/radio/request_cellular_capability"
+    req_payload: schemas/radio/request_cellular_capability_req.json
+    rsp_payload: schemas/radio/request_cellular_capability_rsp.json
+    qos: 1
+    description: >-
+      Query device SIM count / max-active-SIM count and the per-slot SIM and
+      device RAT capability lists. One RPC backs two TELAF APIs, exactly as
+      one gRPC call did: taf_radio_GetHardwareSimConfig reads
+      simCount/maxActiveSims, taf_radio_GetHardwareSimRatCapabilities reads
+      the two capability lists. Mirrors
+      PhoneManagerServerImpl::GetCellularCapabilities.
+
+  - method: request_voice_service_state
+    req_topic: "ap/req/radio/request_voice_service_state"
+    rsp_topic: "mp/rsp/radio/request_voice_service_state"
+    req_payload: schemas/radio/request_voice_service_state_req.json
+    rsp_payload: schemas/radio/request_voice_service_state_rsp.json
+    qos: 1
+    description: >-
+      Query voice registration state, denial cause, and voice RAT. Backs
+      taf_radio_GetNetRegState (whose CombineNetRegState() folds this voice
+      state together with the data serving state). Mirrors
+      PhoneManagerServerImpl::RequestVoiceServiceState.
+
+  - method: request_signal_strength
+    req_topic: "ap/req/radio/request_signal_strength"
+    rsp_topic: "mp/rsp/radio/request_signal_strength"
+    req_payload: schemas/radio/request_signal_strength_req.json
+    rsp_payload: schemas/radio/request_signal_strength_rsp.json
+    qos: 1
+    description: >-
+      Query the full per-RAT signal metric snapshot in one shot. Backs
+      taf_radio_MeasureSignalMetrics and every per-RAT getter that reads the
+      handle it returns (GetGsmSignalMetrics / GetUmtsSignalMetrics /
+      GetLteSignalMetrics / GetNr5gSignalMetrics) -- one RPC, exactly as the
+      SDK had one requestSignalStrength() feeding all of them. Mirrors
+      PhoneManagerServerImpl::GetSignalStrength.
+
+  - method: configure_signal_strength
+    req_topic: "ap/req/radio/configure_signal_strength"
+    rsp_topic: "mp/rsp/radio/configure_signal_strength"
+    req_payload: schemas/radio/configure_signal_strength_req.json
+    rsp_payload: schemas/radio/configure_signal_strength_rsp.json
+    qos: 1
+    description: >-
+      Configure signal-strength change notification thresholds / delta /
+      hysteresis. Backs taf_radio_SetSignalStrengthIndThresholds,
+      SetSignalStrengthIndDelta, SetSignalStrengthIndHysteresis and
+      SetSignalStrengthIndHysteresisTimer -- all four funnel into
+      taf_pa_radio_SetSignalStrengthInd -> IPhone::configureSignalStrength,
+      so all four share this one topic pair and are disambiguated by which
+      of the optional config fields the request carries (same
+      presence-based disambiguation data.query_profile already uses).
+      Mirrors PhoneManagerServerImpl::ConfigureSignalStrength.
+
+  - method: request_cell_info
+    req_topic: "ap/req/radio/request_cell_info"
+    rsp_topic: "mp/rsp/radio/request_cell_info"
+    req_payload: schemas/radio/request_cell_info_req.json
+    rsp_payload: schemas/radio/request_cell_info_rsp.json
+    qos: 1
+    description: >-
+      Query the serving + neighbour cell list. Backs
+      taf_radio_GetServingCellId and taf_radio_GetCurrentNetworkMccMnc, both
+      of which read the registered cell out of
+      taf_pa_radio_GetCellLocationListInfo. Mirrors
+      PhoneManagerServerImpl::RequestCellInfoList.
+
+  - method: request_operator_info
+    req_topic: "ap/req/radio/request_operator_info"
+    rsp_topic: "mp/rsp/radio/request_operator_info"
+    req_payload: schemas/radio/request_operator_info_req.json
+    rsp_payload: schemas/radio/request_operator_info_rsp.json
+    qos: 1
+    description: >-
+      Query current registered operator long/short name and PLMN. Backs
+      taf_radio_GetCurrentNetworkName (short name) and
+      taf_radio_GetCurrentNetworkLongName (long name), both reading
+      taf_pa_radio_GetCurrNetworkName. Mirrors
+      PhoneManagerServerImpl::RequestOperatorInfo.
+
+  # --- radio.rat.* / sys.* / dc.* -- tel::IServingSystemManager -----------
+  #     (ServingManagerServerImpl)
+
+  - method: set_rat_preference
+    req_topic: "ap/req/radio/set_rat_preference"
+    rsp_topic: "mp/rsp/radio/set_rat_preference"
+    req_payload: schemas/radio/set_rat_preference_req.json
+    rsp_payload: schemas/radio/set_rat_preference_rsp.json
+    qos: 1
+    description: >-
+      Set the RAT mode preference list. Backs taf_radio_SetRatPreferences via
+      taf_pa_radio_SetPreferredRat. Mirrors
+      ServingManagerServerImpl::SetRATPreference, including its persistence of
+      RATPreference into the serving-system state file and the
+      system-selection-preference event it fires afterwards.
+
+  - method: request_rat_preference
+    req_topic: "ap/req/radio/request_rat_preference"
+    rsp_topic: "mp/rsp/radio/request_rat_preference"
+    req_payload: schemas/radio/request_rat_preference_req.json
+    rsp_payload: schemas/radio/request_rat_preference_rsp.json
+    qos: 1
+    description: >-
+      Query the RAT mode preference list. Backs taf_radio_GetRatPreferences.
+      Mirrors ServingManagerServerImpl::RequestRATPreference.
+
+  - method: get_system_info
+    req_topic: "ap/req/radio/get_system_info"
+    rsp_topic: "mp/rsp/radio/get_system_info"
+    req_payload: schemas/radio/get_system_info_req.json
+    rsp_payload: schemas/radio/get_system_info_rsp.json
+    qos: 1
+    description: >-
+      Query serving RAT + service domain + registration state. Backs
+      taf_radio_GetRadioAccessTechInUse (via taf_pa_radio_GetServingRat) and
+      the initial read taf_radio_AddRatChangeHandler performs when it
+      registers. Mirrors ServingManagerServerImpl::GetSystemInfo.
+
+  - method: get_dc_status
+    req_topic: "ap/req/radio/get_dc_status"
+    rsp_topic: "mp/rsp/radio/get_dc_status"
+    req_payload: schemas/radio/get_dc_status_req.json
+    rsp_payload: schemas/radio/get_dc_status_rsp.json
+    qos: 1
+    description: >-
+      Query 5G NR dual-connectivity status (ENDC availability + DCNR
+      restriction). Backs taf_radio_GetNrDualConnectivityStatus, which reads
+      both halves through taf_pa_radio_GetEndcAvailability and
+      taf_pa_radio_GetDcnrRestriction off one telux getDcStatus() call.
+      Mirrors ServingManagerServerImpl::GetDcStatus.
+
+  - method: request_rf_band_info
+    req_topic: "ap/req/radio/request_rf_band_info"
+    rsp_topic: "mp/rsp/radio/request_rf_band_info"
+    req_payload: schemas/radio/request_rf_band_info_req.json
+    rsp_payload: schemas/radio/request_rf_band_info_rsp.json
+    qos: 1
+    description: >-
+      Query the RF band/channel/bandwidth of whichever RAT is currently
+      active. Backs taf_radio_GetServingCellLteBandInfo (and the sibling
+      GSM/WCDMA/NR5G band getters) via taf_pa_radio_GetServingCellBandInfo,
+      which reinterprets this one value three ways depending on which
+      *BandInfoValid flag the caller set. Mirrors
+      ServingManagerServerImpl::RequestRFBandInfo.
+
+  # --- radio.netsel.* -- INetworkSelectionManager -------------------------
+  #     (NetworkSelectionManagerServerImpl)
+
+  - method: set_network_selection_mode
+    req_topic: "ap/req/radio/set_network_selection_mode"
+    rsp_topic: "mp/rsp/radio/set_network_selection_mode"
+    req_payload: schemas/radio/set_network_selection_mode_req.json
+    rsp_payload: schemas/radio/set_network_selection_mode_rsp.json
+    qos: 1
+    description: >-
+      Set automatic or manual network registration mode. Backs
+      taf_radio_SetAutomaticRegisterMode (which sends mode=AUTOMATIC with
+      mcc/mnc cleared to 0). Mirrors
+      NetworkSelectionManagerServerImpl::SetNetworkSelectionMode, including
+      its persistence of mode/mcc/mnc.
+
+  - method: request_network_selection_mode
+    req_topic: "ap/req/radio/request_network_selection_mode"
+    rsp_topic: "mp/rsp/radio/request_network_selection_mode"
+    req_payload: schemas/radio/request_network_selection_mode_req.json
+    rsp_payload: schemas/radio/request_network_selection_mode_rsp.json
+    qos: 1
+    description: >-
+      Query current registration mode plus the manually-selected mcc/mnc.
+      Backs taf_radio_GetRegisterMode. Mirrors
+      NetworkSelectionManagerServerImpl::RequestNetworkSelectionMode.
+
+indications:
+  # --- radio.phone.* -------------------------------------------------------
+
+  - event: op_mode
+    ind_topic: "mp/ind/radio/op_mode"
+    payload: schemas/radio/op_mode_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      Operating-mode change. Backs taf_radio_AddOpModeChangeHandler. The SML
+      side fires this from its set_operating_mode handler, mirroring
+      PhoneManagerServerImpl::notifyAndUpdateOperatingMode()'s
+      operatingModeUpdate event.
+
+  - event: signal_strength
+    ind_topic: "mp/ind/radio/signal_strength"
+    payload: schemas/radio/signal_strength_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      Signal-strength change. Backs taf_radio_AddSignalStrengthChangeHandler.
+      Carries the same full per-RAT snapshot as request_signal_strength's
+      response, so a listener needs no follow-up query.
+
+  - event: cell_info
+    ind_topic: "mp/ind/radio/cell_info"
+    payload: schemas/radio/cell_info_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      Serving/neighbour cell list change. Backs
+      taf_radio_AddCellInfoChangeHandler.
+
+  # --- radio.sys.* ---------------------------------------------------------
+
+  - event: sys_info
+    ind_topic: "mp/ind/radio/sys_info"
+    payload: schemas/radio/sys_info_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      Serving-system info change (RAT / domain / registration state). Backs
+      taf_radio_AddRatChangeHandler -- the PA filters this for an actual RAT
+      transition before firing the handler, exactly as the old
+      TelephonyServingSystemListener::onSystemInfoChanged path did. Mirrors
+      ServingManagerServerImpl's systemInfoUpdate event.
+      retain=true so the PA's SimulaTelServingSystemManager populates
+      last_sys_info_ immediately on subscribe regardless of startup order
+      (PA may connect after MPSS already published the boot-time value).
+
+  - event: rat_pref
+    ind_topic: "mp/ind/radio/rat_pref"
+    payload: schemas/radio/rat_pref_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      RAT-preference change, fired after a successful set_rat_preference.
+      Mirrors
+      ServingManagerServerImpl::triggerSystemSelectionPreferenceEvent().
+
+  - event: dc_status
+    ind_topic: "mp/ind/radio/dc_status"
+    payload: schemas/radio/get_dc_status_rsp.json
+    qos: 1
+    retain: true
+    description: >-
+      5G NR dual-connectivity status change. tel::IServingSystemManager's
+      getDcStatus() is a synchronous, no-callback accessor (unlike
+      data::IServingSystemManager's async requestServiceStatus) -- mirroring
+      SimulaServingSystemManager::getDrbStatus()'s cached-read pattern
+      (component/data/ServingSystemManager.hpp), the PA side answers
+      getDcStatus() purely from this indication's cache, never from a
+      blocking RPC. Published at Ready-entry (like data.serv_state /
+      data.serv_roaming) so the cache is warm before any getDcStatus() call.
+      Reuses get_dc_status.rsp's payload shape -- same fields, push instead
+      of pull. retain=true so the PA cache is warm regardless of startup order.
+
+  - event: lte_cs_capability
+    ind_topic: "mp/ind/radio/lte_cs_capability"
+    payload: schemas/radio/lte_cs_capability_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      LTE CS (circuit-switched) capability change. Backs taf_radio_GetLteCsCap
+      via tel::IServingSystemManager::getLteCsCapability(), which -- like
+      getDcStatus() above -- is a synchronous, no-callback accessor with no
+      wire query of its own, so the PA answers it purely from this
+      indication's cache. Published at Ready-entry alongside sys_info /
+      dc_status so the cache is warm before any getLteCsCapability() call.
+      retain=true so the PA populates last_lte_cs_capability_ immediately on
+      subscribe regardless of startup order; without retain the getter would
+      report UNKNOWN until the first change. Also drives
+      IServingSystemListener::onLteCsCapabilityChanged.
+
+  # --- radio.subsys_ready -- one retained topic per manager ----------------
+  # Same rationale as data.yaml's three subsys_ready topics: each manager
+  # maps to an independently-booting subsystem on real hardware and
+  # publishes its own readiness, rather than collapsing into one
+  # domain-wide signal.
+
+  - event: subsys_ready_phone
+    ind_topic: "mp/ind/radio/subsys_ready/phone"
+    payload: schemas/radio/subsys_ready_ind.json
+    qos: 1
+    retain: true
+    description: "IPhoneManager / IPhone subsystem readiness."
+
+  - event: subsys_ready_serv
+    ind_topic: "mp/ind/radio/subsys_ready/serv"
+    payload: schemas/radio/subsys_ready_ind.json
+    qos: 1
+    retain: true
+    description: "tel::IServingSystemManager subsystem readiness."
+
+  - event: subsys_ready_netsel
+    ind_topic: "mp/ind/radio/subsys_ready/netsel"
+    payload: schemas/radio/subsys_ready_ind.json
+    qos: 1
+    retain: true
+    description: "INetworkSelectionManager subsystem readiness."

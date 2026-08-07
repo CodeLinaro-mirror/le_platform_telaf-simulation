@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_rat_preference.rsp",
+  "title": "Set RAT Preference Response",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

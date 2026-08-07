@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_operator_info.rsp",
+  "title": "Request Operator Info Response",
+  "description": "Mirrors telux::tel::PlmnInfo / the SDK's operatorNameInfo state block. `shortName` backs taf_radio_GetCurrentNetworkName, `longName` backs taf_radio_GetCurrentNetworkLongName.",
+  "type": "object",
+  "required": ["longName", "shortName", "plmn", "isHome"],
+  "properties": {
+    "longName": { "type": "string" },
+    "shortName": { "type": "string" },
+    "plmn": { "type": "string" },
+    "isHome": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

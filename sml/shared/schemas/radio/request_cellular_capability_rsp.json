@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_cellular_capability.rsp",
+  "title": "Request Cellular Capability Response",
+  "description": "Mirrors telux::tel::CellularCapabilityInfo. `simCount`/`maxActiveSims` back taf_radio_GetHardwareSimConfig; `simRatCapabilities`/`deviceRatCapability` back taf_radio_GetHardwareSimRatCapabilities. RAT capability names are telux::tel::RATCapability enumerators verbatim.",
+  "type": "object",
+  "required": ["voiceServiceTechs", "simCount", "maxActiveSims", "simRatCapabilities", "deviceRatCapability"],
+  "properties": {
+    "voiceServiceTechs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["VOICE_TECH_GW_CSFB", "VOICE_TECH_1x_CSFB", "VOICE_TECH_VOLTE"]
+      }
+    },
+    "simCount": { "type": "integer", "minimum": 0 },
+    "maxActiveSims": { "type": "integer", "minimum": 0 },
+    "simRatCapabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["slotId", "capabilities"],
+        "properties": {
+          "slotId": { "type": "integer", "minimum": 0 },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["AMPS", "CDMA", "HDR", "GSM", "WCDMA", "LTE", "TDS", "NR5G", "NR5GSA", "NB1_NTN"]
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "deviceRatCapability": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["slotId", "capabilities"],
+        "properties": {
+          "slotId": { "type": "integer", "minimum": 0 },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["AMPS", "CDMA", "HDR", "GSM", "WCDMA", "LTE", "TDS", "NR5G", "NR5GSA", "NB1_NTN"]
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

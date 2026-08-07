@@ -268,6 +268,22 @@ class SeedProfile(StrictModel):
     isDefault: bool = True
 
 
+class RadioSeed(StrictModel):
+    """Flattened from a resolved RadioRuntime (sml/runtime/world_state.py)
+    by sml/runtime/loader.py's resolve_radio_seed() -- the radio-domain
+    equivalent of SeedProfile above. mcc/mnc are split from the serving
+    cell's PLMN (standard 3-digit-MCC + remaining-digits-MNC encoding).
+    variance_db is carried across but not yet applied anywhere: no MPSS
+    signal-fluctuation model exists yet (see environments/default.yaml's
+    header comment) -- every scenario seeds only the static baseline value
+    in rsrp_dbm."""
+    mcc: str
+    mnc: str
+    rat: str = "LTE"
+    rsrp_dbm: int = -85
+    variance_db: int = 0
+
+
 class InterfacePresetSeed(StrictModel):
     ifname_prefix: str = "rmnet_data"
     ifname_pool_size: int = 8

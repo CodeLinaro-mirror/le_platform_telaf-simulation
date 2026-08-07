@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_network_selection_mode.rsp",
+  "title": "Request Network Selection Mode Response",
+  "description": "Mirrors telux::tel::NetworkModeInfo. Read by taf_radio_GetRegisterMode, which reports whether registration is automatic and, for MANUAL, the selected mcc/mnc.",
+  "type": "object",
+  "required": ["mode", "mcc", "mnc"],
+  "properties": {
+    "mode": { "type": "string", "enum": ["AUTOMATIC", "MANUAL", "UNKNOWN"] },
+    "mcc": { "type": "string" },
+    "mnc": { "type": "string" }
+  },
+  "additionalProperties": false
+}

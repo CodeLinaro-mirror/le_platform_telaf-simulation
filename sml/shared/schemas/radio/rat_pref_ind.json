@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.rat_pref.ind",
+  "title": "RAT Preference Change Indication",
+  "description": "Fired after a successful set_rat_preference, mirroring ServingManagerServerImpl::triggerSystemSelectionPreferenceEvent(). Carries the service domain alongside the RAT list because that event did too.",
+  "type": "object",
+  "required": ["ratPrefs"],
+  "properties": {
+    "ratPrefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["CDMA_1X", "CDMA_EVDO", "GSM", "WCDMA", "LTE", "TDSCDMA", "NR5G", "NR5G_NSA", "NR5G_SA", "NB1_NTN"]
+      }
+    },
+    "serviceDomainPref": {
+      "type": "string",
+      "enum": ["CS_ONLY", "PS_ONLY", "CS_PS", "UNKNOWN"]
+    }
+  },
+  "additionalProperties": false
+}

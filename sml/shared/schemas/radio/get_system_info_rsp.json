@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.get_system_info.rsp",
+  "title": "Get System Info Response",
+  "description": "Mirrors telux::tel::ServingSystemInfo. `rat` backs taf_radio_GetRadioAccessTechInUse via taf_pa_radio_GetServingRat.",
+  "type": "object",
+  "required": ["rat", "domain", "state"],
+  "properties": {
+    "rat": {
+      "type": "string",
+      "enum": [
+        "RADIO_TECH_UNKNOWN",
+        "RADIO_TECH_GPRS",
+        "RADIO_TECH_EDGE",
+        "RADIO_TECH_UMTS",
+        "RADIO_TECH_LTE",
+        "RADIO_TECH_GSM",
+        "RADIO_TECH_TD_SCDMA",
+        "RADIO_TECH_LTE_CA",
+        "RADIO_TECH_NR5G"
+      ]
+    },
+    "domain": {
+      "type": "string",
+      "enum": ["UNKNOWN", "NO_SRV", "CS_ONLY", "PS_ONLY", "CS_PS", "CAMPED"]
+    },
+    "state": {
+      "type": "string",
+      "enum": ["UNKNOWN", "NO_SERVICE", "LIMITED_SERVICE", "IN_SERVICE", "LIMITED_REGIONAL", "POWER_SAVE"]
+    }
+  },
+  "additionalProperties": false
+}

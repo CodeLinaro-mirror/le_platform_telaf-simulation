@@ -1,0 +1,9 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_lte_cs_capability.req before send.
+
+topic: ctrl/cmd/action/radio/force_lte_cs_capability
+data:
+  lteCsCapability: BARRED

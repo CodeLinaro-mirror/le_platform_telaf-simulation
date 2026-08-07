@@ -1,0 +1,39 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_signal_strength.req before send.
+#
+# Makes ALL FOUR per-RAT branches of `tafRadioIntTest -- signal 1 metrics`
+# execute in a single publish -- the one-shot setup for full signal-metric
+# coverage:
+#   taf_radio_GetGsmSignalMetrics / GetGsmSignalMetricsSs
+#   taf_radio_GetUmtsSignalMetrics / GetUmtsSignalMetricsEcio
+#   taf_radio_GetLteSignalMetrics / GetLteSignalMetricsRssi
+#   taf_radio_GetNr5gSignalMetrics
+#
+# Usage:
+#   sml mqttcli pub sml/tools/mqttcli/commands/force_signal_strength_all.yaml
+#   app runProc tafRadioIntTest tafRadioIntTest -- signal 1 metrics
+#   logread | grep taf_radio_Get      # confirm each getter actually ran
+#
+
+topic: ctrl/cmd/action/radio/force_signal_strength
+data:
+  gsm:
+    gsmSignalStrength: 18      # gates GSM bit   (valid 0..31)
+    gsmBitErrorRate: 0
+  wcdma:
+    signalStrength: 14         # gates UMTS bit  (valid 0..31)
+    bitErrorRate: 0
+    ecio: -8                   # valid -20..0
+    rscp: -85                  # valid -120..-24
+  lte:
+    lteSignalStrength: 25      # gates LTE bit   (valid 0..31)
+    lteRsrp: -95               # valid -140..-44
+    lteRsrq: -10               # valid -20..-3
+    lteRssnr: 100              # valid -200..300
+  nr5g:
+    rsrp: -88                  # gates NR5G bit  (valid -140..-44, via getDbm())
+    rsrq: -11                  # valid -43..20
+    rssnr: 120                 # valid -230..400

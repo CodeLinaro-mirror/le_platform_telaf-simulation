@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.subsys_ready.ind",
+  "title": "Radio Subsystem Ready Indication",
+  "description": "Shared shape for subsys_ready_phone/serv/netsel -- one retained topic per manager, see registry description.",
+  "type": "object",
+  "required": ["ready", "status"],
+  "properties": {
+    "ready": { "type": "boolean" },
+    "status": { "type": "string", "enum": ["AVAILABLE", "UNAVAILABLE"] }
+  },
+  "additionalProperties": false
+}

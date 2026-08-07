@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_rat_preference.req",
+  "title": "Set RAT Preference Request",
+  "description": "RAT names are the telux::tel::RatPrefType enumerators with their PREF_ prefix stripped. The SDK's RatPreference is a std::bitset<16> indexed by RatPrefType; this list carries the set bits, which is what ServingManagerServerImpl persisted as its space-separated 'RATPreference' string.",
+  "type": "object",
+  "required": ["ratPrefs", "slot"],
+  "properties": {
+    "ratPrefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["CDMA_1X", "CDMA_EVDO", "GSM", "WCDMA", "LTE", "TDSCDMA", "NR5G", "NR5G_NSA", "NR5G_SA", "NB1_NTN"]
+      }
+    },
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

@@ -17,6 +17,7 @@ from pathlib import Path
 from sml.mpss.mqtt_client import MqttClient
 from sml.mpss.config import ConfigError, load_config
 from sml.mpss.data import DataSubsystem
+from sml.mpss.radio import RadioSubsystem
 from sml.mpss import instrumentation as _instr
 from sml.mpss.sim import SimSubsystem
 from sml.runtime.action_dispatcher import ActionDispatcher
@@ -27,6 +28,7 @@ from sml.runtime.loader import (
     resolve_interface_preset,
     resolve_ip_config,
     resolve_qos_presets,
+    resolve_radio_seed,
     resolve_seed_profiles,
     resolve_throttle_presets,
     resolve_throughput_presets,
@@ -132,6 +134,21 @@ def main() -> int:
         )
         dispatcher.register_domain("sim", sim_subsystem)
         client.register_subsystem(sim_subsystem)
+        # Radio domain (telux::tel radio surface: IPhoneManager/IPhone,
+        # tel::IServingSystemManager, INetworkSelectionManager) -- same
+        # target slot as the data domain. radio_seed carries the scenario's
+        # initial_state.radio block (serving cell PLMN/RAT/RSRP), resolved
+        # via resolve_radio_seed(); None if the scenario has no radio block,
+        # in which case RadioPhoneAO/RadioServingSystemAO keep their own
+        # built-in defaults. action_radio.yaml wires force_lte_cs_capability/
+        # force_sys_info/force_dc_status/force_signal_strength through
+        # RadioActionDispatcher.
+        radio_subsystem = RadioSubsystem(
+            slot_id=target_slot_runtime.sim_slot.slot_id if target_slot_runtime else TARGET_SLOT_ID,
+            radio_seed=resolve_radio_seed(runner.radio_runtime),
+        )
+        dispatcher.register_domain("radio", radio_subsystem)
+        client.register_subsystem(radio_subsystem)
 
         client.register_subsystem(runner)
         log.info("scenario runner registered (mpss.scenario=%s)", cfg.scenario)

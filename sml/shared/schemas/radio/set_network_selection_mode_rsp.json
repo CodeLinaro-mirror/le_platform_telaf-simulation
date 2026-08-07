@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_network_selection_mode.rsp",
+  "title": "Set Network Selection Mode Response",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

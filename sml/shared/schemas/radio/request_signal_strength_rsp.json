@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_signal_strength.rsp",
+  "title": "Request Signal Strength Response",
+  "description": "Full per-RAT snapshot, mirroring telux::tel::SignalStrength's four sub-objects and the four the old gRPC GetSignalStrengthResponse carried. One response feeds taf_radio_MeasureSignalMetrics plus every per-RAT getter reading its handle (Gsm/Umts/Lte/Nr5g), exactly as one SDK requestSignalStrength() did. Field names and the 2147483647 (INT32_MAX) 'unavailable' sentinel are carried over verbatim from json/system-state/tel/IPhoneManagerStateSlot*.json's signalStrengthInfo block.",
+  "type": "object",
+  "required": ["gsm", "wcdma", "lte", "nr5g"],
+  "properties": {
+    "gsm": {
+      "type": "object",
+      "required": ["gsmSignalStrength", "gsmBitErrorRate"],
+      "properties": {
+        "gsmSignalStrength": { "type": "integer" },
+        "gsmBitErrorRate": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "wcdma": {
+      "type": "object",
+      "required": ["signalStrength", "bitErrorRate", "ecio", "rscp"],
+      "properties": {
+        "signalStrength": { "type": "integer" },
+        "bitErrorRate": { "type": "integer" },
+        "ecio": { "type": "integer" },
+        "rscp": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "lte": {
+      "type": "object",
+      "required": ["lteSignalStrength", "lteRsrp", "lteRsrq", "lteRssnr", "lteCqi", "timingAdvance"],
+      "properties": {
+        "lteSignalStrength": { "type": "integer" },
+        "lteRsrp": { "type": "integer" },
+        "lteRsrq": { "type": "integer" },
+        "lteRssnr": { "type": "integer" },
+        "lteCqi": { "type": "integer" },
+        "timingAdvance": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "nr5g": {
+      "type": "object",
+      "required": ["rsrp", "rsrq", "rssnr"],
+      "properties": {
+        "rsrp": { "type": "integer" },
+        "rsrq": { "type": "integer" },
+        "rssnr": { "type": "integer" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_network_selection_mode.req",
+  "title": "Set Network Selection Mode Request",
+  "description": "taf_radio_SetAutomaticRegisterMode sends mode=AUTOMATIC with mcc/mnc empty (the PA clears them to 0 before the call). mcc/mnc are strings, not integers, matching NetworkSelectionManagerServerImpl's persisted representation and the SDK's setNetworkSelectionMode(mode, std::string mcc, std::string mnc) signature.",
+  "type": "object",
+  "required": ["mode", "slot"],
+  "properties": {
+    "mode": { "type": "string", "enum": ["AUTOMATIC", "MANUAL", "UNKNOWN"] },
+    "mcc": { "type": "string" },
+    "mnc": { "type": "string" },
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

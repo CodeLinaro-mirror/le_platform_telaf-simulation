@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_rf_band_info.rsp",
+  "title": "Request RF Band Info Response",
+  "description": "Mirrors telux::tel::RFBandInfo. band/bandWidth enum literals are the RFBand/RFBandWidth enumerator names verbatim (see ServingSystemDefines.hpp), reused as-is on the wire the same way request_rat_preference.rsp reuses RatPrefType names. Backs taf_radio_GetServingCellLteBandInfo (and the sibling GSM/WCDMA/NR5G band getters) via taf_pa_radio_GetServingCellBandInfo, which reinterprets this one active-RAT value three ways depending on which *BandInfoValid flag the caller set -- there is no per-RAT array on the wire.",
+  "type": "object",
+  "required": ["band", "channel", "bandWidth"],
+  "properties": {
+    "band": {
+      "type": "string",
+      "enum": [
+        "INVALID",
+        "BC_0", "BC_1", "BC_3", "BC_4", "BC_5", "BC_6", "BC_7", "BC_8", "BC_9", "BC_10",
+        "BC_11", "BC_12", "BC_13", "BC_14", "BC_15", "BC_16", "BC_17", "BC_18", "BC_19",
+        "GSM_450", "GSM_480", "GSM_750", "GSM_850", "GSM_900_EXTENDED", "GSM_900_PRIMARY",
+        "GSM_900_RAILWAYS", "GSM_1800", "GSM_1900",
+        "WCDMA_2100", "WCDMA_PCS_1900", "WCDMA_DCS_1800", "WCDMA_1700_US", "WCDMA_850",
+        "WCDMA_800", "WCDMA_2600", "WCDMA_900", "WCDMA_1700_JAPAN", "WCDMA_1500_JAPAN",
+        "WCDMA_850_JAPAN",
+        "E_UTRA_OPERATING_BAND_1", "E_UTRA_OPERATING_BAND_2", "E_UTRA_OPERATING_BAND_3",
+        "E_UTRA_OPERATING_BAND_4", "E_UTRA_OPERATING_BAND_5", "E_UTRA_OPERATING_BAND_6",
+        "E_UTRA_OPERATING_BAND_7", "E_UTRA_OPERATING_BAND_8", "E_UTRA_OPERATING_BAND_9",
+        "E_UTRA_OPERATING_BAND_10", "E_UTRA_OPERATING_BAND_11", "E_UTRA_OPERATING_BAND_12",
+        "E_UTRA_OPERATING_BAND_13", "E_UTRA_OPERATING_BAND_14", "E_UTRA_OPERATING_BAND_17",
+        "E_UTRA_OPERATING_BAND_33", "E_UTRA_OPERATING_BAND_34", "E_UTRA_OPERATING_BAND_35",
+        "E_UTRA_OPERATING_BAND_36", "E_UTRA_OPERATING_BAND_37", "E_UTRA_OPERATING_BAND_38",
+        "E_UTRA_OPERATING_BAND_39", "E_UTRA_OPERATING_BAND_40", "E_UTRA_OPERATING_BAND_18",
+        "E_UTRA_OPERATING_BAND_19", "E_UTRA_OPERATING_BAND_20", "E_UTRA_OPERATING_BAND_21",
+        "E_UTRA_OPERATING_BAND_24", "E_UTRA_OPERATING_BAND_25", "E_UTRA_OPERATING_BAND_41",
+        "E_UTRA_OPERATING_BAND_42", "E_UTRA_OPERATING_BAND_43", "E_UTRA_OPERATING_BAND_23",
+        "E_UTRA_OPERATING_BAND_26", "E_UTRA_OPERATING_BAND_32", "E_UTRA_OPERATING_BAND_125",
+        "E_UTRA_OPERATING_BAND_126", "E_UTRA_OPERATING_BAND_127", "E_UTRA_OPERATING_BAND_28",
+        "E_UTRA_OPERATING_BAND_29", "E_UTRA_OPERATING_BAND_30", "E_UTRA_OPERATING_BAND_66",
+        "E_UTRA_OPERATING_BAND_250", "E_UTRA_OPERATING_BAND_46", "E_UTRA_OPERATING_BAND_27",
+        "E_UTRA_OPERATING_BAND_31", "E_UTRA_OPERATING_BAND_71", "E_UTRA_OPERATING_BAND_47",
+        "E_UTRA_OPERATING_BAND_48", "E_UTRA_OPERATING_BAND_67", "E_UTRA_OPERATING_BAND_68",
+        "E_UTRA_OPERATING_BAND_49", "E_UTRA_OPERATING_BAND_85", "E_UTRA_OPERATING_BAND_72",
+        "E_UTRA_OPERATING_BAND_73", "E_UTRA_OPERATING_BAND_86", "E_UTRA_OPERATING_BAND_53",
+        "E_UTRA_OPERATING_BAND_87", "E_UTRA_OPERATING_BAND_88", "E_UTRA_OPERATING_BAND_70",
+        "TDSCDMA_BAND_A", "TDSCDMA_BAND_B", "TDSCDMA_BAND_C", "TDSCDMA_BAND_D",
+        "TDSCDMA_BAND_E", "TDSCDMA_BAND_F",
+        "NR5G_BAND_1", "NR5G_BAND_2", "NR5G_BAND_3", "NR5G_BAND_5", "NR5G_BAND_7",
+        "NR5G_BAND_8", "NR5G_BAND_20", "NR5G_BAND_28", "NR5G_BAND_38", "NR5G_BAND_41",
+        "NR5G_BAND_50", "NR5G_BAND_51", "NR5G_BAND_66", "NR5G_BAND_70", "NR5G_BAND_71",
+        "NR5G_BAND_74", "NR5G_BAND_75", "NR5G_BAND_76", "NR5G_BAND_77", "NR5G_BAND_78",
+        "NR5G_BAND_79", "NR5G_BAND_80", "NR5G_BAND_81", "NR5G_BAND_82", "NR5G_BAND_83",
+        "NR5G_BAND_84", "NR5G_BAND_85", "NR5G_BAND_257", "NR5G_BAND_258", "NR5G_BAND_259",
+        "NR5G_BAND_260", "NR5G_BAND_261", "NR5G_BAND_12", "NR5G_BAND_25", "NR5G_BAND_34",
+        "NR5G_BAND_39", "NR5G_BAND_40", "NR5G_BAND_65", "NR5G_BAND_86", "NR5G_BAND_48",
+        "NR5G_BAND_14", "NR5G_BAND_13", "NR5G_BAND_18", "NR5G_BAND_26", "NR5G_BAND_30",
+        "NR5G_BAND_29", "NR5G_BAND_53", "NR5G_BAND_46", "NR5G_BAND_91", "NR5G_BAND_92",
+        "NR5G_BAND_93", "NR5G_BAND_94"
+      ]
+    },
+    "channel": { "type": "integer" },
+    "bandWidth": {
+      "type": "string",
+      "enum": [
+        "INVALID_BANDWIDTH",
+        "LTE_BW_NRB_6", "LTE_BW_NRB_15", "LTE_BW_NRB_25", "LTE_BW_NRB_50", "LTE_BW_NRB_75",
+        "LTE_BW_NRB_100",
+        "NR5G_BW_NRB_5", "NR5G_BW_NRB_10", "NR5G_BW_NRB_15", "NR5G_BW_NRB_20", "NR5G_BW_NRB_25",
+        "NR5G_BW_NRB_30", "NR5G_BW_NRB_40", "NR5G_BW_NRB_50", "NR5G_BW_NRB_60", "NR5G_BW_NRB_80",
+        "NR5G_BW_NRB_90", "NR5G_BW_NRB_100", "NR5G_BW_NRB_200", "NR5G_BW_NRB_400",
+        "GSM_BW_NRB_2", "TDSCDMA_BW_NRB_2", "WCDMA_BW_NRB_5", "WCDMA_BW_NRB_10", "NR5G_BW_NRB_70"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

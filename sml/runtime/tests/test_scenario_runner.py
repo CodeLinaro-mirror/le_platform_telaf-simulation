@@ -29,7 +29,7 @@ from miros import Event, signals
 
 from generated.python.ctrl_topics import scenario as scenario_topics
 from sml.runtime.action_dispatcher import ActionDispatcher
-from sml.runtime.loader import LoaderError
+from sml.runtime.loader import LoaderError, resolve_radio_seed
 from sml.runtime.scenario_runner import ScenarioRunner
 
 
@@ -215,11 +215,41 @@ def test_load_unresolvable_id_raises(tmp_path, dispatcher):
 
 
 def test_load_applies_radio(tmp_path, dispatcher):
+    # Previously this test only checked runner.load() didn't raise --
+    # resolve_initial_state() validated serving_cell/signal_model ids
+    # against the environments catalog but discarded the resolved objects,
+    # so a scenario's radio.serving_cell/signal_model had zero runtime
+    # effect. Assert the resolved catalog objects actually land on the
+    # runner now.
     p = _write_config_tree(tmp_path, initial_state={
         "radio": {"serving_cell": "cell_urban_A", "signal_model": "stable_urban"},
     })
     runner = ScenarioRunner(action_dispatcher=dispatcher)
-    runner.load(p)  # must not raise
+    runner.load(p)
+
+    assert runner.radio_runtime is not None
+    assert runner.radio_runtime.serving_cell.id == "cell_urban_A"
+    assert runner.radio_runtime.serving_cell.plmn == "310150"
+    assert runner.radio_runtime.serving_cell.rat == "LTE"
+    assert runner.radio_runtime.serving_cell.default_rsrp_dbm == -95
+    assert runner.radio_runtime.signal_model.id == "stable_urban"
+    assert runner.radio_runtime.signal_model.variance_db == 0
+
+    seed = resolve_radio_seed(runner.radio_runtime)
+    assert seed is not None
+    assert seed.mcc == "310"
+    assert seed.mnc == "150"
+    assert seed.rat == "LTE"
+    assert seed.rsrp_dbm == -95
+    assert seed.variance_db == 0
+
+
+def test_load_without_radio_block_leaves_radio_runtime_none(tmp_path, dispatcher):
+    p = _write_config_tree(tmp_path, initial_state={})
+    runner = ScenarioRunner(action_dispatcher=dispatcher)
+    runner.load(p)
+    assert runner.radio_runtime is None
+    assert resolve_radio_seed(runner.radio_runtime) is None
 
 
 def test_load_invalid_enum_state_raises(tmp_path, dispatcher):

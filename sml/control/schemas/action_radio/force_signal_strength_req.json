@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_signal_strength.req",
+  "title": "Force Signal Strength Snapshot",
+  "description": "Forces RadioPhoneAO's per-RAT signal-strength world state, re-publishing mp/ind/radio/signal_strength with the full snapshot. Unlike radio.signal_strength.ind (which requires every field, since a listener gets the whole object), each RAT block here is a PARTIAL patch: _apply_force_signal_strength does gsm_signal.update(data['gsm']) etc., so a caller can move just lteRsrp and leave every other field at its current value. Backs taf_radio_AddSignalStrengthChangeHandler testing.",
+  "type": "object",
+  "properties": {
+    "gsm": {
+      "type": "object",
+      "properties": {
+        "gsmSignalStrength": { "type": "integer" },
+        "gsmBitErrorRate": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "wcdma": {
+      "type": "object",
+      "properties": {
+        "signalStrength": { "type": "integer" },
+        "bitErrorRate": { "type": "integer" },
+        "ecio": { "type": "integer" },
+        "rscp": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "lte": {
+      "type": "object",
+      "properties": {
+        "lteSignalStrength": { "type": "integer" },
+        "lteRsrp": { "type": "integer" },
+        "lteRsrq": { "type": "integer" },
+        "lteRssnr": { "type": "integer" },
+        "lteCqi": { "type": "integer" },
+        "timingAdvance": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "nr5g": {
+      "type": "object",
+      "properties": {
+        "rsrp": { "type": "integer" },
+        "rsrq": { "type": "integer" },
+        "rssnr": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's signal strength to force."
+    }
+  },
+  "additionalProperties": false
+}

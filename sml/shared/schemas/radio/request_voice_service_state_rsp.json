@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_voice_service_state.rsp",
+  "title": "Request Voice Service State Response",
+  "description": "Mirrors telux::tel::VoiceServiceInfo (VoiceServiceState/VoiceServiceDenialCause/RadioTechnology enumerator names, verbatim). Read by taf_radio_GetNetRegState, whose Utility::Convert::CombineNetRegState() folds this voice registration state together with the data serving state (data.request_service_status).",
+  "type": "object",
+  "required": ["voiceServiceState", "denialCause", "radioTech"],
+  "properties": {
+    "voiceServiceState": {
+      "type": "string",
+      "enum": [
+        "NOT_REG_AND_NOT_SEARCHING",
+        "REG_HOME",
+        "NOT_REG_AND_SEARCHING",
+        "REG_DENIED",
+        "UNKNOWN",
+        "REG_ROAMING"
+      ]
+    },
+    "denialCause": { "type": "integer", "description": "telux::tel::VoiceServiceDenialCause raw value; -1 (UNDEFINED) when not applicable." },
+    "radioTech": {
+      "type": "string",
+      "enum": [
+        "RADIO_TECH_UNKNOWN",
+        "RADIO_TECH_GPRS",
+        "RADIO_TECH_EDGE",
+        "RADIO_TECH_UMTS",
+        "RADIO_TECH_LTE",
+        "RADIO_TECH_GSM",
+        "RADIO_TECH_TD_SCDMA",
+        "RADIO_TECH_LTE_CA",
+        "RADIO_TECH_NR5G"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

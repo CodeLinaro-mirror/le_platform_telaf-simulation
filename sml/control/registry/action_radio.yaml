@@ -1,0 +1,69 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Radio-domain ctrl/cmd/action/radio/** registry (mirrors action_data.yaml's
+# structure/rationale). Actions inject network-side changes MPSS would
+# normally drive itself with no AP-facing RPC for triggering them -- there
+# is no taf_radio_* call for "the network changed its CS capability" or
+# "the serving RAT changed", so these are the test-only entry points for
+# exercising radio.yaml's indications (mp/ind/radio/sys_info,
+# mp/ind/radio/dc_status, mp/ind/radio/lte_cs_capability,
+# mp/ind/radio/signal_strength).
+#
+# These are what make the taf_radio_Add*ChangeHandler APIs testable: the
+# handler-registration tests (tafRadioIntTest -- handler <seconds>) only
+# print a callback if a state change actually happens during the window,
+# and these actions are how that change is triggered.
+#
+# NOT wired yet: cell_info. RadioPhoneAO answers the request_cell_info RPC
+# but has no force_cell_info mutator and never publishes
+# mp/ind/radio/cell_info, so taf_radio_AddCellInfoChangeHandler cannot fire
+# today -- adding it needs a new AO mutator + publish helper, not just a
+# registry entry (its payload is a per-cellType tagged-union array).
+
+kind: action
+domain: radio
+
+actions:
+  - method: force_lte_cs_capability
+    req_topic: "ctrl/cmd/action/radio/force_lte_cs_capability"
+    req_payload: schemas/action_radio/force_lte_cs_capability_req.json
+    qos: 1
+    description: >-
+      Force the LTE CS capability world state, re-publishing
+      mp/ind/radio/lte_cs_capability. Simulates a network-side CS-domain
+      capability change (CSFB barred, SMS-only, etc) that the AP has no
+      RPC to trigger.
+
+  - method: force_sys_info
+    req_topic: "ctrl/cmd/action/radio/force_sys_info"
+    req_payload: schemas/action_radio/force_sys_info_req.json
+    qos: 1
+    description: >-
+      Force the serving-system info world state (rat/domain/state),
+      re-publishing mp/ind/radio/sys_info. Simulates a network-side RAT or
+      registration-state change the AP did not request. Drives
+      taf_radio_AddRatChangeHandler -- the PA compares the new rat against
+      the last value it cached and only fires the handler on an actual
+      transition, so forcing the same rat twice fires it once.
+
+  - method: force_dc_status
+    req_topic: "ctrl/cmd/action/radio/force_dc_status"
+    req_payload: schemas/action_radio/force_dc_status_req.json
+    qos: 1
+    description: >-
+      Force the 5G NR dual-connectivity world state (endcAvailability/
+      dcnrRestriction), re-publishing mp/ind/radio/dc_status and updating
+      what the PA's cached getDcStatus() (taf_radio_GetNrDualConnectivityStatus)
+      returns.
+
+  - method: force_signal_strength
+    req_topic: "ctrl/cmd/action/radio/force_signal_strength"
+    req_payload: schemas/action_radio/force_signal_strength_req.json
+    qos: 1
+    description: >-
+      Force the per-RAT signal-strength snapshot, re-publishing
+      mp/ind/radio/signal_strength with the full snapshot. Each RAT block is
+      a partial patch (only the fields present are applied), so a test can
+      move a single metric like lteRsrp. Drives
+      taf_radio_AddSignalStrengthChangeHandler.

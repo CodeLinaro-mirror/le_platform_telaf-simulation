@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_cell_info.rsp",
+  "title": "Request Cell Info Response",
+  "description": "Mirrors the SDK's std::vector<std::shared_ptr<CellInfo>>. One entry per cell, `cellType` selecting which of the four identity/strength sub-objects is populated -- the same tagged-union shape telux::tel::CellInfo has and the same one json/system-state/tel/IPhoneManagerStateSlot*.json's cellInfo.cellList carries. `registered` marks the serving cell: taf_radio_GetServingCellId and taf_radio_GetCurrentNetworkMccMnc both read the entry with registered=true.",
+  "type": "object",
+  "required": ["cells"],
+  "properties": {
+    "cells": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["cellType", "registered"],
+        "properties": {
+          "cellType": {
+            "type": "string",
+            "enum": ["GSM", "CDMA", "WCDMA", "LTE", "TDSCDMA", "NR5G"]
+          },
+          "registered": { "type": "boolean" },
+          "gsm": {
+            "type": "object",
+            "required": ["mcc", "mnc", "lac", "cid", "arfcn", "bsic", "signalStrength", "bitErrorRate"],
+            "properties": {
+              "mcc": { "type": "string" },
+              "mnc": { "type": "string" },
+              "lac": { "type": "integer" },
+              "cid": { "type": "integer" },
+              "arfcn": { "type": "integer" },
+              "bsic": { "type": "integer" },
+              "signalStrength": { "type": "integer" },
+              "bitErrorRate": { "type": "integer" }
+            },
+            "additionalProperties": false
+          },
+          "wcdma": {
+            "type": "object",
+            "required": ["mcc", "mnc", "lac", "cid", "psc", "uarfcn", "signalStrength", "bitErrorRate", "ecio", "rscp"],
+            "properties": {
+              "mcc": { "type": "string" },
+              "mnc": { "type": "string" },
+              "lac": { "type": "integer" },
+              "cid": { "type": "integer" },
+              "psc": { "type": "integer" },
+              "uarfcn": { "type": "integer" },
+              "signalStrength": { "type": "integer" },
+              "bitErrorRate": { "type": "integer" },
+              "ecio": { "type": "integer" },
+              "rscp": { "type": "integer" }
+            },
+            "additionalProperties": false
+          },
+          "lte": {
+            "type": "object",
+            "required": ["mcc", "mnc", "ci", "pci", "tac", "earfcn", "signalStrength", "rsrp", "rsrq", "rssnr", "cqi", "timingAdvance"],
+            "properties": {
+              "mcc": { "type": "string" },
+              "mnc": { "type": "string" },
+              "ci": { "type": "integer" },
+              "pci": { "type": "integer" },
+              "tac": { "type": "integer" },
+              "earfcn": { "type": "integer" },
+              "signalStrength": { "type": "integer" },
+              "rsrp": { "type": "integer" },
+              "rsrq": { "type": "integer" },
+              "rssnr": { "type": "integer" },
+              "cqi": { "type": "integer" },
+              "timingAdvance": { "type": "integer" }
+            },
+            "additionalProperties": false
+          },
+          "nr5g": {
+            "type": "object",
+            "required": ["mcc", "mnc", "ci", "pci", "tac", "arfcn", "rsrp", "rsrq", "rssnr"],
+            "properties": {
+              "mcc": { "type": "string" },
+              "mnc": { "type": "string" },
+              "ci": { "type": "integer" },
+              "pci": { "type": "integer" },
+              "tac": { "type": "integer" },
+              "arfcn": { "type": "integer" },
+              "rsrp": { "type": "integer" },
+              "rsrq": { "type": "integer" },
+              "rssnr": { "type": "integer" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

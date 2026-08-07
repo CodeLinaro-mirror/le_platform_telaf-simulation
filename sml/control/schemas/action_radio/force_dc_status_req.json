@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_dc_status.req",
+  "title": "Force NR Dual-Connectivity Status",
+  "description": "Forces RadioServingSystemAO's 5G NR dual-connectivity world state, re-publishing mp/ind/radio/dc_status. Both fields optional and applied only if present (_apply_force_dc_status patches field-by-field). Enum values mirror radio.get_dc_status.rsp's, which this indication reuses. Backs taf_radio_GetNrDualConnectivityStatus and the PA's cached getDcStatus().",
+  "type": "object",
+  "properties": {
+    "endcAvailability": {
+      "type": "string",
+      "enum": ["UNKNOWN", "AVAILABLE", "UNAVAILABLE"]
+    },
+    "dcnrRestriction": {
+      "type": "string",
+      "enum": ["UNKNOWN", "RESTRICTED", "UNRESTRICTED"]
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's DC status to force."
+    }
+  },
+  "additionalProperties": false
+}

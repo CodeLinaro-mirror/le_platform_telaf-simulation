@@ -1,0 +1,19 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: a `data` LIST publishes each entry in order with
+# `interval` between sends -- purpose-built for the handler tests, which
+# register a callback and then wait N seconds for a state change to occur.
+#
+# Run this while `tafRadioIntTest -- handler 60` is waiting: it walks the
+# serving RAT through four transitions, so taf_radio_AddRatChangeHandler
+# fires four times. Each entry is a real transition (never repeats the
+# previous rat), because the PA filters out same-value republishes.
+
+topic: ctrl/cmd/action/radio/force_sys_info
+interval: 5s
+data:
+  - rat: RADIO_TECH_NR5G
+  - rat: RADIO_TECH_LTE
+  - rat: RADIO_TECH_UMTS
+  - rat: RADIO_TECH_LTE

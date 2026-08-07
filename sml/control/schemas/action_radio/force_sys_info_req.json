@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_sys_info.req",
+  "title": "Force Serving System Info",
+  "description": "Forces RadioServingSystemAO's serving-system world state, re-publishing mp/ind/radio/sys_info. Every field is optional and applied only if present (_apply_force_sys_info patches field-by-field), so a caller can change just the RAT and leave domain/state untouched. Enum values mirror radio.sys_info.ind's, since this action feeds that indication directly. Backs taf_radio_AddRatChangeHandler testing -- the PA filters sys_info for an actual RAT transition before firing the handler, so forcing the same rat twice fires it only once.",
+  "type": "object",
+  "properties": {
+    "rat": {
+      "type": "string",
+      "enum": [
+        "RADIO_TECH_UNKNOWN",
+        "RADIO_TECH_GPRS",
+        "RADIO_TECH_EDGE",
+        "RADIO_TECH_UMTS",
+        "RADIO_TECH_LTE",
+        "RADIO_TECH_GSM",
+        "RADIO_TECH_TD_SCDMA",
+        "RADIO_TECH_LTE_CA",
+        "RADIO_TECH_NR5G"
+      ]
+    },
+    "domain": {
+      "type": "string",
+      "enum": ["UNKNOWN", "NO_SRV", "CS_ONLY", "PS_ONLY", "CS_PS", "CAMPED"]
+    },
+    "state": {
+      "type": "string",
+      "enum": ["UNKNOWN", "NO_SERVICE", "LIMITED_SERVICE", "IN_SERVICE", "LIMITED_REGIONAL", "POWER_SAVE"]
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's serving-system info to force."
+    }
+  },
+  "additionalProperties": false
+}

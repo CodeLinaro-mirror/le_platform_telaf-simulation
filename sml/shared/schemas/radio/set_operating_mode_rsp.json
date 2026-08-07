@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_operating_mode.rsp",
+  "title": "Set Operating Mode Response",
+  "description": "Empty on success. An out-of-range mode is reported as an INVALID_ARGUMENTS error envelope instead, mirroring PhoneManagerServerImpl::SetOperatingMode's range check.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

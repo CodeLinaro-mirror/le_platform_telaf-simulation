@@ -1,0 +1,17 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_signal_strength.req before send.
+#
+# Drives taf_radio_AddSignalStrengthChangeHandler. Each RAT block is a
+# PARTIAL patch -- only the fields listed are applied, the rest keep their
+# current values, so this moves LTE RSRP/RSRQ without disturbing GSM/WCDMA/
+# NR5G. The published indication still carries the full snapshot.
+
+topic: ctrl/cmd/action/radio/force_signal_strength
+data:
+  lte:
+    lteSignalStrength: 20
+    lteRsrp: -105
+    lteRsrq: -14

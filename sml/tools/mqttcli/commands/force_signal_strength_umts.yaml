@@ -1,0 +1,21 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_signal_strength.req before send.
+#
+# Unblocks taf_radio_GetUmtsSignalMetrics / GetUmtsSignalMetricsEcio.
+# Valid ranges 
+# resets the field to the sentinel:
+#   signalStrength  0 .. 31     (MIN/MAX_WCDMA_LEVEL)  <- gates the UMTS bit
+#   bitErrorRate    0 .. 7
+#   ecio          -20 .. 0
+#   rscp         -120 .. -24
+
+topic: ctrl/cmd/action/radio/force_signal_strength
+data:
+  wcdma:
+    signalStrength: 14
+    bitErrorRate: 0
+    ecio: -8
+    rscp: -85

@@ -1,0 +1,13 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_dc_status.req before send.
+#
+# Sim defaults are endcAvailability=UNKNOWN / dcnrRestriction=RESTRICTED,
+# so this flips both to the "5G dual-connectivity available" pairing.
+
+topic: ctrl/cmd/action/radio/force_dc_status
+data:
+  endcAvailability: AVAILABLE
+  dcnrRestriction: UNRESTRICTED

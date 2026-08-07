@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.configure_signal_strength.req",
+  "title": "Configure Signal Strength Request",
+  "description": "Backs four TELAF setters that all funnel through taf_pa_radio_SetSignalStrengthInd -> IPhone::configureSignalStrength: SetSignalStrengthIndThresholds sends `thresholds`, SetSignalStrengthIndDelta sends `delta`, SetSignalStrengthIndHysteresis sends `hysteresisDb`, SetSignalStrengthIndHysteresisTimer sends `hysteresisMs`. All four config fields are optional and the server applies only those present -- the same presence-based disambiguation data.query_profile uses. `ratSigType` names the telux::tel::RadioSignalStrengthType the config applies to.",
+  "type": "object",
+  "required": ["ratSigType", "slot"],
+  "properties": {
+    "ratSigType": {
+      "type": "string",
+      "enum": [
+        "GSM_RSSI",
+        "WCDMA_RSSI",
+        "LTE_RSSI",
+        "LTE_SNR",
+        "LTE_RSRQ",
+        "LTE_RSRP",
+        "NR5G_SNR",
+        "NR5G_RSRP",
+        "NR5G_RSRQ"
+      ]
+    },
+    "thresholds": {
+      "type": "array",
+      "description": "Threshold list in dBm. Max 32 entries, matching TAF_PA_RADIO_SIGNAL_STRENGTH_THRESHOLD_MAX_COUNT.",
+      "maxItems": 32,
+      "items": { "type": "integer" }
+    },
+    "delta": { "type": "integer", "minimum": 0, "description": "Report delta." },
+    "hysteresisDb": { "type": "integer", "minimum": 0, "description": "Hysteresis delta in dB." },
+    "hysteresisMs": { "type": "integer", "minimum": 0, "description": "Hysteresis timer in milliseconds." },
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

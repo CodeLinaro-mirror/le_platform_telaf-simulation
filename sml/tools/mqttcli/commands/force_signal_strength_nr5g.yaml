@@ -1,0 +1,19 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_signal_strength.req before send.
+#
+# Unblocks taf_radio_GetNr5gSignalMetrics.
+# Valid ranges 
+# resets the field to the sentinel:
+#   rsrp   -140 .. -44    (MIN/MAX_NR5G_RSRP)  <- gates the NR5G bit
+#   rsrq    -43 .. 20
+#   rssnr  -230 .. 400
+
+topic: ctrl/cmd/action/radio/force_signal_strength
+data:
+  nr5g:
+    rsrp: -88
+    rsrq: -11
+    rssnr: 120
