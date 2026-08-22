@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scenario.seek.rsp",
+  "title": "Scenario Seek Response",
+  "type": "object",
+  "required": ["reached_at_ms"],
+  "properties": {
+    "reached_at_ms": {
+      "type": "integer",
+      "description": "Timeline time point actually reached, in milliseconds."
+    }
+  },
+  "additionalProperties": false
+}

@@ -56,6 +56,10 @@ if [ "$i_shell" == "TRUE" ]; then
     if [[ "${container_status}" == "running" ]]; then
         eval ${attach_container}
     else
+        # Stale container (exited/created) blocks 'docker run --name', remove it first.
+        if [ -n "${container_status}" ]; then
+            docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+        fi
         docker run --name ${CONTAINER_NAME} \
             ${BUILTIN_CONTAINER_OPTIONS} \
             ${CONTAINER_OPTIONS} -u $(id -u):$(id -g) \
@@ -74,6 +78,14 @@ else
 
     # For now, fix the name of the script, not customize
     SHELL_ACTIONS=${simulation_workstation}/.simula.dev.action.sh
+
+    if [ ! -s "${SHELL_ACTIONS}" ]; then
+        echo "[up_develop] SHELL_ACTIONS missing or empty: ${SHELL_ACTIONS}"
+        echo "  Non-interactive develop container needs a command file to execute."
+        echo "  Provide one via: make simula-in-dev CMD='...'"
+        echo "  Or write ${SHELL_ACTIONS} directly, then rerun."
+        exit 1
+    fi
 
     BUILTIN_CONTAINER_OPTIONS=${BUILTIN_CONTAINER_OPTIONS:="--rm -i ${TTY_OPT}"}
     # Caution: random name for this once command-container.

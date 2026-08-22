@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# `sml <tool> [args...]` shell entry point -- thin forward to the
+# sml.tools dispatcher (sml/tools/__main__.py). Requires PYTHONPATH to
+# include the repo root (see workstation/.simula.always.sh), same as
+# every other `python3 -m sml.*` entry point in this repo.
+exec python3 -m sml.tools "$@"

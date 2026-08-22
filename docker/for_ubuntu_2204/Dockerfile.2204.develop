@@ -43,6 +43,7 @@ RUN if [ "$APT_INSECURE" = "yes" ]; then \
         git \
         file \
         fakeroot \
+        jq \
         nano \
         pkg-config \
         bear \
@@ -58,9 +59,7 @@ RUN if [ "$APT_INSECURE" = "yes" ]; then \
         libsqlite3-dev \
         libasound2-dev \
         libglib2.0-dev \
-        mosquitto-dev \
-        libpaho-mqttpp-dev \
-        libpaho-mqtt-dev \
+        libmosquitto-dev \
         nlohmann-json3-dev \
         python2 \
         python3 \
@@ -87,8 +86,11 @@ RUN python3 -m pip install --no-cache-dir \
         oyaml==1.0 \
         paho-mqtt==2.0.0 \
         miros==4.2.1 \
+        pydantic==2.13.4 \
         python-pytun==2.4.1 \
-        pytest
+        pytest \
+        jsonschema==4.21.1 \
+        rich==14.2.0
 
 # Step 4: System configuration.
 RUN ln -sf /bin/bash /bin/sh

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.query_profile.rsp",
+  "title": "Query Profile Response",
+  "type": "object",
+  "required": ["profiles"],
+  "properties": {
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "profileName", "apn", "userName", "password", "techPref",
+                     "authType", "ipFamilyType", "apnTypes", "emergencyAllowed", "clatEnabled"],
+        "properties": {
+          "id": { "type": "integer" },
+          "profileName": { "type": "string" },
+          "apn": { "type": "string" },
+          "userName": { "type": "string" },
+          "password": { "type": "string" },
+          "techPref": { "type": "string", "enum": ["TP_3GPP", "TP_3GPP2", "TP_ANY", "UNKNOWN"] },
+          "authType": { "type": "string", "enum": ["AUTH_NONE", "AUTH_PAP", "AUTH_CHAP", "AUTH_PAP_CHAP"] },
+          "ipFamilyType": { "type": "string", "enum": ["IPV4", "IPV6", "IPV4V6", "UNKNOWN"] },
+          "apnTypes": { "type": "integer", "minimum": 0 },
+          "emergencyAllowed": { "type": "string", "enum": ["ALLOWED", "NOT_ALLOWED", "UNSPECIFIED"] },
+          "clatEnabled": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

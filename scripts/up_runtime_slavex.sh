@@ -8,6 +8,11 @@ simulation_workstation=${current_dir}/../workstation
 
 cd ${simulation_workstation}
 
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 not found on host — required by config_file_parser.py"
+    exit 1
+fi
+
 telaf_img_name=$(python3 ${current_dir}/config_file_parser.py --master ${simulation_workstation}/simulation_configuration.json)
 
 CONTAINER_NAME="telaf_simulation_runtime_${1}_s" \

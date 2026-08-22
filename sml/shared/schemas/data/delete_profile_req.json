@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.delete_profile.req",
+  "title": "Delete Profile Request",
+  "type": "object",
+  "required": ["profileId", "techPref", "slot"],
+  "properties": {
+    "profileId": { "type": "integer" },
+    "techPref": { "type": "string", "enum": ["TP_3GPP", "TP_3GPP2", "TP_ANY", "UNKNOWN"] },
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,40 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# Default configuration for the MPSS MQTT client.
+# Override by replacing this file or pointing load_config() at another path.
+
+mpss:
+  broker:
+    host: localhost
+    port: 1883
+    client_id: sml-mpss-${HOSTNAME}
+    keepalive_s: 60
+    transport: uds
+    socket_path: /tmp/simula-mqtt.sock
+
+  reconnect:
+    initial_ms: 500
+    max_ms: 30000
+    multiplier: 2.0
+    jitter_pct: 0.0          # ±jitter applied to scheduled delay; 0.0 disables
+    connect_timeout_ms: 5000 # if no CONNACK within this window, count as failed attempt
+
+  debug:
+    live_spy: false          # legacy; kept for backwards-compat. If true and
+                             # `instrumentation` is left at "off", the resolver
+                             # auto-upgrades to "verbose".
+    log_level: INFO
+    # Miros instrumentation mode. Fixed at startup (not runtime-switchable
+    # -- would violate invariant (c)). Override with the
+    # TELAF_MPSS_INSTRUMENTATION env var. See sml/mpss/instrumentation.py.
+    #   off     -- live_trace=False, live_spy=False (default)
+    #   on      -- live_trace=True,  live_spy=False (transitions logged)
+    #   verbose -- live_trace=True,  live_spy=True  (every dispatch logged)
+    instrumentation: "off"
+
+  # Path (relative to sml/) to a config/scenarios/*.yaml file for
+  # the Scenario Runner to load at startup. Absent/commented out = disabled.
+  # A sibling config.local.yaml (gitignored) deep-merges over this file; use it
+  # to pick another scenario locally without editing this tracked default.
+  scenario: config/scenarios/baseline.yaml

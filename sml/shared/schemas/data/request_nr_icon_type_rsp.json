@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.request_nr_icon_type.rsp",
+  "title": "Request NR Icon Type Response",
+  "type": "object",
+  "required": ["iconType"],
+  "properties": {
+    "iconType": { "type": "string", "enum": ["BASIC", "UWB", "NONE"] }
+  },
+  "additionalProperties": false
+}

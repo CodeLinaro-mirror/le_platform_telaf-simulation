@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scenario.seek.req",
+  "title": "Scenario Seek Request",
+  "type": "object",
+  "required": ["at"],
+  "properties": {
+    "at": {
+      "type": "string",
+      "pattern": "^\\d+(\\.\\d+)?(ms|s|m)$",
+      "description": "Target time point, string with unit, e.g. \"10s\" / \"500ms\" / \"1m30s\"."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.start_data_call.rsp",
+  "title": "Start Data Call Response",
+  "type": "object",
+  "required": ["ifname", "status"],
+  "properties": {
+    "ifname": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["CONNECTING"]
+    }
+  },
+  "additionalProperties": false
+}

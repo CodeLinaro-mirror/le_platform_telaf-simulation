@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.stop_data_call.req",
+  "title": "Stop Data Call Request",
+  "type": "object",
+  "required": ["profileId", "ipFamily", "opType", "slot"],
+  "properties": {
+    "profileId": {
+      "type": "integer"
+    },
+    "ipFamily": {
+      "type": "string",
+      "enum": ["IPV4", "IPV6", "IPV4V6", "UNKNOWN"]
+    },
+    "ifname": {
+      "type": "string"
+    },
+    "opType": {
+      "type": "string",
+      "enum": ["DATA_LOCAL", "DATA_REMOTE"]
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.data.force_throttle.req",
+  "title": "Force APN Throttle Status",
+  "type": "object",
+  "required": ["profileId", "isBlocked"],
+  "properties": {
+    "profileId": { "type": "integer" },
+    "isBlocked": { "type": "boolean" },
+    "ipv4Time": { "type": "integer", "default": 0 },
+    "ipv6Time": { "type": "integer", "default": 0 }
+  },
+  "additionalProperties": false
+}

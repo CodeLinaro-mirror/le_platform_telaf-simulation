@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.stop_data_call.rsp",
+  "title": "Stop Data Call Response",
+  "type": "object",
+  "required": ["status"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["DISCONNECTING"]
+    }
+  },
+  "additionalProperties": false
+}

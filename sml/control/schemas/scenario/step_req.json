@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scenario.step.req",
+  "title": "Scenario Step Request",
+  "type": "object",
+  "properties": {
+    "steps": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1,
+      "description": "Number of timeline steps to advance, default 1."
+    }
+  },
+  "additionalProperties": false
+}

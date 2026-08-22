@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.list_data_call.req",
+  "title": "List Data Call Request",
+  "type": "object",
+  "required": ["opType", "slot"],
+  "properties": {
+    "opType": {
+      "type": "string",
+      "enum": ["DATA_LOCAL", "DATA_REMOTE"]
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}

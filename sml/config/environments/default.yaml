@@ -1,0 +1,21 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Environment material library. Pure material -- no initial_state here;
+# scenarios reference these ids to build their initial_state block. The
+# network domain (cells/signal models below) has no MPSS implementation
+# yet, but scenarios need stable ids to reference now so this file
+# doesn't block scenario authoring later.
+
+version: "1.0"
+
+cells:
+  - id: cell_urban_A
+    plmn: "46000"
+    rat: LTE
+    default_rsrp_dbm: -85
+
+signal_models:
+  - id: stable_urban
+    kind: variance
+    variance_db: 3

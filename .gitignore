@@ -56,3 +56,10 @@ MANIFEST
 
 # vsocde related
 *.code-workspace
+
+openspec/
+CLAUDE.md
+.agents/
+.claude/
+.codegraph/
+base/

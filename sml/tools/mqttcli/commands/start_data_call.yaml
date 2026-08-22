@@ -1,0 +1,13 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ap/req example: auto-enveloped (v/corrId/ts/src added by the tool),
+# validated against data.start_data_call.req before send. Expect a paired
+# mp/rsp/data/start_data_call from mpss.
+
+topic: ap/req/data/start_data_call
+data:
+  profileId: 1
+  ipFamily: IPV4V6
+  opType: DATA_LOCAL
+  slot: 0

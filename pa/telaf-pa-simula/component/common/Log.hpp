@@ -11,6 +11,12 @@
 //
 // Optional log file: SML_PA_LOG_FILE=/path/to/file
 // When set, output goes to both stderr and the file (append mode).
+//
+// Both settings can also be supplied via /etc/sml_pa.conf (KEY=VALUE per
+// line, '#' comments) using keys LOG_LEVEL and LOG_FILE -- for environments
+// (e.g. supervisor-launched processes) where env vars don't reach this
+// process. Env vars take precedence over the conf file when both are set.
+// Read once at process start; not hot-reloaded.
 
 #ifndef TELUX_COMMON_SIMULA_LOG_HPP
 #define TELUX_COMMON_SIMULA_LOG_HPP

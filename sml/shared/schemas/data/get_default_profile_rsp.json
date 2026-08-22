@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.get_default_profile.rsp",
+  "title": "Get Default Profile Response",
+  "type": "object",
+  "required": ["profileId", "slot"],
+  "properties": {
+    "profileId": { "type": "integer" },
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

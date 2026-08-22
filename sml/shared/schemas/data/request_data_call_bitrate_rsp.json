@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.request_data_call_bitrate.rsp",
+  "title": "Request Data Call Bit Rate Response",
+  "type": "object",
+  "required": ["maxTxRate", "maxRxRate"],
+  "properties": {
+    "maxTxRate": { "type": "integer" },
+    "maxRxRate": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

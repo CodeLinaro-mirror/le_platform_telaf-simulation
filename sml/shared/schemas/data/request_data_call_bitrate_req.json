@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.request_data_call_bitrate.req",
+  "title": "Request Data Call Bit Rate Request",
+  "type": "object",
+  "required": ["profileId"],
+  "properties": {
+    "profileId": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

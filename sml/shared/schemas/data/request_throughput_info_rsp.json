@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.request_throughput_info.rsp",
+  "title": "Request Throughput Info Response",
+  "type": "object",
+  "required": ["infos"],
+  "properties": {
+    "infos": {
+      "type": "array",
+      "items": { "type": "object" }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,18 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# Local MPSS config override -- copy to config.local.yaml (gitignored) to
+# tweak settings without editing the tracked config.yaml. Keys here
+# deep-merge over config.yaml: present keys win per-section, absent keys
+# leave the base untouched.
+#
+#   cp mpss/config.local.yaml.example mpss/config.local.yaml
+#   # edit, then restart:  supervisorctl -c ... restart sml-mpss
+
+mpss:
+  # Pick a different scenario than the tracked baseline default.
+  scenario: config/scenarios/data_full_demo.yaml
+
+  # Any other section merges too, e.g.:
+  # debug:
+  #   log_level: DEBUG

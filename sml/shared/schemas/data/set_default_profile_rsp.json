@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.set_default_profile.rsp",
+  "title": "Set Default Profile Response",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

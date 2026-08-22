@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.request_service_status.rsp",
+  "title": "Request Service Status Response",
+  "type": "object",
+  "required": ["serviceState", "networkRat"],
+  "properties": {
+    "serviceState": { "type": "string", "enum": ["IN_SERVICE", "OUT_OF_SERVICE", "UNKNOWN"] },
+    "networkRat": { "type": "string", "enum": ["GSM", "WCDMA", "LTE", "NR5G", "CDMA_1X", "CDMA_EVDO", "UNKNOWN"] }
+  },
+  "additionalProperties": false
+}

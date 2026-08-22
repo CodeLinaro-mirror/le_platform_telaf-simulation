@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data.get_default_profile.req",
+  "title": "Get Default Profile Request",
+  "type": "object",
+  "required": ["slot", "opType"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 },
+    "opType": { "type": "string", "enum": ["DATA_LOCAL", "DATA_REMOTE"] }
+  },
+  "additionalProperties": false
+}

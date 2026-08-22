@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.data.force_serv_state.req",
+  "title": "Force Serving System State",
+  "type": "object",
+  "properties": {
+    "serviceState": {
+      "type": "string",
+      "enum": ["IN_SERVICE", "OUT_OF_SERVICE"]
+    },
+    "networkRat": {
+      "type": "string",
+      "enum": ["GSM", "WCDMA", "LTE", "NR5G", "CDMA_1X", "CDMA_EVDO"]
+    },
+    "drbStatus": {
+      "type": "string",
+      "enum": ["ACTIVE", "DORMANT"]
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's serving-system state to force."
+    }
+  },
+  "additionalProperties": false
+}

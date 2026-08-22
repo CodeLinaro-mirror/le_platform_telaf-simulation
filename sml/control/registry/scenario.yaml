@@ -1,0 +1,49 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Scenario Runner playback-control registry (Sim-Test-Contract-Spec.md §5.1,
+# Q1 = c mixed rpc/oneway mode). step/seek are rpc (caller needs the
+# execution result); pause/resume/abort are oneway (effect observed via
+# mp/sys/0/state/config/scenario_progress, not a response payload).
+
+kind: scenario
+
+commands:
+  - method: step
+    kind: rpc
+    req_topic: "ctrl/cmd/scenario/step"
+    rsp_topic: "ctrl/cmd/scenario/step/rsp"
+    req_payload: schemas/scenario/step_req.json
+    rsp_payload: schemas/scenario/step_rsp.json
+    qos: 1
+    description: "Execute the timeline forward by N steps (default 1)."
+
+  - method: seek
+    kind: rpc
+    req_topic: "ctrl/cmd/scenario/seek"
+    rsp_topic: "ctrl/cmd/scenario/seek/rsp"
+    req_payload: schemas/scenario/seek_req.json
+    rsp_payload: schemas/scenario/seek_rsp.json
+    qos: 1
+    description: "Jump the timeline to a given time point."
+
+  - method: pause
+    kind: oneway
+    req_topic: "ctrl/cmd/scenario/pause"
+    req_payload: schemas/scenario/empty_req.json
+    qos: 1
+    description: "Pause automatic timeline playback."
+
+  - method: resume
+    kind: oneway
+    req_topic: "ctrl/cmd/scenario/resume"
+    req_payload: schemas/scenario/empty_req.json
+    qos: 1
+    description: "Resume automatic timeline playback."
+
+  - method: abort
+    kind: oneway
+    req_topic: "ctrl/cmd/scenario/abort"
+    req_payload: schemas/scenario/empty_req.json
+    qos: 1
+    description: "Abort the currently running scenario."

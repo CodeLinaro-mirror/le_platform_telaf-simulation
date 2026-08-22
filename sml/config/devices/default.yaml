@@ -1,0 +1,161 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Device inventory: everything a scenario can reference that isn't an
+# environment material (signal/cell/PLMN-style continuously-varying
+# condition). Covers both concrete entities (modems/sim_slots/sim_cards)
+# and simulator-behavior knobs (the tuning-preset collections below) --
+# both kinds live here because neither is environment material. Only the
+# data domain has an MPSS implementation so far (phone/network/sim/sms
+# are stubs for future domains); the sim_slots/sim_cards entries below
+# exist so scenarios can reference stable ids even before the sim domain
+# is implemented.
+#
+# Each modem/sim_slot entry is a fully-baked starting state, not a
+# template: it carries every field needed to seed World State on its
+# own, and scenarios reference instance ids directly (no override
+# blocks, no allowed_states enumeration to pick from at scenario time).
+#
+# data_profiles is a top-level collection, not nested under sim_cards --
+# a profile is owned by the sim_slot it's active on, not by the physical
+# card (telux's getSlotId() scopes profiles per-slot). sim_slots.*
+# reference it (and the tuning presets) directly via *_id fields instead
+# of a separate `data.slot1`-style side dict.
+
+version: "1.0"
+
+persistent: [data_profiles]
+
+# --- entities ---------------------------------------------------------
+
+modems:
+  - id: modem_0_online
+    type: cellular
+    supported_rats: [GSM, WCDMA, LTE, NR5G]
+    ecall_capable: false
+    state: online
+  - id: modem_0_offline
+    type: cellular
+    supported_rats: [GSM, WCDMA, LTE, NR5G]
+    ecall_capable: false
+    state: offline
+
+sim_slots:
+  - id: sim_slot_0_inserted_sim001
+    physical_type: nano_sim
+    slot_id: 1
+    state: inserted
+    installed_sim: sim_card_001
+    active_profile_id: profile_home
+    interface_preset_id: default_iface
+    call_timing_preset_id: normal_timing
+    ip_preset_id: default_ip
+  - id: sim_slot_0_removed
+    physical_type: nano_sim
+    slot_id: 1
+    state: removed
+    # installed_sim intentionally unset -> resolve-time warning, expected
+
+sim_cards:
+  - id: sim_card_001
+    iccid: "8986011234567890123"
+    imsi: "460000123456789"
+    home_plmn: "46000"
+
+data_profiles:
+  - id: profile_home
+    mpss_profile_id: 1
+    apn: "internet"
+    ip_family: IPV4V6
+    auth_type: NONE
+    username: ""
+    password: ""
+    tech_type: "3GPP"
+  - id: profile_5
+    mpss_profile_id: 5
+    apn: "internet.5"
+    ip_family: IPV4V6
+    auth_type: NONE
+    username: ""
+    password: ""
+    tech_type: "3GPP"
+
+# --- tuning presets -----------------------------------------------------
+# Simulator-behavior knobs: how the simulator represents a data connection
+# to the AP, not an AP-visible entity in its own right. Collections are
+# id-keyed so a sim_slot can pick one set without duplicating the others
+# (e.g. testing a slow call-connect without touching interface/IP values).
+
+interface_presets:
+  - id: default_iface
+    ifname_prefix: "rmnet_data"
+    ifname_pool_size: 8
+
+call_timing_presets:
+  - id: normal_timing
+    call_connect_delay_ms: 200
+    call_disconnect_delay_ms: 100
+  - id: slow_timing
+    call_connect_delay_ms: 5000
+    call_disconnect_delay_ms: 100
+
+ip_presets:
+  - id: default_ip
+    ipv4_addr: "10.0.0.1"
+    ipv4_gateway: "10.0.0.254"
+    ipv4_dns_primary: "8.8.8.8"
+    ipv4_dns_secondary: "8.8.4.4"
+    ipv4_mtu: 1500
+    ipv4_subnet_mask: "255.255.255.0"
+    ipv6_addr: "2001:db8::1"
+    ipv6_gateway: "2001:db8::fffe"
+    ipv6_dns_primary: "2001:4860:4860::8888"
+    ipv6_dns_secondary: ""
+    ipv6_mtu: 1500
+    ipv6_prefix_len: 64
+
+# RAT -> max Tx/Rx bit rate (bits/sec). Sensible per-RAT defaults; not a
+# real network's exact numbers, just plausible distinct values per tech.
+bitrate_by_rat_presets:
+  - id: default_bitrate_by_rat
+    rates:
+      GSM:       { maxTxRate: 85000,       maxRxRate: 85000 }
+      WCDMA:     { maxTxRate: 5760000,     maxRxRate: 42000000 }
+      LTE:       { maxTxRate: 50000000,    maxRxRate: 150000000 }
+      CDMA_1X:   { maxTxRate: 153600,      maxRxRate: 153600 }
+      CDMA_EVDO: { maxTxRate: 1800000,     maxRxRate: 3100000 }
+      UNKNOWN:   { maxTxRate: 0,           maxRxRate: 0 }
+
+# Fixed per-profile throughput snapshot (no time-evolution).
+throughput_presets:
+  - id: profile_1_throughput
+    profile_id: 1
+    ul_throughput: 5000
+    ul_max_throughput: 50000
+    ul_queue_size: 0
+    dl_throughput: 15000
+  - id: profile_5_throughput
+    profile_id: 5
+    ul_throughput: 3000
+    ul_max_throughput: 50000
+    ul_queue_size: 0
+    dl_throughput: 10000
+
+qos_presets:
+  - id: profile_1_qos
+    profile_id: 1
+    qos_id: 1
+    tx_max_rate: 1000000
+    tx_min_rate: 100000
+    rx_max_rate: 5000000
+    rx_min_rate: 500000
+
+throttle_presets:
+  - id: profile_1_throttle
+    profile_id: 1
+    apn: "internet"
+    ipv4_time: 0
+    ipv6_time: 0
+    mcc: "460"
+    mnc: "00"
+
