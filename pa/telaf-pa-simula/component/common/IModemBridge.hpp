@@ -83,7 +83,7 @@ public:
     // never rejects. Every call site is statically bound to one topic/schema,
     // so the id is a caller-known literal rather than derived from `topic`
     // (there's no fixed topic->schema-id string rule for mp/rsp/**, unlike
-    // inbound ap/req/**).
+    // outbound mp/req/**).
     //
     // Thread-safe; may be called from any thread.
     virtual void send_request(
@@ -103,6 +103,22 @@ public:
     // this topic's payload is validated against on receipt -- log-only for
     // now, never rejects.
     virtual void subscribe_event(std::string_view topic, std::string_view schema_id, EventCallback cb) = 0;
+
+    // Fire-and-forget publish: send `msg` to `topic` with no response
+    // expected and no timeout tracking (unlike send_request, this never
+    // touches in_flight_ bookkeeping or schedules a timer). Used for
+    // messages the wire contract defines as one-way, e.g. a slave's
+    // activity-state ACK.
+    //
+    // `schema_id` is the generated schema id this message's payload is
+    // validated against before publish -- log-only for now, never rejects.
+    //
+    // Thread-safe; may be called from any thread.
+    virtual void publish_oneway(
+      std::string_view topic,
+      std::string_view schema_id,
+      Envelope msg
+    ) = 0;
 
     // Cancel a previous subscription. No-op if topic was never subscribed.
     //

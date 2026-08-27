@@ -1,0 +1,12 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.wakeup.force_wakeup.req before send.
+#
+# Combo [svc_id:0x09, msg_id:0x002E] -> MODEM_WS_INCOMING_VCALL.
+
+topic: ctrl/cmd/action/wakeup/force_wakeup
+data:
+  serviceId: 0x09
+  msgId: 0x002E

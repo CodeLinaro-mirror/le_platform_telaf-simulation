@@ -1,0 +1,59 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Power-domain ctrl/cmd/action/power/** registry (owned by apss). Actions
+# inject machine-registry/ACK changes a real telux::power client can't
+# trigger itself -- there is no AP-facing RPC for "add a slave machine to
+# the TCU activity mesh" or "force this slave's ACK regardless of real
+# state" -- these are the test-only entry points for exercising the
+# power domain's state_update/machine_update/slave_ack_status indications.
+#
+# See D8 in plan.md: add_machine/remove_machine/force_slave_ack belong to
+# apss; force_power_state is deliberately NOT implemented (SDK only uses
+# QMI, no AP-facing power-state setter to fake).
+
+kind: action
+domain: power
+
+actions:
+  - method: add_machine
+    req_topic: "ctrl/cmd/action/power/add_machine"
+    req_payload: schemas/action_power/add_machine_req.json
+    qos: 1
+    description: >-
+      Register a new TCU activity machine, re-publishing
+      ap/ind/power/machine_update with AVAILABLE.
+
+  - method: remove_machine
+    req_topic: "ctrl/cmd/action/power/remove_machine"
+    req_payload: schemas/action_power/remove_machine_req.json
+    qos: 1
+    description: >-
+      Deregister a TCU activity machine, re-publishing
+      ap/ind/power/machine_update with UNAVAILABLE.
+
+  - method: force_slave_ack
+    req_topic: "ctrl/cmd/action/power/force_slave_ack"
+    req_payload: schemas/action_power/force_slave_ack_req.json
+    qos: 1
+    description: >-
+      Force a slave machine's ACK/NACK response to the current pending
+      state_update round, without waiting for a real
+      ap/ff/power/slave_ack from that machine.
+
+  - method: suspend_system
+    req_topic: "ctrl/cmd/action/power/suspend_system"
+    req_payload: schemas/action_power/suspend_system_req.json
+    qos: 1
+    description: >-
+      Freeze the telaf cgroup (write "1" to cgroup.freeze), simulating the
+      whole system going to sleep. No real telux client can trigger this --
+      test-only entry point paired with resume_system.
+
+  - method: resume_system
+    req_topic: "ctrl/cmd/action/power/resume_system"
+    req_payload: schemas/action_power/resume_system_req.json
+    qos: 1
+    description: >-
+      Thaw the telaf cgroup (write "0" to cgroup.freeze), simulating a
+      hardware wakeup out of system sleep. Pairs with suspend_system.

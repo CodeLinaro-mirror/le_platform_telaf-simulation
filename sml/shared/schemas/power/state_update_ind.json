@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "power.state_update.ind",
+  "title": "TCU Activity State Update Indication",
+  "description": "Slave-side onTcuActivityStateUpdate push.",
+  "type": "object",
+  "required": ["state", "machineName"],
+  "properties": {
+    "state": {
+      "type": "string",
+      "enum": ["UNKNOWN", "SUSPEND", "RESUME", "SHUTDOWN"]
+    },
+    "machineName": { "type": "string" }
+  },
+  "additionalProperties": false
+}

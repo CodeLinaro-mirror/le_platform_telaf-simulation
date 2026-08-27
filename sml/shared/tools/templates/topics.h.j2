@@ -19,6 +19,11 @@ namespace {{ reg.domain }} {
     constexpr const char* ind = "{{ ind.ind_topic }}";
   }
 {% endfor %}
+{% for ff in reg.fire_and_forget %}
+  namespace {{ ff.method }} {
+    constexpr const char* req = "{{ ff.req_topic }}";
+  }
+{% endfor %}
 }  // namespace {{ reg.domain }}
 {% endfor %}
 }  // namespace topics

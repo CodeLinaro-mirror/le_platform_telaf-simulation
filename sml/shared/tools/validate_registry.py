@@ -10,7 +10,11 @@ Checks:
     - every RPC has method / req_topic / rsp_topic / req_payload / rsp_payload
     - every indication has event / ind_topic / payload
     - `rpcs` and `indications` are not both empty
-    - topic prefixes match ap/req/ , mp/rsp/ , mp/ind/
+    - topic prefixes match the registry's `counterpart` (default: mpss ->
+      mp/req/ , mp/rsp/ , mp/ind/ , mp/ff/; apss -> ap/req/ , ap/rsp/ ,
+      ap/ind/ , ap/ff/) -- see D2 in plan.md: prefix = counterpart process
+      identity, PA is always the implicit other side
+    - every fire_and_forget entry has method / req_topic / req_payload (no rsp)
     - method/event names are snake_case, topic segments have no wildcards
     - every req_payload/rsp_payload/payload path exists under
       sml/simula_shared/ and parses as JSON
@@ -36,9 +40,14 @@ REGISTRY_DIR = CONTRACT_ROOT / "registry"
 _SNAKE_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 _WILDCARD_CHARS = frozenset("+#")
 
-_REQ_PREFIX = "ap/req/"
-_RSP_PREFIX = "mp/rsp/"
-_IND_PREFIX = "mp/ind/"
+# Prefix = counterpart process identity (D2). Registries default to `mpss`
+# (data/sim/radio's existing convention); a registry whose counterpart is
+# apss (e.g. power.yaml) sets `counterpart: apss` at the top level.
+_COUNTERPART_PREFIXES = {
+    "mpss": {"req": "mp/req/", "rsp": "mp/rsp/", "ind": "mp/ind/", "ff": "mp/ff/"},
+    "apss": {"req": "ap/req/", "rsp": "ap/rsp/", "ind": "ap/ind/", "ff": "ap/ff/"},
+}
+_DEFAULT_COUNTERPART = "mpss"
 
 
 class RegistryError(RuntimeError):
@@ -95,10 +104,23 @@ def validate_registry_file(path: Path) -> list[str]:
         errs.append(f"{path.name}: missing or empty top-level `domain`")
         domain = domain or ""
 
+    counterpart = doc.get("counterpart", _DEFAULT_COUNTERPART)
+    if counterpart not in _COUNTERPART_PREFIXES:
+        errs.append(
+            f"{path.name}: `counterpart` must be one of {sorted(_COUNTERPART_PREFIXES)}, "
+            f"got {counterpart!r}"
+        )
+        counterpart = _DEFAULT_COUNTERPART
+    prefixes = _COUNTERPART_PREFIXES[counterpart]
+    req_prefix, rsp_prefix, ind_prefix, ff_prefix = (
+        prefixes["req"], prefixes["rsp"], prefixes["ind"], prefixes["ff"],
+    )
+
     rpcs = doc.get("rpcs") or []
     indications = doc.get("indications") or []
-    if not rpcs and not indications:
-        errs.append(f"{path.name}: `rpcs` and `indications` are both empty")
+    fire_and_forget = doc.get("fire_and_forget") or []
+    if not rpcs and not indications and not fire_and_forget:
+        errs.append(f"{path.name}: `rpcs`, `indications`, and `fire_and_forget` are all empty")
 
     seen_topics: set[str] = set()
 
@@ -113,12 +135,12 @@ def validate_registry_file(path: Path) -> list[str]:
         if "method" in r:
             _check_name(r["method"], f"{ctx} method", errs)
         if "req_topic" in r:
-            _check_topic(r["req_topic"], _REQ_PREFIX, domain, errs)
+            _check_topic(r["req_topic"], req_prefix, domain, errs)
             if r["req_topic"] in seen_topics:
                 errs.append(f"{ctx}: duplicate topic {r['req_topic']!r}")
             seen_topics.add(r["req_topic"])
         if "rsp_topic" in r:
-            _check_topic(r["rsp_topic"], _RSP_PREFIX, domain, errs)
+            _check_topic(r["rsp_topic"], rsp_prefix, domain, errs)
             if r["rsp_topic"] in seen_topics:
                 errs.append(f"{ctx}: duplicate topic {r['rsp_topic']!r}")
             seen_topics.add(r["rsp_topic"])
@@ -141,7 +163,7 @@ def validate_registry_file(path: Path) -> list[str]:
         if "event" in ind:
             _check_name(ind["event"], f"{ctx} event", errs)
         if "ind_topic" in ind:
-            _check_topic(ind["ind_topic"], _IND_PREFIX, domain, errs)
+            _check_topic(ind["ind_topic"], ind_prefix, domain, errs)
             if ind["ind_topic"] in seen_topics:
                 errs.append(f"{ctx}: duplicate topic {ind['ind_topic']!r}")
             seen_topics.add(ind["ind_topic"])
@@ -153,6 +175,27 @@ def validate_registry_file(path: Path) -> list[str]:
         retain = ind.get("retain", False)
         if not isinstance(retain, bool):
             errs.append(f"{ctx}: retain must be a bool, got {retain!r}")
+
+    for i, ff in enumerate(fire_and_forget):
+        ctx = f"{path.name}: fire_and_forget[{i}]"
+        if not isinstance(ff, dict):
+            errs.append(f"{ctx}: entry must be a mapping")
+            continue
+        for field in ("method", "req_topic", "req_payload"):
+            if field not in ff:
+                errs.append(f"{ctx}: missing required field `{field}`")
+        if "method" in ff:
+            _check_name(ff["method"], f"{ctx} method", errs)
+        if "req_topic" in ff:
+            _check_topic(ff["req_topic"], ff_prefix, domain, errs)
+            if ff["req_topic"] in seen_topics:
+                errs.append(f"{ctx}: duplicate topic {ff['req_topic']!r}")
+            seen_topics.add(ff["req_topic"])
+        if "req_payload" in ff:
+            _check_payload_path(ff["req_payload"], f"{ctx} req_payload", errs)
+        qos = ff.get("qos", 1)
+        if qos not in (0, 1, 2):
+            errs.append(f"{ctx}: qos must be 0, 1, or 2, got {qos!r}")
 
     return errs
 

@@ -32,7 +32,7 @@ rpcs:
   # --- radio.phone.* -- IPhoneManager (PhoneManagerServerImpl) -------------
 
   - method: set_operating_mode
-    req_topic: "ap/req/radio/set_operating_mode"
+    req_topic: "mp/req/radio/set_operating_mode"
     rsp_topic: "mp/rsp/radio/set_operating_mode"
     req_payload: schemas/radio/set_operating_mode_req.json
     rsp_payload: schemas/radio/set_operating_mode_rsp.json
@@ -46,7 +46,7 @@ rpcs:
       notifyAndUpdateOperatingMode() op_mode indication.
 
   - method: request_operating_mode
-    req_topic: "ap/req/radio/request_operating_mode"
+    req_topic: "mp/req/radio/request_operating_mode"
     rsp_topic: "mp/rsp/radio/request_operating_mode"
     req_payload: schemas/radio/request_operating_mode_req.json
     rsp_payload: schemas/radio/request_operating_mode_rsp.json
@@ -57,7 +57,7 @@ rpcs:
       Mirrors PhoneManagerServerImpl::GetOperatingMode.
 
   - method: request_cellular_capability
-    req_topic: "ap/req/radio/request_cellular_capability"
+    req_topic: "mp/req/radio/request_cellular_capability"
     rsp_topic: "mp/rsp/radio/request_cellular_capability"
     req_payload: schemas/radio/request_cellular_capability_req.json
     rsp_payload: schemas/radio/request_cellular_capability_rsp.json
@@ -71,7 +71,7 @@ rpcs:
       PhoneManagerServerImpl::GetCellularCapabilities.
 
   - method: request_voice_service_state
-    req_topic: "ap/req/radio/request_voice_service_state"
+    req_topic: "mp/req/radio/request_voice_service_state"
     rsp_topic: "mp/rsp/radio/request_voice_service_state"
     req_payload: schemas/radio/request_voice_service_state_req.json
     rsp_payload: schemas/radio/request_voice_service_state_rsp.json
@@ -83,7 +83,7 @@ rpcs:
       PhoneManagerServerImpl::RequestVoiceServiceState.
 
   - method: request_signal_strength
-    req_topic: "ap/req/radio/request_signal_strength"
+    req_topic: "mp/req/radio/request_signal_strength"
     rsp_topic: "mp/rsp/radio/request_signal_strength"
     req_payload: schemas/radio/request_signal_strength_req.json
     rsp_payload: schemas/radio/request_signal_strength_rsp.json
@@ -97,7 +97,7 @@ rpcs:
       PhoneManagerServerImpl::GetSignalStrength.
 
   - method: configure_signal_strength
-    req_topic: "ap/req/radio/configure_signal_strength"
+    req_topic: "mp/req/radio/configure_signal_strength"
     rsp_topic: "mp/rsp/radio/configure_signal_strength"
     req_payload: schemas/radio/configure_signal_strength_req.json
     rsp_payload: schemas/radio/configure_signal_strength_rsp.json
@@ -114,7 +114,7 @@ rpcs:
       Mirrors PhoneManagerServerImpl::ConfigureSignalStrength.
 
   - method: request_cell_info
-    req_topic: "ap/req/radio/request_cell_info"
+    req_topic: "mp/req/radio/request_cell_info"
     rsp_topic: "mp/rsp/radio/request_cell_info"
     req_payload: schemas/radio/request_cell_info_req.json
     rsp_payload: schemas/radio/request_cell_info_rsp.json
@@ -127,7 +127,7 @@ rpcs:
       PhoneManagerServerImpl::RequestCellInfoList.
 
   - method: request_operator_info
-    req_topic: "ap/req/radio/request_operator_info"
+    req_topic: "mp/req/radio/request_operator_info"
     rsp_topic: "mp/rsp/radio/request_operator_info"
     req_payload: schemas/radio/request_operator_info_req.json
     rsp_payload: schemas/radio/request_operator_info_rsp.json
@@ -143,7 +143,7 @@ rpcs:
   #     (ServingManagerServerImpl)
 
   - method: set_rat_preference
-    req_topic: "ap/req/radio/set_rat_preference"
+    req_topic: "mp/req/radio/set_rat_preference"
     rsp_topic: "mp/rsp/radio/set_rat_preference"
     req_payload: schemas/radio/set_rat_preference_req.json
     rsp_payload: schemas/radio/set_rat_preference_rsp.json
@@ -156,7 +156,7 @@ rpcs:
       system-selection-preference event it fires afterwards.
 
   - method: request_rat_preference
-    req_topic: "ap/req/radio/request_rat_preference"
+    req_topic: "mp/req/radio/request_rat_preference"
     rsp_topic: "mp/rsp/radio/request_rat_preference"
     req_payload: schemas/radio/request_rat_preference_req.json
     rsp_payload: schemas/radio/request_rat_preference_rsp.json
@@ -166,7 +166,7 @@ rpcs:
       Mirrors ServingManagerServerImpl::RequestRATPreference.
 
   - method: get_system_info
-    req_topic: "ap/req/radio/get_system_info"
+    req_topic: "mp/req/radio/get_system_info"
     rsp_topic: "mp/rsp/radio/get_system_info"
     req_payload: schemas/radio/get_system_info_req.json
     rsp_payload: schemas/radio/get_system_info_rsp.json
@@ -178,7 +178,7 @@ rpcs:
       registers. Mirrors ServingManagerServerImpl::GetSystemInfo.
 
   - method: get_dc_status
-    req_topic: "ap/req/radio/get_dc_status"
+    req_topic: "mp/req/radio/get_dc_status"
     rsp_topic: "mp/rsp/radio/get_dc_status"
     req_payload: schemas/radio/get_dc_status_req.json
     rsp_payload: schemas/radio/get_dc_status_rsp.json
@@ -191,7 +191,7 @@ rpcs:
       Mirrors ServingManagerServerImpl::GetDcStatus.
 
   - method: request_rf_band_info
-    req_topic: "ap/req/radio/request_rf_band_info"
+    req_topic: "mp/req/radio/request_rf_band_info"
     rsp_topic: "mp/rsp/radio/request_rf_band_info"
     req_payload: schemas/radio/request_rf_band_info_req.json
     rsp_payload: schemas/radio/request_rf_band_info_rsp.json
@@ -208,7 +208,7 @@ rpcs:
   #     (NetworkSelectionManagerServerImpl)
 
   - method: set_network_selection_mode
-    req_topic: "ap/req/radio/set_network_selection_mode"
+    req_topic: "mp/req/radio/set_network_selection_mode"
     rsp_topic: "mp/rsp/radio/set_network_selection_mode"
     req_payload: schemas/radio/set_network_selection_mode_req.json
     rsp_payload: schemas/radio/set_network_selection_mode_rsp.json
@@ -221,7 +221,7 @@ rpcs:
       its persistence of mode/mcc/mnc.
 
   - method: request_network_selection_mode
-    req_topic: "ap/req/radio/request_network_selection_mode"
+    req_topic: "mp/req/radio/request_network_selection_mode"
     rsp_topic: "mp/rsp/radio/request_network_selection_mode"
     req_payload: schemas/radio/request_network_selection_mode_req.json
     rsp_payload: schemas/radio/request_network_selection_mode_rsp.json

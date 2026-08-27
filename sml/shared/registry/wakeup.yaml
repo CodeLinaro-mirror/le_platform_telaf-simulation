@@ -1,0 +1,53 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# wakeup domain registry -- source of truth for the modem-wakeup source leg
+# (plan.md O1-b). Owned by mpss (default counterpart, mp/ind/* prefix): mpss
+# is where the QMI wakeup-source event actually originates. apss subscribes
+# to mp/ind/wakeup/event and relays it into power-domain semantics
+# (ap/ind/power/wakeup, see power.yaml's `wakeup` indication) for the PA's
+# onWakeup callback -- this registry is only the upstream half of that
+# two-hop relay.
+#
+# The `event` indication is a pure source leg (mpss only ever pushes). The
+# rpcs below are the PA->modem wakeup-source *filter* configuration consumed
+# by pa/telaf-pa-simula/component/telaf-np/component/taf_prop_pms (the
+# prop-prefix sublayer). On hardware that filter is a QMI PDC round-trip; the
+# simulation carries it over MQTT instead. It is PA-configures-modem, the same
+# shape as sim.yaml's set_power -- NOT a test backdoor (those live on
+# ctrl/cmd/**), and the bitset's ground truth stays in mpss.
+
+domain: wakeup
+
+rpcs:
+  - method: set_ws_filter
+    req_topic: "mp/req/wakeup/set_ws_filter"
+    rsp_topic: "mp/rsp/wakeup/set_ws_filter"
+    req_payload: schemas/wakeup/set_ws_filter_req.json
+    rsp_payload: schemas/wakeup/set_ws_filter_rsp.json
+    qos: 1
+    description: >-
+      PA sets the modem wakeup-source filter bitset (mirrors
+      taf_prop_pa_pms_SetWsFilter / taf_prop_pa_pms_EnableAllWs, which is a
+      QMI PDC write on hardware). mpss stores it as modem ground truth.
+
+  - method: get_ws_filter
+    req_topic: "mp/req/wakeup/get_ws_filter"
+    rsp_topic: "mp/rsp/wakeup/get_ws_filter"
+    req_payload: schemas/wakeup/get_ws_filter_req.json
+    rsp_payload: schemas/wakeup/get_ws_filter_rsp.json
+    qos: 1
+    description: >-
+      PA reads back the configured filter bitset
+      (taf_prop_pa_pms_GetWsFilter).
+
+indications:
+  - event: event
+    ind_topic: "mp/ind/wakeup/event"
+    payload: schemas/wakeup/event_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      Modem wakeup-source event, fields mirror QmiWakeupInfo
+      (serviceId/msgId/isMsgIdValid/...). Triggered by the
+      ctrl/cmd/action/wakeup/force_wakeup test injection.

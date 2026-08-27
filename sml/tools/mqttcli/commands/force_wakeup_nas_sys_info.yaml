@@ -1,0 +1,12 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.wakeup.force_wakeup.req before send.
+#
+# Combo [svc_id:0x03, msg_id:0x004E] -> MODEM_WS_NAS_SYS_INFO.
+
+topic: ctrl/cmd/action/wakeup/force_wakeup
+data:
+  serviceId: 0x03
+  msgId: 0x004E

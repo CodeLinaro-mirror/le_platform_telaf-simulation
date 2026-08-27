@@ -11,9 +11,9 @@ from typing import Callable
 from miros import Factory, Event, return_status, signals, spy_on
 from miros.hsm import HsmWithQueues
 
-from sml.mpss import instrumentation as _instr
+from sml.common import instrumentation as _instr
 # Shared envelope handling validates inbound payloads before dispatch.
-from sml.mpss.envelope import (
+from sml.common.envelope import (
     build_error_envelope,
     build_event_envelope,
     build_success_envelope,

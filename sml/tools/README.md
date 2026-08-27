@@ -49,3 +49,4 @@ See `sml/tools/mqttcli/` for a worked example (and its own
 ## Tools
 
 - [`mqttcli`](mqttcli/README.md) — MQTT `sub`/`pub` CLI for debugging simulator traffic.
+- [`alias`](alias/README.md) — short-name shortcuts for common tool invocations.

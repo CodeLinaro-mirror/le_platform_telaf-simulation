@@ -26,7 +26,7 @@ rpcs:
   # --- sim.card.* — CardManager ---------------------------------------------
 
   - method: get_state
-    req_topic: "ap/req/sim/get_state"
+    req_topic: "mp/req/sim/get_state"
     rsp_topic: "mp/rsp/sim/get_state"
     req_payload: schemas/sim/get_state_req.json
     rsp_payload: schemas/sim/get_state_rsp.json
@@ -38,7 +38,7 @@ rpcs:
       ICard::getState() + ICardApp::getAppState().
 
   - method: set_power
-    req_topic: "ap/req/sim/set_power"
+    req_topic: "mp/req/sim/set_power"
     rsp_topic: "mp/rsp/sim/set_power"
     req_payload: schemas/sim/set_power_req.json
     rsp_payload: schemas/sim/set_power_rsp.json
@@ -48,7 +48,7 @@ rpcs:
   # --- sim.sub.* — SubscriptionManager ---------------------------------------
 
   - method: get_iccid
-    req_topic: "ap/req/sim/get_iccid"
+    req_topic: "mp/req/sim/get_iccid"
     rsp_topic: "mp/rsp/sim/get_iccid"
     req_payload: schemas/sim/get_iccid_req.json
     rsp_payload: schemas/sim/get_iccid_rsp.json
@@ -56,7 +56,7 @@ rpcs:
     description: "Query the SIM's ICCID (ISubscription::getIccId)."
 
   - method: get_imsi
-    req_topic: "ap/req/sim/get_imsi"
+    req_topic: "mp/req/sim/get_imsi"
     rsp_topic: "mp/rsp/sim/get_imsi"
     req_payload: schemas/sim/get_imsi_req.json
     rsp_payload: schemas/sim/get_imsi_rsp.json

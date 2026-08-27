@@ -1,0 +1,12 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# scenario.step.req before send. Advances the timeline by N steps
+# (default 1). This is `kind: rpc` -- the response lands on
+# ctrl/cmd/scenario/step/rsp; run `sml mqttcli sub ctrl/cmd/scenario/#` in
+# another terminal to see it, since `pub` never waits for a response.
+
+topic: ctrl/cmd/scenario/step
+data:
+  steps: 1

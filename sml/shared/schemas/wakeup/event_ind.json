@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wakeup.event.ind",
+  "title": "Wakeup Source Event Indication",
+  "description": "Modem-side wakeup-source event, fields mirror QmiWakeupInfo. mpss pushes this; apss relays it into ap/ind/power/wakeup (see power.yaml's wakeup indication).",
+  "type": "object",
+  "required": [
+    "serviceId", "sourceNodeId", "destinationNodeId",
+    "isMsgIdValid", "msgId",
+    "isPIDValid", "pid",
+    "isProcessNameValid", "processName"
+  ],
+  "properties": {
+    "serviceId": { "type": "integer" },
+    "sourceNodeId": { "type": "integer" },
+    "destinationNodeId": { "type": "integer" },
+    "isMsgIdValid": { "type": "boolean" },
+    "msgId": { "type": "integer" },
+    "isPIDValid": { "type": "boolean" },
+    "pid": { "type": "integer" },
+    "isProcessNameValid": { "type": "boolean" },
+    "processName": { "type": "string" }
+  },
+  "additionalProperties": false
+}

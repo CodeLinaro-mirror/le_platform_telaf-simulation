@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "power.wakeup.ind",
+  "title": "Wakeup Indication",
+  "description": "Relay leg of the wakeup two-hop path (D11) -- apss forwards mp/ind/wakeup/event here, shape mirrors WakeupInfo{qmiWakeupInfo, wakeupType}.",
+  "type": "object",
+  "required": ["wakeupType", "qmiWakeupInfo"],
+  "properties": {
+    "wakeupType": {
+      "type": "string",
+      "enum": ["UNKNOWN", "QMI"]
+    },
+    "qmiWakeupInfo": {
+      "type": "object",
+      "required": [
+        "serviceId", "sourceNodeId", "destinationNodeId",
+        "isMsgIdValid", "msgId",
+        "isPIDValid", "pid",
+        "isProcessNameValid", "processName"
+      ],
+      "properties": {
+        "serviceId": { "type": "integer" },
+        "sourceNodeId": { "type": "integer" },
+        "destinationNodeId": { "type": "integer" },
+        "isMsgIdValid": { "type": "boolean" },
+        "msgId": { "type": "integer" },
+        "isPIDValid": { "type": "boolean" },
+        "pid": { "type": "integer" },
+        "isProcessNameValid": { "type": "boolean" },
+        "processName": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

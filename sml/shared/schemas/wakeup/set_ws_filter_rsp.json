@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wakeup.set_ws_filter.rsp",
+  "title": "Set Modem Wakeup Source Filter Response",
+  "description": "Empty on success; failures are carried by the envelope's error object.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

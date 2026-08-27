@@ -13,11 +13,16 @@ setup:
   environment_config: environments/default.yaml
   duration: "60s"
 
+timeline_owners:
+  apss: [power]
+  mpss: [data, sim, radio, wakeup]
+
 initial_state:
   modems: [modem_0_online]
   sim_slots: [sim_slot_0_inserted_sim001]
   radio:
     serving_cell: cell_urban_A
     signal_model: stable_urban
+  power: power_mdm_adsp_default
 
 timeline: []

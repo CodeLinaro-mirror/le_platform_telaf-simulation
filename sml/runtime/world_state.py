@@ -25,6 +25,7 @@ from sml.config.models import (
     IpPreset,
     Modem,
     ModemStateEnum,
+    PowerConfig,
     SignalModel,
     SimCard,
     SimSlot,
@@ -86,4 +87,22 @@ class RadioRuntime:
     signal_model: SignalModel
 
 
-__all__ = ["ModemRuntime", "SimSlotRuntime", "RadioRuntime"]
+@dataclass
+class PowerRuntime:
+    """Example (from a scenario's initial_state.power id)::
+
+        PowerRuntime(conf=PowerConfig(id="power_mdm_adsp_default",
+                                       local_machine_name="mdm",
+                                       machines=["adsp"],
+                                       timeout_ms=5000, ...))
+
+    Mirrors RadioRuntime: `initial_state.power` names a `devices.power_configs`
+    catalog entry id, resolved the same way `initial_state.radio.serving_cell`
+    resolves against `devices.cells`. sml.runtime.loader.resolve_power_seed()
+    flattens `.conf` into the kwargs sml.apss.power.PowerSubsystem's
+    constructor consumes.
+    """
+    conf: PowerConfig
+
+
+__all__ = ["ModemRuntime", "SimSlotRuntime", "RadioRuntime", "PowerRuntime"]

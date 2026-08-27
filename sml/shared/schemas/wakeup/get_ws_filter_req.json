@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wakeup.get_ws_filter.req",
+  "title": "Get Modem Wakeup Source Filter Request",
+  "description": "No parameters: the simulation models a single modem.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

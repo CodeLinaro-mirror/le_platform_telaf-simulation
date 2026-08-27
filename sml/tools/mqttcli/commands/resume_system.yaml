@@ -1,0 +1,10 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.power.resume_system.req before send. Thaws the telaf cgroup
+# (cgroup.freeze <- "0"), simulating a hardware wakeup out of system sleep.
+# Pairs with suspend_system.yaml.
+
+topic: ctrl/cmd/action/power/resume_system
+data: {}

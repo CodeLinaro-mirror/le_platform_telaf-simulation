@@ -21,10 +21,8 @@ import json
 import logging
 from typing import Callable
 
-import jsonschema
-
 from generated.python.action_registry import ACTIONS
-from generated.python.ctrl_validators import validate as validate_test_payload
+from generated.python.ctrl_validators import ValidationError, validate as validate_test_payload
 
 _log = logging.getLogger("sml.mpss.radio.action_dispatcher")
 
@@ -117,7 +115,7 @@ class RadioActionDispatcher:
         schema_id = f"action.{canonical_name}.req"
         try:
             validate_test_payload(schema_id, data)
-        except jsonschema.ValidationError as exc:
+        except ValidationError as exc:
             _log.warning("action dispatcher: %s payload invalid: %s; dropping", canonical_name, exc)
             return True
         try:

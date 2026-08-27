@@ -5,19 +5,22 @@
 
 Not an Active Object -- `sub`/`pub` are short-lived scripts, not the MPSS
 process, so there's no HSM/reconnect-backoff machinery here. Reuses the
-uds-via-AF_UNIX trick from `sml.mpss.mqtt_client._UnixMqttClient` and the
-`sml.mpss.config` broker settings so both the CLI and the real MPSS
+uds-via-AF_UNIX trick from `sml.common.mqtt_client._UnixMqttClient` and the
+mpss `config.yaml` broker settings so both the CLI and the real MPSS
 process agree on where the broker lives by default.
 """
 from __future__ import annotations
 
 import argparse
 from dataclasses import replace
+from pathlib import Path
 
 import paho.mqtt.client as mqtt
 
-from sml.mpss.config import BrokerConfig, load_config
-from sml.mpss.mqtt_client import _UnixMqttClient
+from sml.common.config import BrokerConfig, load_config
+from sml.common.mqtt_client import _UnixMqttClient
+
+_MPSS_CONFIG_PATH = Path(__file__).resolve().parents[2] / "mpss" / "config.yaml"
 
 
 def add_connection_args(parser: argparse.ArgumentParser) -> None:
@@ -30,8 +33,8 @@ def add_connection_args(parser: argparse.ArgumentParser) -> None:
 
 
 def resolve_broker_config(args: argparse.Namespace) -> BrokerConfig:
-    """Merge CLI overrides onto `load_config().broker`."""
-    broker = load_config().broker
+    """Merge CLI overrides onto `load_config("mpss", ...).broker`."""
+    broker = load_config("mpss", _MPSS_CONFIG_PATH).broker
     overrides = {}
     if args.transport is not None:
         overrides["transport"] = args.transport

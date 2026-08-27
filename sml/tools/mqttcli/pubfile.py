@@ -6,7 +6,7 @@
 One file = one command: {topic, qos?, retain?, envelope?, interval?, data}.
 `data` may be a single object (one publish) or a list (a sequence, fired in
 order with optional `interval` delay between sends). Envelope wrapping
-follows the prefix rule (ap/req/* wraps, ctrl/cmd/* raw, unknown wraps)
+follows the prefix rule (mp/req/* wraps, ctrl/cmd/* raw, unknown wraps)
 unless the file's `envelope:` key overrides it. Known topics are validated
 against the generated JSON Schemas before anything is sent -- a bad payload
 must never partially publish a sequence.
@@ -33,8 +33,8 @@ if str(_SML_ROOT) not in sys.path:
     sys.path.insert(0, str(_SML_ROOT))
 
 from generated.python.ctrl_validators import SCHEMAS as CTRL_SCHEMAS
-from generated.python.validators import SCHEMAS as PROD_SCHEMAS
-from sml.mpss.envelope import _next_corr_id, resolve_schema_id
+from generated.python.validators import SCHEMAS as PROD_SCHEMAS, ValidationError
+from sml.common.envelope import _next_corr_id, resolve_schema_id
 
 _MERGED_SCHEMAS = {**PROD_SCHEMAS, **CTRL_SCHEMAS}
 
@@ -60,7 +60,7 @@ def _should_envelope(topic: str, explicit: Optional[bool]) -> bool:
         return explicit
     if topic.startswith("ctrl/cmd/"):
         return False
-    return True  # ap/req/* and unknown topics wrap
+    return True  # mp/req/* and unknown topics wrap
 
 
 def parse_interval_ms(interval: str) -> float:
@@ -90,7 +90,7 @@ def _validate(topic: str, data: dict) -> None:
         return  # unknown topic: send raw, no error
     try:
         jsonschema.validate(data, _MERGED_SCHEMAS[schema_id])
-    except jsonschema.ValidationError as exc:
+    except ValidationError as exc:
         raise PubFileError(
             f"payload for {topic!r} (schema {schema_id!r}) failed validation: {exc.message}"
         ) from exc

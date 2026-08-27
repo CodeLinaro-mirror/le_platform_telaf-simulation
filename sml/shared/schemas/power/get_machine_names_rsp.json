@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "power.get_machine_names.rsp",
+  "title": "Get All Machine Names Response",
+  "type": "object",
+  "required": ["machineNames"],
+  "properties": {
+    "machineNames": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

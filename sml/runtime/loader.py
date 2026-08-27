@@ -29,13 +29,14 @@ from sml.config.models import (
     IpConfigSeed,
     IpPreset,
     Modem,
+    PowerConfig,
     RadioSeed,
     ScenarioDoc,
     SeedProfile,
     SimCard,
     SimSlot,
 )
-from sml.runtime.world_state import ModemRuntime, RadioRuntime, SimSlotRuntime
+from sml.runtime.world_state import ModemRuntime, PowerRuntime, RadioRuntime, SimSlotRuntime
 
 _T = TypeVar("_T")
 _log = logging.getLogger("sml.runtime.loader")
@@ -97,20 +98,22 @@ def resolve_initial_state(
     scenario: ScenarioDoc,
     devices: DevicesDoc,
     environments: EnvironmentsDoc,
-) -> tuple[dict[str, ModemRuntime], dict[str, SimSlotRuntime], Optional[RadioRuntime]]:
+) -> tuple[dict[str, ModemRuntime], dict[str, SimSlotRuntime], Optional[RadioRuntime],
+           Optional[PowerRuntime]]:
     """Resolve `scenario.initial_state` against `devices`/`environments`.
 
-    Returns `(modem_runtimes, sim_slot_runtimes, radio_runtime)`. The first
-    two are keyed by their catalog id. `scenario.initial_state.modems`/
+    Returns `(modem_runtimes, sim_slot_runtimes, radio_runtime, power_runtime)`.
+    The first two are keyed by their catalog id. `scenario.initial_state.modems`/
     `sim_slots` are just lists of instance ids -- each id's `Modem`/`SimSlot`
     catalog entry already carries its own baked `state` (and, for sim_slots,
     `installed_sim`/preset ids), so there is nothing to override here, only
-    to look up and carry across. `radio_runtime` is `None` when the scenario
-    has no `initial_state.radio` block. Raises :class:`LoaderError` on any id
-    that doesn't resolve.
+    to look up and carry across. `initial_state.power` is likewise just an
+    id into `devices.power_configs`. `radio_runtime`/`power_runtime` are
+    `None` when the scenario has no `initial_state.radio`/`power` entry.
+    Raises :class:`LoaderError` on any id that doesn't resolve.
 
     Example return value (single online modem, single inserted sim_slot, no
-    radio block)::
+    radio/power block)::
 
         (
             {"modem_0_online": ModemRuntime(modem=Modem(id="modem_0_online", ...),
@@ -122,9 +125,11 @@ def resolve_initial_state(
                 active_profile=None, interface_preset=None,
                 call_timing_preset=None, ip_preset=None)},
             None,
+            None,
         )
     """
     modems_idx = _index_by_id(devices.modems)
+    power_configs_idx = _index_by_id(devices.power_configs)
     sim_slots_idx = _index_by_id(devices.sim_slots)
     sim_cards_idx = _index_by_id(devices.sim_cards)
     data_profiles_idx = _index_by_id(devices.data_profiles)
@@ -188,7 +193,14 @@ def resolve_initial_state(
         signal_model = _lookup(signal_models_idx, radio.signal_model, "environments.signal_models")
         radio_runtime = RadioRuntime(serving_cell=serving_cell, signal_model=signal_model)
 
-    return modem_runtimes, sim_slot_runtimes, radio_runtime
+    power_runtime: Optional[PowerRuntime] = None
+    if scenario.initial_state.power is not None:
+        power_config: PowerConfig = _lookup(
+            power_configs_idx, scenario.initial_state.power, "devices.power_configs",
+        )
+        power_runtime = PowerRuntime(conf=power_config)
+
+    return modem_runtimes, sim_slot_runtimes, radio_runtime, power_runtime
 
 
 def _resolve_optional(item_id: Optional[str], index: dict, kind: str) -> Optional[object]:
@@ -239,6 +251,42 @@ def resolve_radio_seed(radio_runtime: Optional[RadioRuntime]) -> Optional[RadioS
         rsrp_dbm=cell.default_rsrp_dbm,
         variance_db=radio_runtime.signal_model.variance_db,
     )
+
+
+def resolve_power_seed(power_runtime: Optional[PowerRuntime]) -> Optional[PowerConfig]:
+    """Flattens a resolved PowerRuntime into the scalar kwargs
+    sml.apss.power.PowerSubsystem's constructor consumes -- the power-domain
+    equivalent of resolve_radio_seed() above. Returns None if the scenario
+    had no initial_state.power entry, in which case PowerSubsystem keeps its
+    own built-in defaults."""
+    if power_runtime is None:
+        return None
+    return power_runtime.conf
+
+
+# ---------------------------------------------------------------------------
+# timeline_owners-based timeline filtering (D6): a scenario's timeline is
+# shared by every process, each of which must only execute the domains
+# listed under its own name in `timeline_owners`. Absent `timeline_owners`
+# for a process name means "no filtering" (single-process/legacy scenarios
+# keep executing every step).
+# ---------------------------------------------------------------------------
+
+def filter_timeline_by_owner(scenario: ScenarioDoc, process_name: str) -> list:
+    """Return `scenario.timeline` steps whose action's domain prefix is
+    listed under `scenario.timeline_owners[process_name]`.
+
+    If `process_name` has no entry in `scenario.timeline_owners` (or
+    `timeline_owners` is empty), every step is kept -- this is what lets
+    pre-D6 scenario files (no `timeline_owners` block) keep working
+    unfiltered for a single process.
+    """
+    owned_domains = scenario.timeline_owners.get(process_name)
+    if owned_domains is None:
+        return list(scenario.timeline)
+    owned = set(owned_domains)
+    return [step for step in scenario.timeline if step.action.split(".", 1)[0] in owned]
+
 
 
 def resolve_interface_preset(slot: SimSlotRuntime) -> InterfacePresetSeed:
@@ -340,6 +388,7 @@ def resolve_throttle_presets(devices: DevicesDoc) -> dict[int, dict]:
 
 __all__ = [
     "LoaderError",
+    "filter_timeline_by_owner",
     "load_devices_doc",
     "load_environments_doc",
     "load_scenario_doc",
@@ -348,7 +397,9 @@ __all__ = [
     "resolve_initial_state",
     "resolve_interface_preset",
     "resolve_ip_config",
+    "resolve_power_seed",
     "resolve_qos_presets",
+    "resolve_radio_seed",
     "resolve_seed_profiles",
     "resolve_throttle_presets",
     "resolve_throughput_presets",

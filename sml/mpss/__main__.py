@@ -14,12 +14,13 @@ import sys
 import threading
 from pathlib import Path
 
-from sml.mpss.mqtt_client import MqttClient
-from sml.mpss.config import ConfigError, load_config
+from sml.common.mqtt_client import MqttClient
+from sml.common.config import ConfigError, load_config
 from sml.mpss.data import DataSubsystem
 from sml.mpss.radio import RadioSubsystem
-from sml.mpss import instrumentation as _instr
+from sml.common import instrumentation as _instr
 from sml.mpss.sim import SimSubsystem
+from sml.mpss.wakeup import WakeupSubsystem
 from sml.runtime.action_dispatcher import ActionDispatcher
 from sml.runtime.loader import (
     LoaderError,
@@ -57,14 +58,14 @@ def _install_signal_handlers(shutdown: threading.Event) -> None:
 
 def main() -> int:
     try:
-        cfg = load_config()
+        cfg = load_config("mpss", _SML_ROOT / "mpss" / "config.yaml")
     except ConfigError as exc:
         print(f"ERROR: invalid mpss config: {exc}", file=sys.stderr)
         return 2
 
     logging.basicConfig(
         level=getattr(logging, cfg.debug.log_level.upper(), logging.INFO),
-        format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
     log = logging.getLogger("sml.mpss")
     log.info("sml.mpss starting (client_id=%s, broker=%s:%d)",
@@ -89,7 +90,7 @@ def main() -> int:
     if cfg.scenario:
         scenario_path = _SML_ROOT / cfg.scenario
         dispatcher = ActionDispatcher(domains={})
-        runner = ScenarioRunner(action_dispatcher=dispatcher)
+        runner = ScenarioRunner(action_dispatcher=dispatcher, process_name="mpss")
         try:
             runner.load(scenario_path)
         except LoaderError as exc:
@@ -149,6 +150,19 @@ def main() -> int:
         )
         dispatcher.register_domain("radio", radio_subsystem)
         client.register_subsystem(radio_subsystem)
+
+        # Wakeup power-domain: sole producer of mp/ind/wakeup/event, consumed
+        # by apss's PowerSubsystem and relayed onward as ap/ind/power/wakeup.
+        wakeup_persist_path = (
+            _PERSIST_ROOT / "mpss" / "wakeup" / "ws_filter.json"
+            if "ws_filter" in runner.persistent else None
+        )
+        wakeup_subsystem = WakeupSubsystem(
+            persist_path=wakeup_persist_path,
+            default_filter=runner.devices.wakeup_default_filter,
+        )
+        dispatcher.register_domain("wakeup", wakeup_subsystem)
+        client.register_subsystem(wakeup_subsystem)
 
         client.register_subsystem(runner)
         log.info("scenario runner registered (mpss.scenario=%s)", cfg.scenario)

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.wakeup.force_wakeup.req",
+  "title": "Force Modem Wakeup Event",
+  "description": "Defaults model the QMI SMS service wakeup case (svc 0x05/msg 0x0001) used by the PA's WakeupReasonListener::onWakeup -> wsBitset=0x1 mapping.",
+  "type": "object",
+  "properties": {
+    "serviceId": { "type": "integer", "default": 5 },
+    "sourceNodeId": { "type": "integer", "default": 0 },
+    "destinationNodeId": { "type": "integer", "default": 0 },
+    "isMsgIdValid": { "type": "boolean", "default": true },
+    "msgId": { "type": "integer", "default": 1 },
+    "isPIDValid": { "type": "boolean", "default": false },
+    "pid": { "type": "integer", "default": 0 },
+    "isProcessNameValid": { "type": "boolean", "default": false },
+    "processName": { "type": "string", "default": "" }
+  },
+  "additionalProperties": false
+}

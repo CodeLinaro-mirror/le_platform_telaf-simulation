@@ -1,0 +1,92 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# power domain registry -- source of truth for PA<->apss telux::power wire
+# contract (TcuActivityManager master/slave state machine, WakeupManager).
+# Counterpart is apss (not mpss, see plan.md D2): topics use ap/req, ap/rsp,
+# ap/ind, ap/ff -- apss is a standalone process, distinct from the mpss
+# modem simulator this registry's siblings (data/sim/radio) talk to.
+#
+# wakeup's upstream source leg (modem event -> mp/ind/wakeup/event) lives in
+# the separate wakeup.yaml registry (owned by mpss, see plan.md O1-b);
+# power.wakeup below is only the apss->PA relay leg of that two-hop path.
+
+domain: power
+counterpart: apss
+
+rpcs:
+  - method: set_state
+    req_topic: "ap/req/power/set_state"
+    rsp_topic: "ap/rsp/power/set_state"
+    req_payload: schemas/power/set_state_req.json
+    rsp_payload: schemas/power/set_state_rsp.json
+    qos: 1
+    description: >-
+      Master-initiated activity state change (setActivityState). apss fans
+      the change out to slave machines via state_update, collects ACKs
+      via slave_ack, then replies here with the aggregated result.
+
+  - method: get_machine_names
+    req_topic: "ap/req/power/get_machine_names"
+    rsp_topic: "ap/rsp/power/get_machine_names"
+    req_payload: schemas/power/get_machine_names_req.json
+    rsp_payload: schemas/power/get_machine_names_rsp.json
+    qos: 1
+    description: "Query all registered TCU activity machine names (getAllMachineNames)."
+
+indications:
+  - event: state_update
+    ind_topic: "ap/ind/power/state_update"
+    payload: schemas/power/state_update_ind.json
+    qos: 1
+    retain: false
+    description: "Slave-side onTcuActivityStateUpdate push for a machine's new activity state."
+
+  - event: machine_update
+    ind_topic: "ap/ind/power/machine_update"
+    payload: schemas/power/machine_update_ind.json
+    qos: 1
+    retain: false
+    description: "Machine registry change (add_machine/remove_machine action applied)."
+
+  - event: slave_ack_status
+    ind_topic: "ap/ind/power/slave_ack_status"
+    payload: schemas/power/slave_ack_status_ind.json
+    qos: 1
+    retain: false
+    description: "Master-side onSlaveAckStatusUpdate push -- aggregated ACK status across slaves."
+
+  - event: wakeup
+    ind_topic: "ap/ind/power/wakeup"
+    payload: schemas/power/wakeup_ind.json
+    qos: 1
+    retain: false
+    description: "Relay leg of the wakeup two-hop path -- apss forwards mp/ind/wakeup/event here for PA's onWakeup."
+
+  # --- power.subsys_ready — one retained topic per manager --------------------
+  # Mirrors data.yaml's subsys_ready pattern: each independently-booting
+  # manager (TcuActivityManager, WakeupManager) publishes its own readiness
+  # rather than collapsing into one domain-wide signal.
+
+  - event: subsys_ready_tcu
+    ind_topic: "ap/ind/power/subsys_ready/tcu"
+    payload: schemas/data/subsys_ready_ind.json
+    qos: 1
+    retain: true
+    description: "TcuActivityManager subsystem readiness."
+
+  - event: subsys_ready_wakeup
+    ind_topic: "ap/ind/power/subsys_ready/wakeup"
+    payload: schemas/data/subsys_ready_ind.json
+    qos: 1
+    retain: true
+    description: "WakeupManager subsystem readiness."
+
+fire_and_forget:
+  - method: slave_ack
+    req_topic: "ap/ff/power/slave_ack"
+    req_payload: schemas/power/slave_ack_ff.json
+    qos: 1
+    description: >-
+      Slave machine's fire-and-forget ACK of a state_update push -- no
+      response expected, apss just tallies these toward slave_ack_status.

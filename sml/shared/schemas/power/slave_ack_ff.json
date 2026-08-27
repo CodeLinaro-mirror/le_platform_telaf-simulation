@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "power.slave_ack.ff",
+  "title": "Slave Activity State ACK (fire-and-forget)",
+  "description": "sendActivityStateAck -- slave's ACK/NACK of a state_update push. No response expected.",
+  "type": "object",
+  "required": ["response", "state", "machineName"],
+  "properties": {
+    "response": {
+      "type": "string",
+      "enum": ["ACK", "NACK"]
+    },
+    "state": {
+      "type": "string",
+      "enum": ["UNKNOWN", "SUSPEND", "RESUME", "SHUTDOWN"]
+    },
+    "machineName": { "type": "string" }
+  },
+  "additionalProperties": false
+}

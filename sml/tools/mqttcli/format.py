@@ -31,7 +31,7 @@ _ENVELOPE_KEYS = {"v", "corrId", "ts", "src"}
 
 
 def _topic_class(topic: str) -> str:
-    if topic.startswith("ap/req/"):
+    if topic.startswith("mp/req/"):
         return "req"
     if topic.startswith("mp/rsp/"):
         return "rsp"

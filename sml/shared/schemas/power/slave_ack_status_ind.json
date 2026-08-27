@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "power.slave_ack_status.ind",
+  "title": "Slave ACK Status Update Indication",
+  "description": "Master-side onSlaveAckStatusUpdate push -- aggregated ACK status across slaves for one state_update round.",
+  "type": "object",
+  "required": ["status", "machineName", "unresponsive", "nack"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["COMPLETE", "TIMEOUT"]
+    },
+    "machineName": { "type": "string" },
+    "unresponsive": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["clientName", "machineName"],
+        "properties": {
+          "clientName": { "type": "string" },
+          "machineName": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "nack": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["clientName", "machineName"],
+        "properties": {
+          "clientName": { "type": "string" },
+          "machineName": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

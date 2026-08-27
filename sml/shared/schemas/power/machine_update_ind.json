@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "power.machine_update.ind",
+  "title": "Machine Registry Update Indication",
+  "description": "onMachineUpdate push -- a machine was added or removed from the registry.",
+  "type": "object",
+  "required": ["machineName", "machineEvent"],
+  "properties": {
+    "machineName": { "type": "string" },
+    "machineEvent": {
+      "type": "string",
+      "enum": ["AVAILABLE", "UNAVAILABLE"]
+    }
+  },
+  "additionalProperties": false
+}

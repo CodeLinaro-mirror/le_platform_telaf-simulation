@@ -26,11 +26,12 @@ import ast
 import json
 from pathlib import Path
 
-import jsonschema
 import pytest
 
+from generated.python.validators import ValidationError
+
 from sml.config.models import SimCard
-from sml.mpss import instrumentation as _instr
+from sml.common import instrumentation as _instr
 from sml.mpss.sim import SimSubsystem
 from sml.mpss.sim.card import SimCardAO
 from sml.mpss.sim.subscription import SubscriptionAO
@@ -86,7 +87,7 @@ def test_sim_subsystem_satisfies_mqtt_client_protocol(started_ss):
     """MqttClient._on_message calls owns_topic() BEFORE handle_message().
 
     A subsystem missing owns_topic raises AttributeError inside the router's
-    try/except, which logs and continues -- so every ap/req/sim/** message is
+    try/except, which logs and continues -- so every mp/req/sim/** message is
     dropped as "not consumed" and the PA waits forever. Pin the whole duck-typed
     protocol, not just this one method, since the router relies on all of it.
     """
@@ -112,14 +113,14 @@ def test_owns_every_rpc_topic_backing_the_seven_apis(started_ss, topic_attr):
 def test_does_not_own_foreign_domain_topics(started_ss):
     """owns_topic must not over-claim: the router hands the message to the
     FIRST subsystem that says yes, so a greedy sim domain would starve data."""
-    assert not started_ss.owns_topic("ap/req/data/start_data_call")
+    assert not started_ss.owns_topic("mp/req/data/start_data_call")
     assert not started_ss.owns_topic("mp/ind/data/call_state")
 
 
 def test_router_delivers_to_sim_subsystem():
     """End-to-end through the real MqttClient routing helper."""
-    from sml.mpss.config import BrokerConfig, DebugConfig, MpssConfig
-    from sml.mpss.mqtt_client import MessageReceivedPayload, MqttClient
+    from sml.common.config import BrokerConfig, DebugConfig, ProcessConfig as MpssConfig
+    from sml.common.mqtt_client import MessageReceivedPayload, MqttClient
 
     cfg = MpssConfig(broker=BrokerConfig(transport="tcp"),
                      debug=DebugConfig(log_level="CRITICAL"))
@@ -141,7 +142,7 @@ def test_router_delivers_to_sim_subsystem():
         ))
 
         rsp = [c for c in pub.calls if c["topic"] == topics_sim.get_state.rsp]
-        assert rsp, "MqttClient did not route ap/req/sim/get_state to SimSubsystem"
+        assert rsp, "MqttClient did not route mp/req/sim/get_state to SimSubsystem"
         assert rsp[0]["payload"]["data"]["cardState"] == "PRESENT"
         ss.stop()
     finally:
@@ -205,7 +206,7 @@ def test_outbound_get_state_rsp_is_schema_validated(monkeypatch):
 
     # Force World State off-contract; "BANANA" is not in the cardState enum.
     ao.card_state = "BANANA"
-    with pytest.raises(jsonschema.ValidationError):
+    with pytest.raises(ValidationError):
         ao._handle_get_state({"corrId": "00ab", "src": "dcs-1", "data": {"slot": 1}})
 
 
@@ -215,7 +216,7 @@ def test_outbound_card_state_ind_is_schema_validated():
     ao.start(pub, lambda t: None, lambda t: None)
 
     ao.app_state = "NOT_A_REAL_APP_STATE"
-    with pytest.raises(jsonschema.ValidationError):
+    with pytest.raises(ValidationError):
         ao._publish_card_state()
 
 

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.power.force_slave_ack.req",
+  "title": "Force Slave Activity State ACK",
+  "type": "object",
+  "required": ["machineName", "response"],
+  "properties": {
+    "machineName": { "type": "string" },
+    "response": {
+      "type": "string",
+      "enum": ["ACK", "NACK"]
+    }
+  },
+  "additionalProperties": false
+}

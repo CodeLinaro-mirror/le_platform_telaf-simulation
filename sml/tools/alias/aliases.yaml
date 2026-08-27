@@ -1,0 +1,62 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# `sml alias <name> [extra_args...]` shortcut table. Each entry is
+# exactly one of:
+#
+#   tool + args  -- forwards in-process to sml/tools/<tool>'s main(argv);
+#                   `args` file paths are resolved relative to sml/tools/.
+#   shell (+cwd) -- runs an arbitrary command via subprocess (shlex-split,
+#                   never shell=True); `cwd` is resolved relative to
+#                   sml/tools/ if not absolute.
+#
+# extra_args given on the command line are appended as literal argv
+# elements after the fixed args/command in both cases. See
+# sml/tools/alias/README.md.
+
+ctrl.step:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/scenario_step.yaml]
+
+ctrl.seek:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/scenario_seek.yaml]
+
+ctrl.pause:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/scenario_pause.yaml]
+
+ctrl.resume:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/scenario_resume.yaml]
+
+ctrl.abort:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/scenario_abort.yaml]
+
+suspend:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/suspend_system.yaml]
+
+resume:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/resume_system.yaml]
+
+power.state:
+  shell: "cat /sys/fs/cgroup/telaf/cgroup.events"
+
+wakeup.sms:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_wakeup_sms.yaml]
+
+wakeup.vcall:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_wakeup_vcall.yaml]
+
+wakeup.sim_profile_swap:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_wakeup_sim_profile_swap.yaml]
+
+wakeup.nas_sys_info:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_wakeup_nas_sys_info.yaml]

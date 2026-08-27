@@ -5,6 +5,7 @@
 
 #include "../common/EventCast.hpp"
 #include "../common/ListenerDispatchAO.hpp"
+#include "../common/Log.hpp"
 #include "Signals.hpp"
 #include "generated/cpp/topics.h"
 
@@ -70,6 +71,7 @@ wireToCallStatus(const std::string& s)
         return telux::data::DataCallStatus::NET_NEWADDR;
     if (s == "DELADDR")
         return telux::data::DataCallStatus::NET_DELADDR;
+    LOG_WARN("[DataConnectionManager] wireToCallStatus: unrecognized value \"%s\" -- defaulting to NET_IDLE", s.c_str());
     return telux::data::DataCallStatus::NET_IDLE;
 }
 
@@ -84,6 +86,7 @@ wireToBearerTech(const std::string& s)
     if (s == "BEARER_TECH_5G") return telux::data::DataBearerTechnology::BEARER_TECH_5G;
     if (s == "CDMA_1X")        return telux::data::DataBearerTechnology::CDMA_1X;
     if (s == "EVDO_REV0")      return telux::data::DataBearerTechnology::EVDO_REV0;
+    LOG_WARN("[DataConnectionManager] wireToBearerTech: unrecognized value \"%s\" -- defaulting to UNKNOWN", s.c_str());
     return telux::data::DataBearerTechnology::UNKNOWN;
 }
 
@@ -667,6 +670,7 @@ SendingStartReq_St(chart::Hsm* h, chart::Event const* e)
     {
         case chart::Entry_Signal:
         {
+            LOG_INFO("[DataConnectionManager] session profileId=%d -> SendingStartReq", self->profileId_);
             nlohmann::json data = nlohmann::json::object();
             data["profileId"] = self->profileId_;
             data["ipFamily"] = ipFamilyToWire(self->call_->getIpFamilyType());
@@ -706,6 +710,7 @@ SendingStartReq_St(chart::Hsm* h, chart::Event const* e)
             auto pld = event_cast<RpcResultPld>(*e);
             if (!pld->rsp)
             {
+                LOG_WARN("[DataConnectionManager] session profileId=%d start_data_call timed out", self->profileId_);
                 if (self->startCb_)
                     self->startCb_(nullptr, telux::common::ErrorCode::OPERATION_TIMEOUT);
                 self->onFinished_(self->profileId_);
@@ -716,6 +721,7 @@ SendingStartReq_St(chart::Hsm* h, chart::Event const* e)
                 auto code = common::simula::parseErrorCode(
                   pld->rsp->error->value("code", std::string())
                 );
+                LOG_WARN("[DataConnectionManager] session profileId=%d start_data_call errored code=%d", self->profileId_, static_cast<int>(code));
                 if (self->startCb_)
                     self->startCb_(nullptr, code);
                 self->onFinished_(self->profileId_);
@@ -749,6 +755,7 @@ WaitingForUp_St(chart::Hsm* h, chart::Event const* e)
     switch (e->sig)
     {
         case chart::Entry_Signal:
+            LOG_INFO("[DataConnectionManager] session profileId=%d -> WaitingForUp", self->profileId_);
             self->bringup_timeout_.arm_one_shot(kBringupTimeout);
             chart::recall_all(self->deferred_, *self);
             return chart::Status::HANDLED;
@@ -789,6 +796,7 @@ WaitingForUp_St(chart::Hsm* h, chart::Event const* e)
         }
         case BringupTimeout_Signal:
         {
+            LOG_WARN("[DataConnectionManager] session profileId=%d bringup timed out -- forcing NO_NET", self->profileId_);
             telux::common::DataCallEndReason reason{};
             self->call_->setEndReason(reason);
             self->call_->setStatus(telux::data::DataCallStatus::NET_NO_NET);
@@ -819,6 +827,7 @@ Connected_St(chart::Hsm* h, chart::Event const* e)
     switch (e->sig)
     {
         case chart::Entry_Signal:
+            LOG_INFO("[DataConnectionManager] session profileId=%d -> Connected", self->profileId_);
             self->notifyListeners_(self->call_);
             return chart::Status::HANDLED;
         case StateInd_Signal:
@@ -877,6 +886,7 @@ SendingStopReq_St(chart::Hsm* h, chart::Event const* e)
     {
         case chart::Entry_Signal:
         {
+            LOG_INFO("[DataConnectionManager] session profileId=%d -> SendingStopReq", self->profileId_);
             // stopCb_ is captured by whichever state's Stop_Signal handler
             // transitioned us here (WaitingForUp_St or Connected_St above)
             // -- chart's dispatch synthesizes a payload-less Event for
@@ -915,6 +925,7 @@ SendingStopReq_St(chart::Hsm* h, chart::Event const* e)
                 // Request-not-delivered-or-refused is not the same as
                 // "still connected" -- verify with MPSS before landing
                 // anywhere (Reconciling rationale).
+                LOG_WARN("[DataConnectionManager] session profileId=%d stop_data_call timed out or errored -- reconciling", self->profileId_);
                 return self->to(Reconciling_St);
             }
             self->call_->setStatus(telux::data::DataCallStatus::NET_DISCONNECTING);
@@ -934,6 +945,7 @@ WaitingForDown_St(chart::Hsm* h, chart::Event const* e)
     switch (e->sig)
     {
         case chart::Entry_Signal:
+            LOG_INFO("[DataConnectionManager] session profileId=%d -> WaitingForDown", self->profileId_);
             self->teardown_timeout_.arm_one_shot(kTeardownTimeout);
             return chart::Status::HANDLED;
         case chart::Exit_Signal:
@@ -959,6 +971,7 @@ WaitingForDown_St(chart::Hsm* h, chart::Event const* e)
             // Best-effort: force terminal and report NO_NET even though
             // MPSS never confirmed teardown (WaitingForDown
             // --TeardownTimeout--> Terminal edge).
+            LOG_WARN("[DataConnectionManager] session profileId=%d teardown timed out -- forcing NO_NET", self->profileId_);
             self->call_->setStatus(telux::data::DataCallStatus::NET_NO_NET);
             self->notifyListeners_(self->call_);
             return self->to(Terminal_St);
@@ -975,6 +988,7 @@ Reconciling_St(chart::Hsm* h, chart::Event const* e)
     {
         case chart::Entry_Signal:
         {
+            LOG_INFO("[DataConnectionManager] session profileId=%d -> Reconciling", self->profileId_);
             nlohmann::json data = nlohmann::json::object();
             data["opType"] = opTypeToWire(self->operationType_);
             data["slot"] = static_cast<int>(self->slotId_);
@@ -1005,6 +1019,7 @@ Reconciling_St(chart::Hsm* h, chart::Event const* e)
             // call record client code can never clean up.
             if (!pld->rsp || pld->rsp->error)
             {
+                LOG_WARN("[DataConnectionManager] session profileId=%d list_data_call timed out or errored -- assuming disconnected", self->profileId_);
                 self->call_->setStatus(telux::data::DataCallStatus::NET_NO_NET);
                 if (self->stopCb_)
                     self->stopCb_(nullptr, telux::common::ErrorCode::GENERIC_FAILURE);
@@ -1025,6 +1040,7 @@ Reconciling_St(chart::Hsm* h, chart::Event const* e)
                     }
                 }
             }
+            LOG_INFO("[DataConnectionManager] session profileId=%d reconciled -- still_up=%d", self->profileId_, still_up);
             if (still_up)
             {
                 self->call_->setStatus(telux::data::DataCallStatus::NET_CONNECTED);
@@ -1058,6 +1074,7 @@ Terminal_St(chart::Hsm* h, chart::Event const* e)
             // timeout branches) must NOT notify, matching the real SDK's
             // documented DataCallResponseCb contract: on failure,
             // onDataCallInfoChanged is not called.
+            LOG_INFO("[DataConnectionManager] session profileId=%d -> Terminal", self->profileId_);
             self->onFinished_(self->profileId_);
             return chart::Status::HANDLED;
         default:
@@ -1606,6 +1623,8 @@ NotReady_St(chart::Hsm* h, chart::Event const* e)
     switch (e->sig)
     {
         case chart::Entry_Signal:
+            LOG_INFO("[DataConnectionManager] -> NotReady");
+            return chart::Status::HANDLED;
         case chart::Exit_Signal:
             return chart::Status::HANDLED;
         case ReadinessEvt_Signal:
@@ -1633,6 +1652,7 @@ NotReady_St(chart::Hsm* h, chart::Event const* e)
         case GetDefaultProfile_Signal:
         case SetDefaultProfile_Signal:
         case RequestThrottledApnInfo_Signal:
+            LOG_WARN("[DataConnectionManager] stale request signal=%d dropped -- NotReady before response", static_cast<int>(e->sig));
             return chart::Status::HANDLED;
         // SetThroughputInterval_Signal/GetLastThroughputInfo_Signal carry a
         // promise the caller is blocked on (setThroughputInterval/
@@ -1670,6 +1690,7 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
     {
         case chart::Entry_Signal:
         {
+            LOG_INFO("[DataConnectionManager] -> Ready");
             self->publishStatus_(telux::common::ServiceStatus::SERVICE_AVAILABLE);
             if (!self->init_cb_fired_)
             {
@@ -1731,6 +1752,7 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
         {
             auto pld = event_cast<StartDataCallPld>(*e);
             int profileId = pld->params.profileId;
+            LOG_DEBUG("[DataConnectionManager] StartDataCall_Signal profileId=%d", profileId);
             auto it = self->active_sessions_.find(profileId);
             if (it != self->active_sessions_.end() &&
                 it->second->dataCall()->getDataCallStatus() ==
@@ -1749,6 +1771,7 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
             {
                 // A session for this profileId is already mid-lifecycle
                 // (not yet Connected) -- real SDK's OP_IN_PROGRESS case.
+                LOG_WARN("[DataConnectionManager] StartDataCall_Signal profileId=%d already mid-lifecycle -- OP_IN_PROGRESS", profileId);
                 if (pld->cb)
                     pld->cb(nullptr, telux::common::ErrorCode::OP_IN_PROGRESS);
                 return chart::Status::HANDLED;
@@ -1779,9 +1802,11 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
         case StopDataCall_Signal:
         {
             auto pld = event_cast<StopDataCallPld>(*e);
+            LOG_DEBUG("[DataConnectionManager] StopDataCall_Signal profileId=%d", pld->params.profileId);
             auto it = self->active_sessions_.find(pld->params.profileId);
             if (it == self->active_sessions_.end())
             {
+                LOG_WARN("[DataConnectionManager] StopDataCall_Signal profileId=%d has no active session -- INVALID_STATE", pld->params.profileId);
                 if (pld->cb)
                     pld->cb(nullptr, telux::common::ErrorCode::INVALID_STATE);
                 return chart::Status::HANDLED;
@@ -1824,6 +1849,7 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
         case GetDefaultProfile_Signal:
         {
             auto pld = event_cast<GetDefaultProfilePld>(*e);
+            LOG_DEBUG("[DataConnectionManager] GetDefaultProfile_Signal slot=%d", self->slotId_);
             nlohmann::json data = nlohmann::json::object();
             data["slot"] = static_cast<int>(self->slotId_);
             data["opType"] = opTypeToWire(pld->operationType);
@@ -1839,6 +1865,7 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
                       return;
                   if (!rsp || rsp->error || !rsp->data)
                   {
+                      LOG_WARN("[DataConnectionManager] GetDefaultProfile_Signal get_default_profile timed out or errored");
                       cb(telux::data::DataProfile::PROFILE_ID_INVALID, slotId,
                          telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
@@ -1861,6 +1888,8 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
             // a ResponseCallback (ErrorCode-only)
             // instead of DefaultProfileIdResponseCb.
             auto pld = event_cast<SetDefaultProfilePld>(*e);
+            LOG_DEBUG("[DataConnectionManager] SetDefaultProfile_Signal slot=%d profileId=%d",
+                      self->slotId_, static_cast<int>(pld->profileId));
             nlohmann::json data = nlohmann::json::object();
             data["slot"] = static_cast<int>(self->slotId_);
             data["opType"] = opTypeToWire(pld->operationType);
@@ -1876,11 +1905,13 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
                       return;
                   if (!rsp)
                   {
+                      LOG_WARN("[DataConnectionManager] SetDefaultProfile_Signal set_default_profile timed out");
                       cb(telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
                   }
                   if (rsp->error)
                   {
+                      LOG_WARN("[DataConnectionManager] SetDefaultProfile_Signal set_default_profile errored");
                       cb(common::simula::parseErrorCode(rsp->error->value("code", std::string())));
                       return;
                   }
@@ -1904,6 +1935,8 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
             // errors that RPC and is simply omitted from the aggregate
             // (not itself an overall failure).
             auto pld = event_cast<RequestThrottledApnInfoPld>(*e);
+            LOG_DEBUG("[DataConnectionManager] RequestThrottledApnInfo_Signal active_sessions=%zu",
+                      self->active_sessions_.size());
             std::vector<int> profileIds;
             for (auto& entry : self->active_sessions_)
                 profileIds.push_back(entry.first);
@@ -1945,6 +1978,8 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
         case SetThroughputInterval_Signal:
         {
             auto pld = event_cast<SetThroughputIntervalPld>(*e);
+            LOG_DEBUG("[DataConnectionManager] SetThroughputInterval_Signal intervalMs=%d",
+                      static_cast<int>(pld->reportInterval));
             nlohmann::json data = nlohmann::json::object();
             data["intervalMs"] = static_cast<int>(pld->reportInterval);
             auto req = common::simula::makeRequestEnvelope(self->bridge_.currentPaId(), std::move(data));
@@ -1956,6 +1991,7 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
               [result](std::optional<Envelope> rsp) {
                   if (!rsp || rsp->error)
                   {
+                      LOG_WARN("[DataConnectionManager] SetThroughputInterval_Signal set_throughput_interval timed out or errored");
                       result->set_value(telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
                   }
@@ -1969,6 +2005,7 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
         case GetLastThroughputInfo_Signal:
         {
             auto pld = event_cast<GetLastThroughputInfoPld>(*e);
+            LOG_DEBUG("[DataConnectionManager] GetLastThroughputInfo_Signal slot=%d", self->slotId_);
             nlohmann::json data = nlohmann::json::object();
             auto req = common::simula::makeRequestEnvelope(self->bridge_.currentPaId(), std::move(data));
             auto result = pld->result;
@@ -1979,6 +2016,7 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
               [result](std::optional<Envelope> rsp) {
                   if (!rsp || rsp->error || !rsp->data)
                   {
+                      LOG_WARN("[DataConnectionManager] GetLastThroughputInfo_Signal request_throughput_info timed out or errored");
                       result->set_value({ telux::common::ErrorCode::OPERATION_TIMEOUT, {} });
                       return;
                   }

@@ -4,6 +4,7 @@
 #include "DataFactory.hpp"
 
 #include "../common/ListenerDispatchAO.hpp"
+#include "../common/Log.hpp"
 #include "../common/ModemBridge.hpp"
 
 namespace telux::data::simula {
@@ -30,6 +31,7 @@ SimulaDataFactory::getDataConnectionManager(SlotId slotId, telux::common::InitRe
     auto it = connection_managers_.find(slotId);
     if (it != connection_managers_.end())
     {
+        LOG_DEBUG("[DataFactory] getDataConnectionManager slot=%d already exists -- returning cached instance", static_cast<int>(slotId));
         // Manager already exists and boots asynchronously; a second caller
         // asking for the same slot doesn't get its own InitResponseCb fired
         // (mirrors the real SDK's factory-getter contract: InitResponseCb
@@ -54,6 +56,7 @@ SimulaDataFactory::getDataProfileManager(SlotId slotId, telux::common::InitRespo
     auto it = profile_managers_.find(slotId);
     if (it != profile_managers_.end())
     {
+        LOG_DEBUG("[DataFactory] getDataProfileManager slot=%d already exists -- returning cached instance", static_cast<int>(slotId));
         if (clientCallback && it->second->isSubsystemReady())
             clientCallback(telux::common::ServiceStatus::SERVICE_AVAILABLE);
         return it->second;
@@ -72,6 +75,7 @@ SimulaDataFactory::getServingSystemManager(SlotId slotId, telux::common::InitRes
     auto it = serving_managers_.find(slotId);
     if (it != serving_managers_.end())
     {
+        LOG_DEBUG("[DataFactory] getServingSystemManager slot=%d already exists -- returning cached instance", static_cast<int>(slotId));
         if (clientCallback && it->second->getServiceStatus() == telux::common::ServiceStatus::SERVICE_AVAILABLE)
             clientCallback(telux::common::ServiceStatus::SERVICE_AVAILABLE);
         return it->second;

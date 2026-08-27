@@ -27,7 +27,7 @@ from typing import Callable, Optional
 
 from miros import ActiveObject, Event, return_status, signals, spy_on
 
-from sml.mpss import instrumentation as _instr
+from sml.common import instrumentation as _instr
 
 from sml.config.models import RadioSeed
 
@@ -49,7 +49,7 @@ def _read_whoami() -> str:
 class RadioSubsystem(ActiveObject):
     """Coordinates all MPSS-side radio Active Objects for one slot.
 
-    Lifecycle (called by :class:`~sml.mpss.mqtt_client.MqttClient`)::
+    Lifecycle (called by :class:`~sml.common.mqtt_client.MqttClient`)::
 
         rs.start(publish_fn, subscribe_fn, unsubscribe_fn)
         # ... messages dispatched via rs.handle_message(topic, payload) ...
@@ -102,7 +102,7 @@ class RadioSubsystem(ActiveObject):
     def resubscribe(self) -> None:
         """Re-establish this subsystem's broker state after an MQTT reconnect.
 
-        Called by :class:`~sml.mpss.mqtt_client.MqttClient` on every entry into
+        Called by :class:`~sml.common.mqtt_client.MqttClient` on every entry into
         Operational after the first one. Fans out to each sub-AO's own
         ``resubscribe``; nothing is stopped or recreated -- a subsystem AO's
         lifetime is the process lifetime, because ``stop()`` joins its dispatch

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wakeup.get_ws_filter.rsp",
+  "title": "Get Modem Wakeup Source Filter Response",
+  "description": "Currently configured bitset; see set_ws_filter_req.json for bit meanings.",
+  "type": "object",
+  "required": ["bitset"],
+  "properties": {
+    "bitset": { "type": "integer", "minimum": 0, "maximum": 15 }
+  },
+  "additionalProperties": false
+}

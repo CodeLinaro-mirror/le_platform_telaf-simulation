@@ -37,18 +37,18 @@ import uuid as _uuid
 from pathlib import Path
 from typing import Callable, Optional
 
-import jsonschema
 from miros import Event, ActiveObject, return_status, signals, spy_on
 
-from sml.mpss import instrumentation as _instr
+from sml.common import instrumentation as _instr
 from sml.runtime.action_dispatcher import ActionDispatcher
 from sml.config.models import DevicesDoc
 from sml.runtime.loader import (
-    load_devices_doc, load_environments_doc, load_scenario_doc, resolve_initial_state,
+    filter_timeline_by_owner, load_devices_doc, load_environments_doc, load_scenario_doc,
+    resolve_initial_state,
 )
-from sml.runtime.world_state import ModemRuntime, RadioRuntime, SimSlotRuntime
+from sml.runtime.world_state import ModemRuntime, PowerRuntime, RadioRuntime, SimSlotRuntime
 from generated.python.ctrl_topics import scenario as scenario_topics
-from generated.python.ctrl_validators import validate as validate_test_payload
+from generated.python.ctrl_validators import ValidationError, validate as validate_test_payload
 
 _log = logging.getLogger("sml.runtime.scenario_runner")
 
@@ -88,9 +88,10 @@ class ScenarioRunner(ActiveObject):
     """
 
     def __init__(self, action_dispatcher: ActionDispatcher,
-                 name: str = "ScenarioRunner") -> None:
+                 name: str = "ScenarioRunner", process_name: Optional[str] = None) -> None:
         super().__init__(name)
         self._action_dispatcher = action_dispatcher
+        self._process_name = process_name
         self._publish_fn: Optional[Callable] = None
         self._subscribe_fn: Optional[Callable] = None
         self._unsubscribe_fn: Optional[Callable] = None
@@ -108,6 +109,7 @@ class ScenarioRunner(ActiveObject):
         self.modem_runtimes: dict[str, ModemRuntime] = {}
         self.sim_slot_runtimes: dict[str, SimSlotRuntime] = {}
         self.radio_runtime: Optional[RadioRuntime] = None
+        self.power_runtime: Optional[PowerRuntime] = None
         self.persistent: list[str] = []
         self.devices: Optional[DevicesDoc] = None
 
@@ -122,7 +124,11 @@ class ScenarioRunner(ActiveObject):
         """Parse ``path``, apply ``initial_state`` immediately, stage ``timeline``.
 
         Does not start autoplay -- call before registering as an
-        ``MqttClient`` subsystem; ``start()`` begins playback.
+        ``MqttClient`` subsystem; ``start()`` begins playback. If this
+        runner was constructed with a ``process_name``, the staged timeline
+        is filtered to only the domains ``scenario.timeline_owners[process_name]``
+        lists (D6) -- a shared scenario file drives every process, but each
+        only executes its own domain's steps.
         """
         p = Path(path)
         scenario = load_scenario_doc(p)
@@ -131,14 +137,19 @@ class ScenarioRunner(ActiveObject):
         devices = load_devices_doc(config_root / scenario.setup.devices_config)
         environments = load_environments_doc(config_root / scenario.setup.environment_config)
 
-        self.modem_runtimes, self.sim_slot_runtimes, self.radio_runtime = resolve_initial_state(
+        (self.modem_runtimes, self.sim_slot_runtimes, self.radio_runtime,
+         self.power_runtime) = resolve_initial_state(
             scenario, devices, environments
         )
         self.persistent = devices.persistent
         self.devices = devices
 
         self._scenario_name = scenario.name
-        self._timeline = self._stage_timeline(scenario.timeline)
+        owned_timeline = (
+            filter_timeline_by_owner(scenario, self._process_name)
+            if self._process_name is not None else scenario.timeline
+        )
+        self._timeline = self._stage_timeline(owned_timeline)
         self._next_idx = 0
         self._current_time_ms = 0.0
         _log.info("scenario %r loaded (%d timeline step(s))",
@@ -172,7 +183,7 @@ class ScenarioRunner(ActiveObject):
     def resubscribe(self) -> None:
         """Re-establish broker subscriptions and retained progress.
 
-        Called by :class:`~sml.mpss.mqtt_client.MqttClient` on every entry into
+        Called by :class:`~sml.common.mqtt_client.MqttClient` on every entry into
         Operational after the first one. The runner keeps running across the
         flap -- the timeline is wall-clock driven and a broker outage is not a
         scenario abort, so no timer is cancelled or rescheduled here; only what
@@ -375,7 +386,7 @@ class ScenarioRunner(ActiveObject):
     def _validate(self, schema_id: str, data: dict) -> bool:
         try:
             validate_test_payload(schema_id, data)
-        except jsonschema.ValidationError as exc:
+        except ValidationError as exc:
             _log.warning("scenario runner: %s invalid: %s; dropping", schema_id, exc)
             return False
         return True

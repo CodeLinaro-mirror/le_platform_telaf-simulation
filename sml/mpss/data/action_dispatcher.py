@@ -27,10 +27,8 @@ import json
 import logging
 from typing import Callable
 
-import jsonschema
-
 from generated.python.action_registry import ACTIONS
-from generated.python.ctrl_validators import validate as validate_test_payload
+from generated.python.ctrl_validators import ValidationError, validate as validate_test_payload
 
 _log = logging.getLogger("sml.mpss.data.action_dispatcher")
 
@@ -133,13 +131,15 @@ class DataActionDispatcher:
         schema_id = f"action.{canonical_name}.req"
         try:
             validate_test_payload(schema_id, data)
-        except jsonschema.ValidationError as exc:
+        except ValidationError as exc:
             _log.warning("action dispatcher: %s payload invalid: %s; dropping", canonical_name, exc)
             return True
         try:
             self._dispatch[canonical_name](data)
         except Exception as exc:  # noqa: BLE001
             _log.error("action dispatcher: %s handler raised: %s", canonical_name, exc)
+        else:
+            _log.info("action dispatcher: %s applied", canonical_name)
         return True
 
 

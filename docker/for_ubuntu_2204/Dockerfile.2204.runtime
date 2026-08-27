@@ -70,6 +70,8 @@ RUN if [ "$APT_INSECURE" = "yes" ]; then \
         libglib2.0-dev \
         mosquitto \
         mosquitto-clients \
+        fzf \
+        task-spooler \
         python2 \
         python3 \
         python3-pip \
@@ -101,7 +103,10 @@ WORKDIR /root
 # Distinguish between container and host (process-level env var)
 ENV TELAF_IN_CONTAINER=yes
 
+# Keep Python bytecode cache off the bind-mounted /root/sml (host-owned source
+# tree) so root-owned .pyc files never leak onto the host filesystem.
+ENV PYTHONPYCACHEPREFIX=/var/cache/telaf_pycache
+
 # Step 4: Shell environment for interactive sessions.
-RUN echo "TELAF_IN_CONTAINER=yes" >> ~/.bashrc \
-    && echo 'if [ "`id -u`" -eq 0 ]; then PS1="[TelAF Simulation] \\u:\\w # "; else PS1="[TelAF Simulation] \\u:\\w $ "; fi' >> ~/.bashrc \
-    && echo 'if [ -f $HOME/simulation/up_simulation.sh ]; then . $HOME/simulation/up_simulation.sh; else echo "Not found $HOME/simulation/up_simulation.sh --> NO simulation"; exit 0; fi' >> ~/.bashrc
+COPY sml.runtime.bashrc /root/.sml.runtime.bashrc
+RUN echo 'source $HOME/.sml.runtime.bashrc' >> ~/.bashrc

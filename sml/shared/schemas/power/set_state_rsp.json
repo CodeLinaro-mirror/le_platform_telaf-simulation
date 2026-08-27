@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "power.set_state.rsp",
+  "title": "Set Activity State Response",
+  "type": "object",
+  "required": ["ok"],
+  "properties": {
+    "ok": { "type": "boolean" },
+    "errorMessage": { "type": "string" }
+  },
+  "additionalProperties": false
+}

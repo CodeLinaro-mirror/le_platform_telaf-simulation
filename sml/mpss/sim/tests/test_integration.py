@@ -26,11 +26,11 @@ from typing import List
 import paho.mqtt.client as mqtt
 import pytest
 
-from sml.mpss.mqtt_client import MqttClient
-from sml.mpss.config import (
+from sml.common.mqtt_client import MqttClient
+from sml.common.config import (
     BrokerConfig,
     DebugConfig,
-    MpssConfig,
+    ProcessConfig as MpssConfig,
     ReconnectConfig,
 )
 from sml.mpss.sim import SimSubsystem

@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.power.resume_system.req",
+  "title": "Resume Simulated System (cgroup thaw)",
+  "type": "object",
+  "additionalProperties": false
+}

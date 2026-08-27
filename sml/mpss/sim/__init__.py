@@ -24,7 +24,7 @@ from miros import Factory, Event, return_status, signals, spy_on
 from miros.hsm import HsmWithQueues
 
 from sml.config.models import SimCard
-from sml.mpss import instrumentation as _instr
+from sml.common import instrumentation as _instr
 
 _log = logging.getLogger("sml.mpss.sim")
 
@@ -51,7 +51,7 @@ class SimSubsystem(Factory):
     :class:`~sml.mpss.data.DataSubsystem` (no `Starting`; `Ready`'s entry
     creates and starts the two sub-AOs + Action Dispatcher).
 
-    Lifecycle (called by :class:`~sml.mpss.mqtt_client.MqttClient`)::
+    Lifecycle (called by :class:`~sml.common.mqtt_client.MqttClient`)::
 
         ss.start(publish_fn, subscribe_fn, unsubscribe_fn)
         # ... messages dispatched via ss.handle_message(topic, payload) ...
@@ -104,7 +104,7 @@ class SimSubsystem(Factory):
     def resubscribe(self) -> None:
         """Re-establish this subsystem's broker state after an MQTT reconnect.
 
-        Called by :class:`~sml.mpss.mqtt_client.MqttClient` on every entry into
+        Called by :class:`~sml.common.mqtt_client.MqttClient` on every entry into
         Operational after the first one. Fans out to each sub-AO's own
         ``resubscribe``; nothing is stopped or recreated -- a subsystem's
         lifetime is the process lifetime, because ``stop()`` is terminal
@@ -115,12 +115,12 @@ class SimSubsystem(Factory):
     def owns_topic(self, topic: str) -> bool:
         """Return True if any sub-AO or the action dispatcher owns `topic`.
 
-        REQUIRED by :class:`~sml.mpss.mqtt_client.MqttClient`. Its
+        REQUIRED by :class:`~sml.common.mqtt_client.MqttClient`. Its
         ``_on_message`` router asks every registered subsystem ``owns_topic``
         first and only calls ``handle_message`` on the one that claims the
         topic -- a subsystem without this method raises AttributeError inside
         the router's try/except, which logs and moves on, so every inbound
-        ``ap/req/sim/**`` and ``ctrl/cmd/action/sim/**`` message would be
+        ``mp/req/sim/**`` and ``ctrl/cmd/action/sim/**`` message would be
         silently dropped as "not consumed". That is precisely the failure mode
         invariant (d) warns about: the PA waits forever on a get_state /
         get_iccid / get_imsi response that MPSS received but never routed.

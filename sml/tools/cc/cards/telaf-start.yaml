@@ -1,0 +1,8 @@
+id: telaf-start
+desc: Hello
+tags: [validate]
+queue: sim
+run: |
+  telaf start
+  sleep 1
+  app status

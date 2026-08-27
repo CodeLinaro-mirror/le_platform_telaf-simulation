@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import jsonschema
 
+ValidationError = jsonschema.ValidationError
+
 SCHEMAS = {
 {%- for m in messages %}
     {{ m.topic_id | tojson }}: {{ m.schema }},
@@ -17,9 +19,9 @@ SCHEMAS = {
 
 
 def validate(topic_id: str, payload: dict) -> None:
-    """Raise jsonschema.ValidationError if `payload` doesn't match `topic_id`'s schema."""
+    """Raise ValidationError if `payload` doesn't match `topic_id`'s schema."""
     schema = SCHEMAS[topic_id]
     jsonschema.validate(payload, schema)
 
 
-__all__ = ["SCHEMAS", "validate"]
+__all__ = ["SCHEMAS", "ValidationError", "validate"]

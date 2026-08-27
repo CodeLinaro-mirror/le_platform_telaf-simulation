@@ -2,7 +2,7 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
-"""Generate generated/python/{topics,payloads,validators}.py from
+"""Generate generated/python/{topics,validators}.py from
 sml/simula_shared/registry/*.yaml + schemas/**/*.json.
 
 Per Sim-Shared-Contract-and-CodeGen.md §7/§11: `generated/` is not
@@ -35,15 +35,12 @@ def main() -> int:
     (OUT_DIR / "topics.py").write_text(
         env.get_template("topics.py.j2").render(registries=registries)
     )
-    (OUT_DIR / "payloads.py").write_text(
-        env.get_template("payloads.py.j2").render(messages=messages)
-    )
     (OUT_DIR / "validators.py").write_text(
         env.get_template("validators.py.j2").render(messages=messages)
     )
     (OUT_DIR / "__init__.py").write_text("")
 
-    print(f"generated: {OUT_DIR}/topics.py, payloads.py, validators.py "
+    print(f"generated: {OUT_DIR}/topics.py, validators.py "
           f"({len(registries)} domain(s), {len(messages)} message(s))")
     return 0
 

@@ -28,7 +28,7 @@ from typing import Callable, Optional
 from miros import ActiveObject, Event, return_status, signals, spy_on
 
 from sml.config.models import CallTimingPresetSeed, InterfacePresetSeed, IpConfigSeed
-from sml.mpss import instrumentation as _instr
+from sml.common import instrumentation as _instr
 
 _log = logging.getLogger("sml.mpss.data")
 
@@ -56,7 +56,7 @@ class DataSubsystem(ActiveObject):
     just dispatch signals and let the chart's own topology enforce the
     idempotency the plain-class predecessor implemented by hand).
 
-    Lifecycle (called by :class:`~sml.mpss.mqtt_client.MqttClient`)::
+    Lifecycle (called by :class:`~sml.common.mqtt_client.MqttClient`)::
 
         ds.start(publish_fn, subscribe_fn, unsubscribe_fn)
         # ... messages dispatched via ds.handle_message(topic, payload) ...
@@ -124,7 +124,7 @@ class DataSubsystem(ActiveObject):
     def resubscribe(self) -> None:
         """Re-establish this subsystem's broker state after an MQTT reconnect.
 
-        Called by :class:`~sml.mpss.mqtt_client.MqttClient` on every entry into
+        Called by :class:`~sml.common.mqtt_client.MqttClient` on every entry into
         Operational after the first one. Fans out to each sub-AO's own
         ``resubscribe`` (see ``_fanout_resubscribe``); nothing is stopped or
         recreated -- a subsystem AO's lifetime is the process lifetime, because

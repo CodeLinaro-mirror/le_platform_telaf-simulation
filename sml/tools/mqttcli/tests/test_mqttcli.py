@@ -72,7 +72,7 @@ def test_pubfile_bad_interval_raises(tmp_path):
 
 def test_envelope_ap_req_wraps(tmp_path):
     path = _write_yaml(tmp_path, {
-        "topic": "ap/req/data/start_data_call",
+        "topic": "mp/req/data/start_data_call",
         "data": {"profileId": 1, "ipFamily": "IPV4V6", "opType": "DATA_LOCAL", "slot": 0},
     })
     result = load_pubfile(path, src="cli-test")
@@ -94,7 +94,7 @@ def test_envelope_ctrl_cmd_raw(tmp_path):
 
 def test_envelope_explicit_override(tmp_path):
     path = _write_yaml(tmp_path, {
-        "topic": "ap/req/data/start_data_call",
+        "topic": "mp/req/data/start_data_call",
         "envelope": False,
         "data": {"profileId": 1, "ipFamily": "IPV4V6", "opType": "DATA_LOCAL", "slot": 0},
     })
@@ -140,7 +140,7 @@ def test_validation_unknown_topic_sends_raw_no_error(tmp_path):
 
 def test_resolve_schema_id():
     assert resolve_schema_id("ctrl/cmd/action/data/force_serv_state") == "action.data.force_serv_state.req"
-    assert resolve_schema_id("ap/req/data/start_data_call") == "data.start_data_call.req"
+    assert resolve_schema_id("mp/req/data/start_data_call") == "data.start_data_call.req"
     assert resolve_schema_id("mp/rsp/data/start_data_call") is None
 
 

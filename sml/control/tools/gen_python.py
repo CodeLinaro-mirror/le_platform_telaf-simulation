@@ -2,7 +2,7 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
-"""Generate generated/python/{ctrl_topics,ctrl_payloads,ctrl_validators,
+"""Generate generated/python/{ctrl_topics,ctrl_validators,
 action_registry}.py from sml/control/registry/*.yaml +
 schemas/**/*.json.
 
@@ -37,9 +37,6 @@ def main() -> int:
     (OUT_DIR / "ctrl_topics.py").write_text(
         env.get_template("ctrl_topics.py.j2").render(registries=registries)
     )
-    (OUT_DIR / "ctrl_payloads.py").write_text(
-        env.get_template("ctrl_payloads.py.j2").render(messages=messages)
-    )
     (OUT_DIR / "ctrl_validators.py").write_text(
         env.get_template("ctrl_validators.py.j2").render(messages=messages)
     )
@@ -47,7 +44,7 @@ def main() -> int:
         env.get_template("action_registry.py.j2").render(entries=entries)
     )
 
-    print(f"generated: {OUT_DIR}/ctrl_topics.py, ctrl_payloads.py, "
+    print(f"generated: {OUT_DIR}/ctrl_topics.py, "
           f"ctrl_validators.py, action_registry.py "
           f"({len(registries['scenarios'])} scenario registry, "
           f"{len(registries['actions'])} action domain(s), "

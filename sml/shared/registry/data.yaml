@@ -9,7 +9,7 @@
 # to the generated/ output of this registry.
 #
 # NOT included here (out of scope):
-#   - request_profile (ap/req/data/request_profile, mp/rsp/data/request_profile):
+#   - request_profile (mp/req/data/request_profile, mp/rsp/data/request_profile):
 #     declared in Topics.hpp but dead on the wire -- PA's requestProfile()
 #     reuses kReqQueryProfile (see DataProfileManager.cpp's RequestProfile_Signal
 #     handler comment). No registry entry for a topic nothing publishes to.
@@ -23,7 +23,7 @@ rpcs:
   # --- data.call.* — DataConnectionManager ----------------------------------
 
   - method: start_data_call
-    req_topic: "ap/req/data/start_data_call"
+    req_topic: "mp/req/data/start_data_call"
     rsp_topic: "mp/rsp/data/start_data_call"
     req_payload: schemas/data/start_data_call_req.json
     rsp_payload: schemas/data/start_data_call_rsp.json
@@ -31,7 +31,7 @@ rpcs:
     description: "Bring up a data call for a given profile."
 
   - method: stop_data_call
-    req_topic: "ap/req/data/stop_data_call"
+    req_topic: "mp/req/data/stop_data_call"
     rsp_topic: "mp/rsp/data/stop_data_call"
     req_payload: schemas/data/stop_data_call_req.json
     rsp_payload: schemas/data/stop_data_call_rsp.json
@@ -39,7 +39,7 @@ rpcs:
     description: "Tear down an active data call for a given profile."
 
   - method: list_data_call
-    req_topic: "ap/req/data/list_data_call"
+    req_topic: "mp/req/data/list_data_call"
     rsp_topic: "mp/rsp/data/list_data_call"
     req_payload: schemas/data/list_data_call_req.json
     rsp_payload: schemas/data/list_data_call_rsp.json
@@ -49,7 +49,7 @@ rpcs:
   # --- data.profile.* — DataProfileManager ----------------------------------
 
   - method: query_profile
-    req_topic: "ap/req/data/query_profile"
+    req_topic: "mp/req/data/query_profile"
     rsp_topic: "mp/rsp/data/query_profile"
     req_payload: schemas/data/query_profile_req.json
     rsp_payload: schemas/data/query_profile_rsp.json
@@ -63,7 +63,7 @@ rpcs:
       `profileId` in the request payload.
 
   - method: request_profile_list
-    req_topic: "ap/req/data/request_profile_list"
+    req_topic: "mp/req/data/request_profile_list"
     rsp_topic: "mp/rsp/data/request_profile_list"
     req_payload: schemas/data/request_profile_list_req.json
     rsp_payload: schemas/data/request_profile_list_rsp.json
@@ -71,7 +71,7 @@ rpcs:
     description: "List every stored profile, unfiltered."
 
   - method: create_profile
-    req_topic: "ap/req/data/create_profile"
+    req_topic: "mp/req/data/create_profile"
     rsp_topic: "mp/rsp/data/create_profile"
     req_payload: schemas/data/create_profile_req.json
     rsp_payload: schemas/data/create_profile_rsp.json
@@ -79,7 +79,7 @@ rpcs:
     description: "Create a new profile; the server assigns its id."
 
   - method: modify_profile
-    req_topic: "ap/req/data/modify_profile"
+    req_topic: "mp/req/data/modify_profile"
     rsp_topic: "mp/rsp/data/modify_profile"
     req_payload: schemas/data/modify_profile_req.json
     rsp_payload: schemas/data/modify_profile_rsp.json
@@ -87,7 +87,7 @@ rpcs:
     description: "Modify fields of an existing profile by id."
 
   - method: delete_profile
-    req_topic: "ap/req/data/delete_profile"
+    req_topic: "mp/req/data/delete_profile"
     rsp_topic: "mp/rsp/data/delete_profile"
     req_payload: schemas/data/delete_profile_req.json
     rsp_payload: schemas/data/delete_profile_rsp.json
@@ -97,7 +97,7 @@ rpcs:
   # --- data.serv.* — ServingSystemManager -----------------------------------
 
   - method: request_service_status
-    req_topic: "ap/req/data/request_service_status"
+    req_topic: "mp/req/data/request_service_status"
     rsp_topic: "mp/rsp/data/request_service_status"
     req_payload: schemas/data/request_service_status_req.json
     rsp_payload: schemas/data/request_service_status_rsp.json
@@ -105,7 +105,7 @@ rpcs:
     description: "Query current serving-system service state and RAT."
 
   - method: request_roaming_status
-    req_topic: "ap/req/data/request_roaming_status"
+    req_topic: "mp/req/data/request_roaming_status"
     rsp_topic: "mp/rsp/data/request_roaming_status"
     req_payload: schemas/data/request_roaming_status_req.json
     rsp_payload: schemas/data/request_roaming_status_rsp.json
@@ -113,7 +113,7 @@ rpcs:
     description: "Query current roaming status."
 
   - method: request_nr_icon_type
-    req_topic: "ap/req/data/request_nr_icon_type"
+    req_topic: "mp/req/data/request_nr_icon_type"
     rsp_topic: "mp/rsp/data/request_nr_icon_type"
     req_payload: schemas/data/request_nr_icon_type_req.json
     rsp_payload: schemas/data/request_nr_icon_type_rsp.json
@@ -121,7 +121,7 @@ rpcs:
     description: "Query current 5G NR icon type to display."
 
   - method: make_dormant
-    req_topic: "ap/req/data/make_dormant"
+    req_topic: "mp/req/data/make_dormant"
     rsp_topic: "mp/rsp/data/make_dormant"
     req_payload: schemas/data/make_dormant_req.json
     rsp_payload: schemas/data/make_dormant_rsp.json
@@ -129,7 +129,7 @@ rpcs:
     description: "Force the data connection dormant."
 
   - method: get_default_profile
-    req_topic: "ap/req/data/get_default_profile"
+    req_topic: "mp/req/data/get_default_profile"
     rsp_topic: "mp/rsp/data/get_default_profile"
     req_payload: schemas/data/get_default_profile_req.json
     rsp_payload: schemas/data/get_default_profile_rsp.json
@@ -137,7 +137,7 @@ rpcs:
     description: "Query the current default profile id for an operation type."
 
   - method: set_default_profile
-    req_topic: "ap/req/data/set_default_profile"
+    req_topic: "mp/req/data/set_default_profile"
     rsp_topic: "mp/rsp/data/set_default_profile"
     req_payload: schemas/data/set_default_profile_req.json
     rsp_payload: schemas/data/set_default_profile_rsp.json
@@ -145,7 +145,7 @@ rpcs:
     description: "Set the default profile id for an operation type; persists to data_profiles.json."
 
   - method: request_data_call_bitrate
-    req_topic: "ap/req/data/request_data_call_bitrate"
+    req_topic: "mp/req/data/request_data_call_bitrate"
     rsp_topic: "mp/rsp/data/request_data_call_bitrate"
     req_payload: schemas/data/request_data_call_bitrate_req.json
     rsp_payload: schemas/data/request_data_call_bitrate_rsp.json
@@ -153,7 +153,7 @@ rpcs:
     description: "Query max Tx/Rx bit rate for the active call on a profile."
 
   - method: set_throughput_interval
-    req_topic: "ap/req/data/set_throughput_interval"
+    req_topic: "mp/req/data/set_throughput_interval"
     rsp_topic: "mp/rsp/data/set_throughput_interval"
     req_payload: schemas/data/set_throughput_interval_req.json
     rsp_payload: schemas/data/set_throughput_interval_rsp.json
@@ -161,7 +161,7 @@ rpcs:
     description: "Set (or, intervalMs=0, disable) periodic throughput_info reporting."
 
   - method: request_throughput_info
-    req_topic: "ap/req/data/request_throughput_info"
+    req_topic: "mp/req/data/request_throughput_info"
     rsp_topic: "mp/rsp/data/request_throughput_info"
     req_payload: schemas/data/request_throughput_info_req.json
     rsp_payload: schemas/data/request_throughput_info_rsp.json
@@ -169,7 +169,7 @@ rpcs:
     description: "Query the last known throughput snapshot for every active call."
 
   - method: request_throttle_status
-    req_topic: "ap/req/data/request_throttle_status"
+    req_topic: "mp/req/data/request_throttle_status"
     rsp_topic: "mp/rsp/data/request_throttle_status"
     req_payload: schemas/data/request_throttle_status_req.json
     rsp_payload: schemas/data/request_throttle_status_rsp.json

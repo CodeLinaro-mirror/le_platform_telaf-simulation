@@ -18,7 +18,7 @@ python3 -m sml.tools.mqttcli pub <file.yaml>
 
 ## Design
 
-**Connection.** Broker settings default to `sml.mpss.config.load_config().broker`
+**Connection.** Broker settings default to `sml.common.config.load_config("mpss", ...)`
 — the same config the real `sml.mpss` process reads, so the CLI talks to
 whatever broker the simulator is actually using (default: Unix domain
 socket `/tmp/simula-mqtt.sock`). Override with `--host`/`--port`/`--socket`/

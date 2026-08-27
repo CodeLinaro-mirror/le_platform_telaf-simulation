@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #
 # Force an unrequested card power loss -- simulates a hardware fault, NOT an
-# AP-requested taf_sim_SetPower (that is ap/req/sim/set_power, a different
+# AP-requested taf_sim_SetPower (that is mp/req/sim/set_power, a different
 # path the app drives itself).
 #
 #   sml mqttcli pub sml/tools/mqttcli/commands/sim_force_power_off.yaml

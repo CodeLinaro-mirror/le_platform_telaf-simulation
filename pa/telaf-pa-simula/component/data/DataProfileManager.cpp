@@ -5,6 +5,7 @@
 
 #include "../common/EventCast.hpp"
 #include "../common/ListenerDispatchAO.hpp"
+#include "../common/Log.hpp"
 #include "Signals.hpp"
 #include "generated/cpp/topics.h"
 
@@ -499,6 +500,8 @@ ProfileNotReady_St(chart::Hsm* h, chart::Event const* e)
     switch (e->sig)
     {
         case chart::Entry_Signal:
+            LOG_INFO("[DataProfileManager] -> NotReady");
+            return chart::Status::HANDLED;
         case chart::Exit_Signal:
             return chart::Status::HANDLED;
         case ReadinessEvt_Signal:
@@ -518,6 +521,7 @@ ProfileNotReady_St(chart::Hsm* h, chart::Event const* e)
         case ModifyProfile_Signal:
         case QueryProfile_Signal:
         case RequestProfile_Signal:
+            LOG_WARN("[DataProfileManager] stale request signal=%d dropped -- NotReady before response", static_cast<int>(e->sig));
             return chart::Status::HANDLED;
         default:
             return self->super(&chart::Hsm::top);
@@ -532,6 +536,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
     {
         case chart::Entry_Signal:
         {
+            LOG_INFO("[DataProfileManager] -> Ready");
             self->publishStatus_(telux::common::ServiceStatus::SERVICE_AVAILABLE);
             if (!self->init_cb_fired_)
             {
@@ -611,6 +616,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
         case RequestProfileList_Signal:
         {
             auto pld = event_cast<RequestProfileListPld>(*e);
+            LOG_DEBUG("[DataProfileManager] RequestProfileList_Signal slot=%d", static_cast<int>(self->slotId_));
             // request_profile_list.req schema is strict (no filter fields):
             // MPSS lists all stored profiles unfiltered, slot is not read.
             nlohmann::json data = nlohmann::json::object();
@@ -625,6 +631,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
                       return;
                   if (!rsp || rsp->error || !rsp->data)
                   {
+                      LOG_WARN("[DataProfileManager] RequestProfileList_Signal request_profile_list timed out or errored");
                       cb->onProfileListResponse({}, telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
                   }
@@ -640,6 +647,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
         case CreateProfile_Signal:
         {
             auto pld = event_cast<CreateProfilePld>(*e);
+            LOG_DEBUG("[DataProfileManager] CreateProfile_Signal slot=%d", static_cast<int>(self->slotId_));
             nlohmann::json data = profileParamsToWire(pld->params);
             data["slot"] = static_cast<int>(self->slotId_);
             auto req = common::simula::makeRequestEnvelope(self->bridge_.currentPaId(), std::move(data));
@@ -653,6 +661,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
                       return;
                   if (!rsp || rsp->error || !rsp->data)
                   {
+                      LOG_WARN("[DataProfileManager] CreateProfile_Signal create_profile timed out or errored");
                       cb->onResponse(
                         telux::data::DataProfile::PROFILE_ID_INVALID,
                         telux::common::ErrorCode::OPERATION_TIMEOUT
@@ -672,6 +681,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
         case DeleteProfile_Signal:
         {
             auto pld = event_cast<DeleteProfilePld>(*e);
+            LOG_DEBUG("[DataProfileManager] DeleteProfile_Signal profileId=%d", static_cast<int>(pld->profileId));
             nlohmann::json data = nlohmann::json::object();
             data["profileId"] = pld->profileId;
             data["techPref"] = techPrefToWire(pld->techPreference);
@@ -687,6 +697,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
                       return;
                   if (!rsp || rsp->error)
                   {
+                      LOG_WARN("[DataProfileManager] DeleteProfile_Signal delete_profile timed out or errored");
                       cb->commandResponse(telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
                   }
@@ -700,6 +711,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
         case ModifyProfile_Signal:
         {
             auto pld = event_cast<ModifyProfilePld>(*e);
+            LOG_DEBUG("[DataProfileManager] ModifyProfile_Signal profileId=%d", static_cast<int>(pld->profileId));
             nlohmann::json data = profileParamsToWire(pld->params);
             data["profileId"] = pld->profileId;
             data["slot"] = static_cast<int>(self->slotId_);
@@ -714,6 +726,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
                       return;
                   if (!rsp || rsp->error)
                   {
+                      LOG_WARN("[DataProfileManager] ModifyProfile_Signal modify_profile timed out or errored");
                       cb->commandResponse(telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
                   }
@@ -736,6 +749,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
             // fail schema validation on MPSS -- queryProfile would never
             // succeed. Emit only fields the SDK caller actually populated.
             const auto& pp = pld->params;
+            LOG_DEBUG("[DataProfileManager] QueryProfile_Signal apn=%s", pp.apn.c_str());
             nlohmann::json data = nlohmann::json::object();
             if (!pp.profileName.empty()) data["profileName"] = pp.profileName;
             if (!pp.apn.empty())         data["apn"]         = pp.apn;
@@ -755,6 +769,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
                       return;
                   if (!rsp || rsp->error || !rsp->data)
                   {
+                      LOG_WARN("[DataProfileManager] QueryProfile_Signal query_profile timed out or errored");
                       cb->onProfileListResponse({}, telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
                   }
@@ -770,6 +785,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
         case RequestProfile_Signal:
         {
             auto pld = event_cast<RequestProfilePld>(*e);
+            LOG_DEBUG("[DataProfileManager] RequestProfile_Signal profileId=%d", static_cast<int>(pld->profileId));
             // query_profile.req schema is strict: profileId + techPref only, no slot.
             nlohmann::json data = nlohmann::json::object();
             data["profileId"] = pld->profileId;
@@ -786,6 +802,7 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
                       return;
                   if (!rsp || rsp->error || !rsp->data)
                   {
+                      LOG_WARN("[DataProfileManager] RequestProfile_Signal query_profile timed out or errored");
                       cb->onResponse(nullptr, telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
                   }

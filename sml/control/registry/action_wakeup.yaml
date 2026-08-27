@@ -1,0 +1,20 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Wakeup-domain ctrl/cmd/action/wakeup/** registry (owned by mpss, see O1-b
+# in plan.md). force_wakeup is the test-only injection point for the modem
+# wakeup-source event: mpss's wakeup subsystem consumes this action and
+# publishes mp/ind/wakeup/event, which apss then relays into
+# ap/ind/power/wakeup for the PA's onWakeup callback.
+
+kind: action
+domain: wakeup
+
+actions:
+  - method: force_wakeup
+    req_topic: "ctrl/cmd/action/wakeup/force_wakeup"
+    req_payload: schemas/action_wakeup/force_wakeup_req.json
+    qos: 1
+    description: >-
+      Inject a modem wakeup-source event (QMI service/message id pair),
+      re-publishing mp/ind/wakeup/event with the given values.

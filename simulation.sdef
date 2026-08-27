@@ -6,11 +6,13 @@
 
 apps:
 {
-    $SIMULATION_ROOT/stub/taf_simula_pm/tafPMSvc
-    $SIMULATION_ROOT/bypass/telaf/tafmodule
+    $LEGATO_ROOT/apps/sample/helloIpc/printClient
+    $LEGATO_ROOT/apps/sample/helloIpc/printServer
 
-    // from --> $TELAF_ROOT/apps/tafServices/tafKeyStoreSvc
-    // $SIMULATION_ROOT/stub/keyStore/tafKeyStoreSvc
+    $TELAF_ROOT/apps/tools/tafTools
+
+    $TELAF_ROOT/apps/tafServices/tafPMSvc
+    $TELAF_ROOT/apps/tafMngdServices/PM/tafMngdPMSvc
 
 #if ${TELAF_SIMULATION_ENABLE_SOMEIP_GW} = y
     $TELAF_ROOT/apps/tafServices/tafSomeipGWSvc
@@ -25,9 +27,7 @@ apps:
 #endif
 
 #if ${TELAF_SIMULATION_ENABLE_SIM} = y
-    // from --> $TELAF_ROOT/apps/tafServices/tafSimCardSvc
     $TELAF_ROOT/apps/tafServices/tafSimCardSvc
-    // $SIMULATION_ROOT/bypass/telsdk/tafSimCardSvc
 #endif
 
 #if ${TELAF_SIMULATION_ENABLE_LOC} = y
@@ -66,9 +66,6 @@ apps:
 #if ${TELAF_SIMULATION_ENABLE_RADIO} = y
     $TELAF_ROOT/apps/tafServices/tafRadioSvc
 #endif
-    $LEGATO_ROOT/apps/sample/helloIpc/printClient
-    $LEGATO_ROOT/apps/sample/helloIpc/printServer
-
 
     // --- Test Apps ---
     // $TELAF_ROOT/apps/test/tafSomeipGWTest/tafSomeipClntUnitTest/tafSomeipClntUnitTest
@@ -94,6 +91,10 @@ apps:
     // $TELAF_ROOT/apps/test/tafECallTest/tafECallUnitTest/tafECallUnitTest
     // $TELAF_ROOT/apps/test/tafDevInfoTest/tafDevInfoIntTest
     // $TELAF_ROOT/apps/test/tafRadioTest/tafRadioIntTest
+    // $TELAF_ROOT/apps/test/tafPMTest/tafPMUnitTest/tafPMUnitTest
+    // $TELAF_ROOT/apps/test/tafPMTest/tafPMIntgTest/tafPMIntgTest
+    // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdPMTest/tafMngdPMIntTest/tafMngdPMIntTest
+    // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdPMTest/tafMngdPMUnitTest/tafMngdPMUnitTest
 }
 
 commands:
@@ -102,12 +103,15 @@ commands:
     gnss = gnssTool:/bin/gnss
 #endif
 
-    tafmodule = tafmodule:/bin/tafmodule
+    pm = tafTools:/bin/pm
+    tafmodule = tafTools:/bin/tafmodule
 }
 
 bindings:
 {
     <telaf>.DeviceManager -> <tafcore>.DeviceManager
+    <tafcore>.DeviceManagerTool -> <tafcore>.DeviceManagerTool
+    <root>.DeviceManagerTool -> <tafcore>.DeviceManagerTool
     <telaf>.DeviceManagerTool -> <tafcore>.DeviceManagerTool
     <telaf>.sdirTool -> <tafcore>.sdirTool
 }
@@ -120,6 +124,8 @@ interfaceSearch:
     $TELAF_ROOT/interfaces/someipGW
     $TELAF_ROOT/apps/tafMngdServices/interfaces
     $LEGATO_ROOT/apps/sample/helloIpc
+    $TELAF_ROOT/apps/test/tafPMTest/tafPMIntgTest
+
 
 #if ${TELAF_SIMULATION_ENABLE_RPC} = y
     $TELAF_ROOT/apps/rpc/rpcTest

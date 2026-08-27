@@ -46,6 +46,7 @@ set(MODULE_LIST
     component/taf_pa_data
     component/taf_pa_sim
 	component/taf_pa_radio
+    component/taf_pa_pms
 )
 
 foreach(module ${MODULE_LIST})

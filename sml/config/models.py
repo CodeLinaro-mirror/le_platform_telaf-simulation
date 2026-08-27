@@ -55,6 +55,25 @@ class Modem(StrictModel):
 
 
 # ---------------------------------------------------------------------------
+# devices/*.yaml -- PowerConfig: apss's power domain conf knobs (D7)
+# ---------------------------------------------------------------------------
+
+class PowerConfig(StrictModel):
+    """A fully-baked apss power domain conf, mirroring how `Modem`/`SimSlot`
+    entries carry their own starting state. `machines` are other (non-local)
+    machine names to pre-register at startup, letting a scenario seed a
+    multi-machine topology without a runtime add_machine action
+    (invariant b)."""
+    id: str
+    local_machine_name: str = "mdm"
+    machines: list[str] = []
+    timeout_ms: int = 5000
+    ftimeout_ms: int = 36_000_000
+    shutdown_trigger_en: bool = True
+    interconnect_supports_autosuspend: bool = False
+
+
+# ---------------------------------------------------------------------------
 # devices/*.yaml -- SimSlot + its state enum + the physical slot it lives in
 # ---------------------------------------------------------------------------
 
@@ -173,7 +192,9 @@ class ThrottlePreset(StrictModel):
 class DevicesDoc(StrictModel):
     version: str
     persistent: list[str] = []
+    wakeup_default_filter: int = 0x0000
     modems: list[Modem] = []
+    power_configs: list[PowerConfig] = []
     sim_slots: list[SimSlot] = []
     sim_cards: list[SimCard] = []
     data_profiles: list[DataProfile] = []
@@ -227,13 +248,15 @@ class RadioInitialState(StrictModel):
 class ScenarioInitialState(StrictModel):
     """List of baked device-instance ids to activate at load time.
 
-    Each id names a fully-formed `Modem`/`SimSlot` catalog entry (see
-    devices/*.yaml) -- state, installed_sim, and presets are already baked
-    into that entry, so a scenario has nothing to override, only to select.
+    Each id names a fully-formed `Modem`/`SimSlot`/`PowerConfig` catalog
+    entry (see devices/*.yaml) -- state, installed_sim, and presets are
+    already baked into that entry, so a scenario has nothing to override,
+    only to select.
     """
     modems: list[str] = []
     sim_slots: list[str] = []
     radio: Optional[RadioInitialState] = None
+    power: Optional[str] = None
 
 
 class TimelineStep(StrictModel):
@@ -243,9 +266,15 @@ class TimelineStep(StrictModel):
 
 
 class ScenarioDoc(StrictModel):
+    """`timeline_owners` maps a process name (`"apss"`/`"mpss"`) to the list
+    of action-domain prefixes it owns (D6): each process's ScenarioRunner
+    filters `timeline` steps to only the domains it owns, so one shared
+    scenario file drives both processes without either executing the
+    other's actions."""
     version: str
     name: str
     setup: ScenarioSetup
+    timeline_owners: dict[str, list[str]] = {}
     initial_state: ScenarioInitialState = ScenarioInitialState()
     timeline: list[TimelineStep] = []
 

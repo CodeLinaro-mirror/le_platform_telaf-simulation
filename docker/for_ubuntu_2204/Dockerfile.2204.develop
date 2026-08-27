@@ -115,5 +115,6 @@ RUN if getent group $DEVELOPER_GID > /dev/null 2>&1; then \
 WORKDIR /home/developer/
 USER developer:developer
 
-RUN echo 'if [ "`id -u`" -eq 0 ]; then PS1="[Build Your Simulation] \\u:\\w # "; else PS1="[Build Your Simulation] \\u:\\w $ "; fi' >> ~/.bashrc
+COPY --chown=developer:developer sml.develop.bashrc /home/developer/.sml.develop.bashrc
+RUN echo 'source $HOME/.sml.develop.bashrc' >> ~/.bashrc
 ENTRYPOINT ["/bin/bash", "/home/developer/simulation_ro/scripts/forward_to_container.sh"]

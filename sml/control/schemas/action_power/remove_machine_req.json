@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.power.remove_machine.req",
+  "title": "Remove TCU Activity Machine",
+  "type": "object",
+  "required": ["machineName"],
+  "properties": {
+    "machineName": { "type": "string" }
+  },
+  "additionalProperties": false
+}

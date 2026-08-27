@@ -24,7 +24,13 @@
 
 version: "1.0"
 
-persistent: [data_profiles]
+persistent: [data_profiles, ws_filter]
+
+# Modem wakeup-source filter bitset used when no persisted ws_filter.json
+# exists yet (see taf_prop_pa_pms_ModemWakeupSource_t bits in
+# sml/mpss/wakeup/__init__.py). 0 matches the modem's own power-up state:
+# no source allowed through until the PA calls EnableAllWs / set_ws_filter.
+wakeup_default_filter: 0
 
 # --- entities ---------------------------------------------------------
 
@@ -39,6 +45,15 @@ modems:
     supported_rats: [GSM, WCDMA, LTE, NR5G]
     ecall_capable: false
     state: offline
+
+power_configs:
+  - id: power_mdm_adsp_default
+    local_machine_name: mdm
+    machines: [adsp]
+    timeout_ms: 5000
+    ftimeout_ms: 36000000
+    shutdown_trigger_en: true
+    interconnect_supports_autosuspend: false
 
 sim_slots:
   - id: sim_slot_0_inserted_sim001

@@ -5,6 +5,7 @@
 
 #include "../common/EventCast.hpp"
 #include "../common/ListenerDispatchAO.hpp"
+#include "../common/Log.hpp"
 #include "Signals.hpp"
 #include "generated/cpp/topics.h"
 
@@ -28,6 +29,7 @@ wireToServiceState(const std::string& s)
 {
     if (s == "IN_SERVICE")     return telux::data::DataServiceState::IN_SERVICE;
     if (s == "OUT_OF_SERVICE") return telux::data::DataServiceState::OUT_OF_SERVICE;
+    LOG_WARN("[ServingSystemManager] wireToServiceState: unrecognized value \"%s\" -- defaulting to UNKNOWN", s.c_str());
     return telux::data::DataServiceState::UNKNOWN;
 }
 
@@ -39,6 +41,7 @@ wireToNetworkRat(const std::string& s)
     if (s == "LTE")       return telux::data::NetworkRat::LTE;
     if (s == "CDMA_1X")   return telux::data::NetworkRat::CDMA_1X;
     if (s == "CDMA_EVDO") return telux::data::NetworkRat::CDMA_EVDO;
+    LOG_WARN("[ServingSystemManager] wireToNetworkRat: unrecognized value \"%s\" -- defaulting to UNKNOWN", s.c_str());
     return telux::data::NetworkRat::UNKNOWN;
 }
 
@@ -47,6 +50,7 @@ wireToDrbStatus(const std::string& s)
 {
     if (s == "ACTIVE")  return telux::data::DrbStatus::ACTIVE;
     if (s == "DORMANT") return telux::data::DrbStatus::DORMANT;
+    LOG_WARN("[ServingSystemManager] wireToDrbStatus: unrecognized value \"%s\" -- defaulting to UNKNOWN", s.c_str());
     return telux::data::DrbStatus::UNKNOWN;
 }
 
@@ -55,6 +59,7 @@ wireToRoamingType(const std::string& s)
 {
     if (s == "DOMESTIC")      return telux::data::RoamingType::DOMESTIC;
     if (s == "INTERNATIONAL") return telux::data::RoamingType::INTERNATIONAL;
+    LOG_WARN("[ServingSystemManager] wireToRoamingType: unrecognized value \"%s\" -- defaulting to UNKNOWN", s.c_str());
     return telux::data::RoamingType::UNKNOWN;
 }
 
@@ -63,6 +68,7 @@ wireToNrIconType(const std::string& s)
 {
     if (s == "BASIC") return telux::data::NrIconType::BASIC;
     if (s == "UWB")   return telux::data::NrIconType::UWB;
+    LOG_WARN("[ServingSystemManager] wireToNrIconType: unrecognized value \"%s\" -- defaulting to NONE", s.c_str());
     return telux::data::NrIconType::NONE;
 }
 
@@ -169,6 +175,7 @@ SimulaServingSystemManager::start()
 void
 SimulaServingSystemManager::handleReadinessInd_(std::string_view /*topic*/, const Envelope& env)
 {
+    LOG_DEBUG("[ServingSystemManager] handleReadinessInd_ fired corrId=%s", env.corrId.c_str());
     auto pld = std::make_shared<StateIndPld>();
     pld->env = env;
     post_fifo({ ReadinessEvt_Signal, pld });
@@ -177,6 +184,7 @@ SimulaServingSystemManager::handleReadinessInd_(std::string_view /*topic*/, cons
 void
 SimulaServingSystemManager::handleServStateInd_(std::string_view /*topic*/, const Envelope& env)
 {
+    LOG_DEBUG("[ServingSystemManager] handleServStateInd_ fired corrId=%s", env.corrId.c_str());
     auto pld = std::make_shared<StateIndPld>();
     pld->env = env;
     post_fifo({ ServStateEvt_Signal, pld });
@@ -185,6 +193,7 @@ SimulaServingSystemManager::handleServStateInd_(std::string_view /*topic*/, cons
 void
 SimulaServingSystemManager::handleServRoamingInd_(std::string_view /*topic*/, const Envelope& env)
 {
+    LOG_DEBUG("[ServingSystemManager] handleServRoamingInd_ fired corrId=%s", env.corrId.c_str());
     auto pld = std::make_shared<StateIndPld>();
     pld->env = env;
     post_fifo({ ServRoamingEvt_Signal, pld });
@@ -249,6 +258,7 @@ SimulaServingSystemManager::publishDrb_(telux::data::DrbStatus d)
 telux::common::Status
 SimulaServingSystemManager::requestServiceStatus(telux::data::RequestServiceStatusResponseCb callback)
 {
+    LOG_DEBUG("[ServingSystemManager] requestServiceStatus slot=%d", slotId_);
     if (!isReadyDerived_())
         return telux::common::Status::NOTREADY;
     auto pld = std::make_shared<RequestServiceStatusPld>();
@@ -260,6 +270,7 @@ SimulaServingSystemManager::requestServiceStatus(telux::data::RequestServiceStat
 telux::common::Status
 SimulaServingSystemManager::requestRoamingStatus(telux::data::RequestRoamingStatusResponseCb callback)
 {
+    LOG_DEBUG("[ServingSystemManager] requestRoamingStatus slot=%d", slotId_);
     if (!isReadyDerived_())
         return telux::common::Status::NOTREADY;
     auto pld = std::make_shared<RequestRoamingStatusPld>();
@@ -271,6 +282,7 @@ SimulaServingSystemManager::requestRoamingStatus(telux::data::RequestRoamingStat
 telux::common::Status
 SimulaServingSystemManager::requestNrIconType(telux::data::RequestNrIconTypeResponseCb callback)
 {
+    LOG_DEBUG("[ServingSystemManager] requestNrIconType slot=%d", slotId_);
     if (!isReadyDerived_())
         return telux::common::Status::NOTREADY;
     auto pld = std::make_shared<RequestNrIconTypePld>();
@@ -282,6 +294,7 @@ SimulaServingSystemManager::requestNrIconType(telux::data::RequestNrIconTypeResp
 telux::common::Status
 SimulaServingSystemManager::makeDormant(telux::common::ResponseCallback callback)
 {
+    LOG_DEBUG("[ServingSystemManager] makeDormant slot=%d", slotId_);
     if (!isReadyDerived_())
         return telux::common::Status::NOTREADY;
     auto pld = std::make_shared<MakeDormantPld>();
@@ -340,6 +353,8 @@ ServNotReady_St(chart::Hsm* h, chart::Event const* e)
     switch (e->sig)
     {
         case chart::Entry_Signal:
+            LOG_INFO("[ServingSystemManager] -> NotReady");
+            return chart::Status::HANDLED;
         case chart::Exit_Signal:
             return chart::Status::HANDLED;
         case ReadinessEvt_Signal:
@@ -357,6 +372,7 @@ ServNotReady_St(chart::Hsm* h, chart::Event const* e)
         case RequestRoamingStatus_Signal:
         case RequestNrIconType_Signal:
         case MakeDormant_Signal:
+            LOG_WARN("[ServingSystemManager] stale request signal=%d dropped -- NotReady before response", static_cast<int>(e->sig));
             return chart::Status::HANDLED;
         default:
             return self->super(&chart::Hsm::top);
@@ -371,6 +387,7 @@ ServReady_St(chart::Hsm* h, chart::Event const* e)
     {
         case chart::Entry_Signal:
         {
+            LOG_INFO("[ServingSystemManager] -> Ready");
             self->publishStatus_(telux::common::ServiceStatus::SERVICE_AVAILABLE);
             if (!self->init_cb_fired_)
             {
@@ -478,6 +495,7 @@ ServReady_St(chart::Hsm* h, chart::Event const* e)
                   telux::data::ServiceStatus status{};
                   if (!rsp || rsp->error || !rsp->data)
                   {
+                      LOG_WARN("[ServingSystemManager] RequestServiceStatus_Signal request_service_status timed out or errored");
                       cb(status, telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
                   }
@@ -508,6 +526,7 @@ ServReady_St(chart::Hsm* h, chart::Event const* e)
                   telux::data::RoamingStatus roaming{};
                   if (!rsp || rsp->error || !rsp->data)
                   {
+                      LOG_WARN("[ServingSystemManager] RequestRoamingStatus_Signal request_roaming_status timed out or errored");
                       cb(roaming, telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
                   }
@@ -536,6 +555,7 @@ ServReady_St(chart::Hsm* h, chart::Event const* e)
                       return;
                   if (!rsp || rsp->error || !rsp->data)
                   {
+                      LOG_WARN("[ServingSystemManager] RequestNrIconType_Signal request_nr_icon_type timed out or errored");
                       cb(telux::data::NrIconType::NONE, telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
                   }
@@ -565,6 +585,7 @@ ServReady_St(chart::Hsm* h, chart::Event const* e)
                       return;
                   if (!rsp || rsp->error)
                   {
+                      LOG_WARN("[ServingSystemManager] MakeDormant_Signal make_dormant timed out or errored");
                       cb(telux::common::ErrorCode::OPERATION_TIMEOUT);
                       return;
                   }

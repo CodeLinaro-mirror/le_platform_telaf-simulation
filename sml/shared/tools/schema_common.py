@@ -58,6 +58,7 @@ def load_registries() -> list[dict]:
         doc = yaml.safe_load(path.read_text(encoding="utf-8"))
         doc.setdefault("rpcs", [])
         doc.setdefault("indications", [])
+        doc.setdefault("fire_and_forget", [])
         out.append(doc)
     return out
 
@@ -147,6 +148,8 @@ def build_messages(registries: list[dict], lang: str) -> list[dict]:
             _add(domain, r["method"], "rsp", r["rsp_payload"])
         for ind in reg["indications"]:
             _add(domain, ind["event"], "ind", ind["payload"])
+        for ff in reg.get("fire_and_forget", []):
+            _add(domain, ff["method"], "ff", ff["req_payload"])
 
     return messages
 

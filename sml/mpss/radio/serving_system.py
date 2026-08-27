@@ -26,8 +26,8 @@ from typing import Callable, Optional
 from miros import ActiveObject, Event, return_status, signals, spy_on
 
 from sml.config.models import RadioSeed
-from sml.mpss import instrumentation as _instr
-from sml.mpss.envelope import (
+from sml.common import instrumentation as _instr
+from sml.common.envelope import (
     build_event_envelope,
     build_success_envelope,
     dispatch_inbound,

@@ -64,15 +64,35 @@ def _cmd_pub(args: argparse.Namespace) -> int:
     client = connect_client(broker, client_id)
     client.loop_start()
     try:
+        infos = []
         for i, spec in enumerate(pubfile.specs):
             if i > 0 and pubfile.interval_ms:
                 time.sleep(pubfile.interval_ms / 1000.0)
-            client.publish(spec.topic, json.dumps(spec.payload).encode(),
-                           qos=spec.qos, retain=spec.retain)
-        time.sleep(0.2)  # let paho's loop thread flush the send(s) before disconnect
+            info = client.publish(spec.topic, json.dumps(spec.payload).encode(),
+                                  qos=spec.qos, retain=spec.retain)
+            infos.append(info)
+        for info in infos:
+            # QoS 0 has no ack -- is_published() is already true once handed
+            # to the socket layer, so wait_for_publish() returns immediately.
+            # QoS 1/2 blocks until the broker's PUBACK/PUBCOMP actually
+            # arrives, which is what "sent" should mean here. wait_for_publish()
+            # itself doesn't raise on timeout, so check is_published() after.
+            try:
+                info.wait_for_publish(timeout=5.0)
+            except (RuntimeError, ValueError) as exc:
+                print(f"ERROR: publish (mid={info.mid}) failed: {exc}", file=sys.stderr)
+                return 1
+            if not info.is_published():
+                print(f"ERROR: publish (mid={info.mid}) not confirmed within 5s", file=sys.stderr)
+                return 1
     finally:
-        client.loop_stop()
+        # disconnect() must run before loop_stop(): it writes to paho's
+        # internal sockpair, which wakes the background thread out of its
+        # blocking select(timeout=1.0) immediately. Calling loop_stop()
+        # first makes it wait out the full 1s select timeout before it
+        # even notices _thread_terminate.
         client.disconnect()
+        client.loop_stop()
     return 0
 
 

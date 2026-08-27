@@ -19,6 +19,10 @@ set(MODULE_LIST
     component/tel
     component/platform
     component/data
+    component/power
+    # prop-prefix sublayers. This is the runtime provider of
+    # taf_prop_pa_pms_* -- the strong PA NEEDs that soname since telaf-pa
+    component/telaf-np
 )
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
@@ -66,13 +70,25 @@ add_custom_target(simula_codegen ALL DEPENDS ${GEN_CPP_HEADERS})
 # catches a stale/renamed device/environment id before it ships in a config
 # change nobody ran the validator on manually. Runs after codegen so the
 # generated python it may import is present.
-add_custom_target(validate_scenario ALL
+
+file(GLOB_RECURSE SCENARIO_INPUTS CONFIGURE_DEPENDS
+    ${SML_ROOT}/config/scenarios/*.yaml
+    ${SML_ROOT}/config/tools/validate_scenario.py
+)
+
+set(VALIDATE_STAMP ${CMAKE_BINARY_DIR}/validate_scenario.stamp)
+
+add_custom_command(
+    OUTPUT ${VALIDATE_STAMP}
     COMMAND ${Python3_EXECUTABLE} ${SML_ROOT}/config/tools/validate_scenario.py
+    COMMAND ${CMAKE_COMMAND} -E touch ${VALIDATE_STAMP}
+    DEPENDS ${SCENARIO_INPUTS} ${GEN_CPP_HEADERS}
     WORKING_DIRECTORY ${SML_ROOT}
     COMMENT "Running validate_scenario.py (config/scenarios/*.yaml cross-reference checks)"
     VERBATIM
 )
-add_dependencies(validate_scenario simula_codegen)
+
+add_custom_target(validate_scenario ALL DEPENDS ${VALIDATE_STAMP})
 
 foreach(module ${MODULE_LIST})
     message(STATUS "Including module: ${module}")
@@ -87,6 +103,8 @@ set(CODEGEN_CONSUMERS
     telux_common   # component/common/ModemBridge.cpp -> validators.h
     telux_data     # component/data/*.cpp             -> topics.h
     telux_tel      # component/sim/*.cpp (compiled into it)   -> topics.h
+    telux_power    # component/power/*.cpp            -> topics.h
+    taf_prop_pa_pms  # component/telaf-np/component/taf_prop_pms/ -> topics.h
 )
 foreach(consumer ${CODEGEN_CONSUMERS})
     if(NOT TARGET ${consumer})

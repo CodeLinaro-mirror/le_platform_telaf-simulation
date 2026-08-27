@@ -1,0 +1,12 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.wakeup.force_wakeup.req before send.
+#
+# Combo [svc_id:0x0B, msg_id:0x0033] -> MODEM_WS_SIM_PROFILE_SWAP.
+
+topic: ctrl/cmd/action/wakeup/force_wakeup
+data:
+  serviceId: 0x0B
+  msgId: 0x0033

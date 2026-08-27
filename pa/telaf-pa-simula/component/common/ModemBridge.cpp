@@ -66,6 +66,13 @@ struct RspTimeoutPld
     std::string corrId;
 };
 
+struct PublishOnewayPld
+{
+    std::string topic;
+    std::string schema_id;
+    Envelope envelope;
+};
+
 struct SubscribeEventPld
 {
     std::string topic;
@@ -156,28 +163,36 @@ drawShortId_()
 using telux::common::simula::event_cast;
 
 // Mirrors sml/mpss/data/envelope.py's resolve_schema_id() -- PA's outbound
-// req topics follow the fixed "ap/req/<domain>/<method>" ->
+// req topics follow the fixed "<prefix>/req/<domain>/<method>" ->
 // "<domain>.<method>.req" rule (unlike inbound rsp/ind, which has no such
 // rule and needs a per-call-site schema_id -- see rsp_schema_id/schema_id
 // params on send_request/subscribe_event). Returns "" for a topic outside
-// that prefix (PA never publishes on ctrl/cmd/** per invariant (f), so
-// ap/req/** is the only outbound shape this bridge needs to resolve).
+// both prefixes (PA never publishes on ctrl/cmd/** per invariant (f), so
+// mp/req/** and ap/req/** are the only outbound shapes this bridge needs to
+// resolve -- prefix picks the counterpart process, mpss or apss, per D2).
 std::string
 resolveReqSchemaId_(const std::string& topic)
 {
-    constexpr std::string_view kPrefix = "ap/req/";
-    if (topic.rfind(kPrefix, 0) != 0)
+    constexpr std::string_view kMpPrefix = "mp/req/";
+    constexpr std::string_view kApPrefix = "ap/req/";
+    std::string_view rest_view;
+    if (topic.rfind(kMpPrefix, 0) == 0)
+        rest_view = std::string_view(topic).substr(kMpPrefix.size());
+    else if (topic.rfind(kApPrefix, 0) == 0)
+        rest_view = std::string_view(topic).substr(kApPrefix.size());
+    else
         return {};
-    std::string rest = topic.substr(kPrefix.size());
+    std::string rest(rest_view);
     std::replace(rest.begin(), rest.end(), '/', '.');
     return rest + ".req";
 }
 
-// Fixed rsp subscription wildcard: shared per-domain-per-method rsp topics,
+// Fixed rsp subscription wildcards: shared per-domain-per-method rsp topics,
 // `dest` field filters misdelivery. ModemBridge itself is domain-agnostic,
-// so it subscribes to every domain's
-// rsp namespace with one wildcard.
+// so it subscribes to every domain's rsp namespace with one wildcard per
+// counterpart process (mpss, apss -- see D2).
 constexpr std::string_view kRspWildcard = "mp/rsp/#";
+constexpr std::string_view kApRspWildcard = "ap/rsp/#";
 
 }  // anonymous namespace
 
@@ -307,15 +322,7 @@ ModemBridge::stop()
     if (!running())
         return;
     post_fifo({ Stop_Signal, nullptr });
-    // Give the AO worker a moment to process Stop_Signal and run
-    // ShuttingDown's entry (which fails in-flight/deferred RPC callbacks
-    // before we tear down).
-    for (int i = 0; i < 200; ++i)
-    {
-        if (currentState() == State::ShuttingDown)
-            break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+    drain();
     chart::ActiveObject::stop();
 }
 
@@ -386,6 +393,16 @@ ModemBridge::subscribe_event(std::string_view topic, std::string_view schema_id,
     pld->schema_id = std::string(schema_id);
     pld->cb = std::move(cb);
     post_fifo({ SubscribeEvent_Signal, pld });
+}
+
+void
+ModemBridge::publish_oneway(std::string_view topic, std::string_view schema_id, Envelope msg)
+{
+    auto pld = std::make_shared<PublishOnewayPld>();
+    pld->topic = std::string(topic);
+    pld->schema_id = std::string(schema_id);
+    pld->envelope = std::move(msg);
+    post_fifo({ PublishOneway_Signal, pld });
 }
 
 void
@@ -490,6 +507,7 @@ void
 ModemBridge::issueAllSubscribes_()
 {
     mosquitto_subscribe(client_.get(), nullptr, std::string(kRspWildcard).c_str(), /*qos*/ 1);
+    mosquitto_subscribe(client_.get(), nullptr, std::string(kApRspWildcard).c_str(), /*qos*/ 1);
     for (auto& kv : subscriptions_)
     {
         mosquitto_subscribe(client_.get(), nullptr, kv.first.c_str(), /*qos*/ 1);
@@ -682,6 +700,17 @@ Disconnected_St(chart::Hsm* h, chart::Event const* e)
             }
             return chart::Status::HANDLED;
         }
+        case PublishOneway_Signal:
+        {
+            // No callback to fail -- there's not even a Connecting attempt
+            // under way yet, so there's nothing to defer toward. Drop.
+            auto p = event_cast<PublishOnewayPld>(*e);
+            LOG_WARN(
+              "[ModemBridge] publish_oneway dropped (Disconnected) topic=%s",
+              p->topic.c_str()
+            );
+            return chart::Status::HANDLED;
+        }
         case Stop_Signal:
             return self->to(ShuttingDown_St);
         default:
@@ -760,6 +789,7 @@ Connecting_St(chart::Hsm* h, chart::Event const* e)
         case Stop_Signal:
             return self->to(ShuttingDown_St);
         case SendReq_Signal:
+        case PublishOneway_Signal:
             chart::defer(self->deferred_, *e);
             return chart::Status::HANDLED;
         default:
@@ -850,6 +880,7 @@ Subscribing_St(chart::Hsm* h, chart::Event const* e)
             return chart::Status::HANDLED;
         }
         case SendReq_Signal:
+        case PublishOneway_Signal:
             chart::defer(self->deferred_, *e);
             return chart::Status::HANDLED;
         default:
@@ -877,6 +908,13 @@ Operational_St(chart::Hsm* h, chart::Event const* e)
         {
             auto p = event_cast<SendReqPld>(*e);
             self->doSendRequest_(p->topic, p->rsp_schema_id, std::move(p->envelope), std::move(p->cb), p->deadline);
+            return chart::Status::HANDLED;
+        }
+
+        case PublishOneway_Signal:
+        {
+            auto p = event_cast<PublishOnewayPld>(*e);
+            self->doPublishOneway_(p->topic, p->schema_id, std::move(p->envelope));
             return chart::Status::HANDLED;
         }
 
@@ -1193,6 +1231,37 @@ ModemBridge::doSendRequest_(
             { /* swallow */
             }
         }
+    }
+}
+
+void
+ModemBridge::doPublishOneway_(
+  const std::string& topic,
+  const std::string& schema_id,
+  Envelope envelope
+)
+{
+    if (!schema_id.empty() && envelope.data && !validate_(topic, schema_id, *envelope.data))
+    {
+        LOG_ERROR(
+          "[ModemBridge] outbound payload schema invalid topic=%s schema_id=%s -- not publishing",
+          topic.c_str(),
+          schema_id.c_str()
+        );
+        return;
+    }
+
+    std::string body = envelope.toJson().dump();
+    int rc = mosquitto_publish(client_.get(), nullptr, topic.c_str(),
+                               static_cast<int>(body.size()), body.data(),
+                               /*qos*/ 1, /*retain*/ false);
+    if (rc != MOSQ_ERR_SUCCESS)
+    {
+        LOG_ERROR(
+          "[ModemBridge] publish_oneway failed rc=%s topic=%s",
+          mosquitto_strerror(rc),
+          topic.c_str()
+        );
     }
 }
 

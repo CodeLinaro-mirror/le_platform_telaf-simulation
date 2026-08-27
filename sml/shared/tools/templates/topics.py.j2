@@ -18,6 +18,10 @@ class {{ reg.domain }}:
     class {{ ind.event }}:
         ind = {{ ind.ind_topic | tojson }}
 {% endfor %}
+{% for ff in reg.fire_and_forget %}
+    class {{ ff.method }}:
+        req = {{ ff.req_topic | tojson }}
+{% endfor %}
 {% endfor %}
 
 _WILDCARD_CHARS = frozenset("+#")

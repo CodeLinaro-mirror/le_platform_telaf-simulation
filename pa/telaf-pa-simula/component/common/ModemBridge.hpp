@@ -107,6 +107,7 @@ public:
       std::chrono::milliseconds timeout
     ) override;
     void subscribe_event(std::string_view topic, std::string_view schema_id, EventCallback cb) override;
+    void publish_oneway(std::string_view topic, std::string_view schema_id, Envelope msg) override;
     void unsubscribe_event(std::string_view topic) override;
     ConnectivityToken subscribe_connectivity(ConnectivityCallback cb) override;
     void unsubscribe_connectivity(ConnectivityToken token) override;
@@ -168,6 +169,11 @@ private:
       Envelope envelope,
       RpcCallback cb,
       std::chrono::steady_clock::time_point deadline
+    );
+    void doPublishOneway_(
+      const std::string& topic,
+      const std::string& schema_id,
+      Envelope envelope
     );
     // Validates `payload` against schema_id (sml/generated/cpp/validators.h).
     // Returns true if valid, OR if schema_id is unresolvable/the validator

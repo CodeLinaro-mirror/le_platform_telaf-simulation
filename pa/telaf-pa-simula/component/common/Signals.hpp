@@ -44,9 +44,13 @@ namespace CommonSignals {
 
     // ListenerDispatchAO
     constexpr chart::Signal DispatchTask_Signal          {chart::User_Signal_Begin + 15, "DispatchTask_Signal"};
+
+    // Fire-and-forget publish (IModemBridge::publish_oneway). No in_flight_
+    // entry, no timer -- just deferred until Operational like SendReq_Signal.
+    constexpr chart::Signal PublishOneway_Signal         {chart::User_Signal_Begin + 16, "PublishOneway_Signal"};
 }
 
-constexpr int Common_Signal_End = chart::User_Signal_Begin + 16;
+constexpr int Common_Signal_End = chart::User_Signal_Begin + 17;
 
 }  // namespace telux::common::simula
 

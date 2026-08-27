@@ -4,7 +4,7 @@
 # Data-domain APN scenario -- exercises the one domain with a real MPSS
 # implementation (sml/mpss/data/).
 #
-# The AP is expected to bring the call up itself via ap/req/data/
+# The AP is expected to bring the call up itself via mp/req/data/
 # start_data_call (that's a production RPC, not a timeline action --
 # action execution logic is out of the control contract's scope). This
 # scenario's timeline only injects the network-side events the control
@@ -19,6 +19,10 @@ setup:
   devices_config: devices/default.yaml
   environment_config: environments/default.yaml
   duration: "30s"
+
+timeline_owners:
+  apss: [power]
+  mpss: [data, sim, radio, wakeup]
 
 initial_state:
   modems: [modem_0_online]

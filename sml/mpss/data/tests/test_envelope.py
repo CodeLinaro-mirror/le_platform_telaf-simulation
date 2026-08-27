@@ -1,10 +1,10 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
-"""Unit tests for sml/mpss/envelope.py — no broker required."""
+"""Unit tests for sml/common/envelope.py — no broker required."""
 from __future__ import annotations
 
-from sml.mpss.envelope import (
+from sml.common.envelope import (
     build_error_envelope,
     build_event_envelope,
     build_success_envelope,

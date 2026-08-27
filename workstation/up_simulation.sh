@@ -120,6 +120,7 @@ if [ -n "${TELAF_IN_CONTAINER}" ]; then # [Docker-Container-Env]
     groupadd ubi
     groupadd gps
     groupadd sensors
+    groupadd shutdown
 
     # Create some default users
     useradd -m --shell /bin/bash tafcore
