@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.end_ecall.req",
+  "title": "End ECall Request",
+  "description": "Backs taf_ecall_End -> StopECall(), which hangs up or rejects depending on the call's current state (decided client-side, unchanged/out of scope) -- this RPC always means 'terminate this eCall'. Mirrors CallManagerServerImpl::Hangup / HangupRequest, scoped to the ecall domain per this migration's carve-out (see plan Assumption #3).",
+  "type": "object",
+  "required": ["phoneId", "callIndex"],
+  "properties": {
+    "phoneId": { "type": "integer" },
+    "callIndex": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.answer_ecall.req",
+  "title": "Answer ECall Request",
+  "description": "Backs taf_ecall_Answer -> ICall::answer(). Mirrors CallManagerServerImpl's Answer RPC, scoped to the ecall domain (see plan Assumption #3).",
+  "type": "object",
+  "required": ["phoneId", "callIndex"],
+  "properties": {
+    "phoneId": { "type": "integer" },
+    "callIndex": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

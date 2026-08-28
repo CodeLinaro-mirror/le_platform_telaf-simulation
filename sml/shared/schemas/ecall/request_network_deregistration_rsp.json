@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.request_network_deregistration.rsp",
+  "title": "Request Network Deregistration Response",
+  "description": "Empty on success.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

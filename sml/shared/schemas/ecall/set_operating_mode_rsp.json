@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.set_operating_mode.rsp",
+  "title": "Set ECall Operating Mode Response",
+  "description": "Empty on success.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

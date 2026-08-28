@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.ecall.force_ecall_timer_failure.req",
+  "title": "Force ECall HLAP Timer Failure",
+  "description": "Mirrors the old gRPC event-injector's JSON-hot-patch of configureFailureForRegulatoryECall=<timer>FAILED -- forces the next eCall session's T5/T6/T7 HLAP timer to run to real expiry (MSD_TRANSMISSION_FAILURE) instead of the immediate-success bookkeeping path. Applies to the next eCall started after this action, not any eCall already in progress.",
+  "type": "object",
+  "required": ["timer"],
+  "properties": {
+    "timer": { "type": "string", "enum": ["T5", "T6", "T7"] }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.hlap_timer_event.ind",
+  "title": "ECall HLAP Timer Event Indication",
+  "description": "Backs ICallListener::onECallHlapTimerEvent. Mirrors ECallInfoEvent{action, timer} -- fired by CallManagerServerImpl::startTimer/sendEvent/expiryTimer at every HLAP timer state change (T2/T5/T6/T7/T9/T10, EN 16062:2015).",
+  "type": "object",
+  "required": ["phoneId", "timer", "action"],
+  "properties": {
+    "phoneId": { "type": "integer" },
+    "timer": { "type": "string", "enum": ["UNKNOWN_TIMER", "T2", "T5", "T6", "T7", "T9", "T10"] },
+    "action": { "type": "string", "enum": ["UNCHANGED", "STARTED", "STOPPED", "EXPIRED", "RESUMED"] }
+  },
+  "additionalProperties": false
+}

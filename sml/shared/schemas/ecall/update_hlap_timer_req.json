@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.update_hlap_timer.req",
+  "title": "Update ECall HLAP Timer Request",
+  "description": "Backs taf_ecall_SetNadDeregistrationTime (type=T10) -> ICallManager::updateEcallHlapTimer(). Only T10 is exercised by the current TELAF API surface (per ICallManager.hpp's own doc comment: 'Only the T10 Timer is supported currently'), but all HlapTimerType values are accepted on the wire for parity with tel_simulation.proto's UpdateEcallHlapTimerRequest.",
+  "type": "object",
+  "required": ["phoneId", "type", "timeDuration"],
+  "properties": {
+    "phoneId": { "type": "integer" },
+    "type": { "type": "string", "enum": ["UNKNOWN_TIMER", "T2", "T5", "T6", "T7", "T9", "T10"] },
+    "timeDuration": { "type": "integer", "description": "Milliseconds." }
+  },
+  "additionalProperties": false
+}

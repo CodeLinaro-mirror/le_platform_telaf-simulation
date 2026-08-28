@@ -1,0 +1,54 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+
+kind: action
+domain: ecall
+
+actions:
+  - method: force_ecall_timer_failure
+    req_topic: "ctrl/cmd/action/ecall/force_ecall_timer_failure"
+    req_payload: schemas/action_ecall/force_ecall_timer_failure_req.json
+    qos: 1
+    description: >-
+      Force the T5/T6/T7 HLAP timer on the NEXT started eCall to run to
+      real expiry (MSD_TRANSMISSION_FAILURE) instead of the immediate-
+      success bookkeeping path. Mirrors the old JSON
+      configureFailureForRegulatoryECall=<timer>FAILED hot-patch.
+
+  - method: force_msd_pull_request
+    req_topic: "ctrl/cmd/action/ecall/force_msd_pull_request"
+    req_payload: schemas/action_ecall/force_msd_pull_request_req.json
+    qos: 1
+    description: >-
+      Inject an MSD pull request from the PSAP side without the PA having
+      called send_msd. Mirrors CallManagerServerImpl::handleMsdUpdateRequest.
+
+  - method: force_hangup_from_psap
+    req_topic: "ctrl/cmd/action/ecall/force_hangup_from_psap"
+    req_payload: schemas/action_ecall/force_hangup_from_psap_req.json
+    qos: 1
+    description: >-
+      Simulate the network/PSAP ending the eCall (as opposed to the user
+      calling end_ecall). Mirrors CallManagerServerImpl::handleHangupRequest's
+      HANGUP_REQUEST_FROM_PSAP injection.
+
+  - method: force_ecall_redial_mode
+    req_topic: "ctrl/cmd/action/ecall/force_ecall_redial_mode"
+    req_payload: schemas/action_ecall/force_ecall_redial_mode_req.json
+    qos: 1
+    description: >-
+      Configure whether/how eCalls fail and redial, mirroring
+      EcallStateMachine::ModemRedial's config test-hook (SUCCESS/CALLORIG/
+      CALLDROP). This is a sticky override, same convention as
+      force_ecall_timer_failure -- it applies to every eCall started on
+      every phoneId (not just the next one) until a later
+      force_ecall_redial_mode(config=SUCCESS) call clears it. config=SUCCESS
+      (the default) dials normally. config=CALLORIG/CALLDROP fails the
+      first attempt and enters the Redialing loop using whichever timeGap
+      table was last set via configure_ecall_redial (or the spec-default
+      table if never set), retrying at each configured interval.
+      succeedAtAttempt, if given, is the 1-based redial attempt (2nd dial
+      overall, since attempt 1 is the retry after the first failure) that
+      connects instead of failing again -- omit/null to let every attempt
+      fail through to MAX_REDIAL_ATTEMPTED.

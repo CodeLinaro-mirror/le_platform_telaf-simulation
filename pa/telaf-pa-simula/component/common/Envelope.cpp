@@ -24,7 +24,7 @@ struct ErrorCodeEntry
 // Wire-format string <-> telux::common::ErrorCode mapping. Generic set
 // shared by every domain; a domain that needs an ErrorCode not listed here
 // should extend this table rather than keep a parallel one.
-constexpr std::array<ErrorCodeEntry, 10> kErrorCodes = { {
+constexpr std::array<ErrorCodeEntry, 11> kErrorCodes = { {
   { "SUCCESS", ErrorCode::SUCCESS },
   { "GENERIC_FAILURE", ErrorCode::GENERIC_FAILURE },
   { "RADIO_NOT_AVAILABLE", ErrorCode::RADIO_NOT_AVAILABLE },
@@ -35,6 +35,7 @@ constexpr std::array<ErrorCodeEntry, 10> kErrorCodes = { {
   { "INVALID_OPERATION", ErrorCode::INVALID_OPERATION },
   { "NO_RESOURCES", ErrorCode::NO_RESOURCES },
   { "OPERATION_TIMEOUT", ErrorCode::OPERATION_TIMEOUT },
+  { "INVALID_STATE", ErrorCode::INVALID_STATE },
 } };
 
 int64_t

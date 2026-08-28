@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.ecall.force_msd_pull_request.req",
+  "title": "Force MSD Pull Request From PSAP",
+  "description": "Injects EcallStateMachine::MSD_PULL_REQUEST_FROM_PSAP without the PA having called send_msd -- mirrors the old gRPC event-injector's msdUpdateRequest event.",
+  "type": "object",
+  "required": ["phoneId"],
+  "properties": {
+    "phoneId": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

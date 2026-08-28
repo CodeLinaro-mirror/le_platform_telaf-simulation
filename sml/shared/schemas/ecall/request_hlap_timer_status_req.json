@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.request_hlap_timer_status.req",
+  "title": "Request ECall HLAP Timer Status Request",
+  "description": "Backs taf_ecall_GetHlapTimerState -> ICallManager::requestECallHlapTimerStatus(). Mirrors RequestECallHlapTimerStatusRequest.",
+  "type": "object",
+  "required": ["phoneId"],
+  "properties": {
+    "phoneId": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

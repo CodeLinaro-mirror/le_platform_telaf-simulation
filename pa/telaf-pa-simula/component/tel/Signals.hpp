@@ -44,7 +44,29 @@ namespace TelSignals {
     constexpr chart::Signal RequestNetworkSelectionModeInfo_Signal {Base_ + 14, "RequestNetworkSelectionModeInfo_Signal"};
     constexpr chart::Signal RequestNetworkSelectionMode_Signal    {Base_ + 15, "RequestNetworkSelectionMode_Signal"};
 
-    constexpr int Tel_Signal_End = Base_ + 19;
+    constexpr chart::Signal EcallOperatingModeEvt_Signal     {Base_ + 19, "EcallOperatingModeEvt_Signal"};
+
+    constexpr int Tel_Signal_End = Base_ + 20;
+}
+
+namespace EcallSignals {
+    constexpr int Base_ = TelSignals::Tel_Signal_End;
+
+    // Manager readiness (2-state NotReady <-> Ready shell, same shape as
+    // SimulaPhoneManager) shared by SimulaCallManager.
+    constexpr chart::Signal ReadinessEvt_Signal          {Base_ + 0, "Ecall::ReadinessEvt_Signal"};
+    constexpr chart::Signal BridgeConnectivityChanged_Signal {Base_ + 1, "Ecall::BridgeConnectivityChanged_Signal"};
+
+    constexpr chart::Signal RunEcallOp_Signal            {Base_ + 2, "Ecall::RunEcallOp_Signal"};
+
+    // Indications SimulaCallManager subscribes to.
+    constexpr chart::Signal CallStateEvt_Signal          {Base_ + 3, "Ecall::CallStateEvt_Signal"};
+    constexpr chart::Signal MsdStatusEvt_Signal          {Base_ + 4, "Ecall::MsdStatusEvt_Signal"};
+    constexpr chart::Signal HlapTimerEventEvt_Signal     {Base_ + 5, "Ecall::HlapTimerEventEvt_Signal"};
+    constexpr chart::Signal SetInitCb_Signal             {Base_ + 6, "Ecall::SetInitCb_Signal"};
+    constexpr chart::Signal RedialEvt_Signal             {Base_ + 7, "Ecall::RedialEvt_Signal"};
+
+    constexpr int Ecall_Signal_End = Base_ + 8;
 }
 
 }  // namespace telux::tel::simula

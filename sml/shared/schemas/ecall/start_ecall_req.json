@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.start_ecall.req",
+  "title": "Start ECall Request",
+  "description": "Backs taf_ecall_StartTest/StartManual/StartAutomatic (type=TEST/MANUAL/AUTOMATIC, ICallManager::makeECall's regulatory overloads) and taf_ecall_StartPrivate (type=PRIVATE, the dialNumber+SIP-header overload). Mirrors CallManagerServerImpl::MakeECall / tel_simulation.proto's MakeECallRequest, which never carried actual MSD bytes on the wire (the server only simulates HLAP protocol timing, not MSD content) -- isMsdTransmitted is the only MSD-related field here, same as upstream.",
+  "type": "object",
+  "required": ["phoneId", "type", "isMsdTransmitted"],
+  "properties": {
+    "phoneId": { "type": "integer" },
+    "type": { "type": "string", "enum": ["TEST", "MANUAL", "AUTOMATIC", "PRIVATE"] },
+    "isMsdTransmitted": { "type": "boolean" },
+    "remotePartyNumber": {
+      "type": "string",
+      "description": "Overridden/custom PSAP number for a regulatory eCall (taf_ecall_SetPsapNumber). Empty/absent dials the default regulatory emergency number -- mirrors CallManagerStub's createRequest<T>()'s 'if (dialNumber != \"\") // Regulatory eCall' branch."
+    },
+    "dialNumber": {
+      "type": "string",
+      "description": "Dial number for type=PRIVATE only (SIP/TPS eCall)."
+    },
+    "sipHeaderType": { "type": "string" },
+    "sipHeaderValue": { "type": "string" }
+  },
+  "additionalProperties": false
+}

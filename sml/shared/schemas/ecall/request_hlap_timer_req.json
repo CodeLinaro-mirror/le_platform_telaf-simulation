@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.request_hlap_timer.req",
+  "title": "Request ECall HLAP Timer Request",
+  "description": "Backs taf_ecall_GetNadDeregistrationTime (type=T10) -> ICallManager::requestEcallHlapTimer(). Mirrors RequestEcallHlapTimerRequest.",
+  "type": "object",
+  "required": ["phoneId", "type"],
+  "properties": {
+    "phoneId": { "type": "integer" },
+    "type": { "type": "string", "enum": ["UNKNOWN_TIMER", "T2", "T5", "T6", "T7", "T9", "T10"] }
+  },
+  "additionalProperties": false
+}

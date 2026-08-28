@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.set_operating_mode.req",
+  "title": "Set ECall Operating Mode Request",
+  "description": "Backs taf_ecall_ForceOnlyMode/ForcePersistentOnlyMode (mode=ECALL_ONLY), taf_ecall_ExitOnlyMode (mode=NORMAL) -> IPhone::setECallOperatingMode(). Mode names are telux::tel::ECallMode verbatim. Mirrors PhoneManagerServerImpl::SetECallOperatingMode / SetECallOperatingModeRequest.",
+  "type": "object",
+  "required": ["phoneId", "mode"],
+  "properties": {
+    "phoneId": { "type": "integer" },
+    "mode": { "type": "string", "enum": ["NORMAL", "ECALL_ONLY", "NONE"] }
+  },
+  "additionalProperties": false
+}

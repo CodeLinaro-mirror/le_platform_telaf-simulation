@@ -18,6 +18,7 @@ from sml.common.mqtt_client import MqttClient
 from sml.common.config import ConfigError, load_config
 from sml.mpss.data import DataSubsystem
 from sml.mpss.net import NetSubsystem
+from sml.mpss.ecall import EcallSubsystem
 from sml.mpss.radio import RadioSubsystem
 from sml.common import instrumentation as _instr
 from sml.mpss.sim import SimSubsystem
@@ -142,15 +143,6 @@ def main() -> int:
         )
         dispatcher.register_domain("sim", sim_subsystem)
         client.register_subsystem(sim_subsystem)
-        # Radio domain (telux::tel radio surface: IPhoneManager/IPhone,
-        # tel::IServingSystemManager, INetworkSelectionManager) -- same
-        # target slot as the data domain. radio_seed carries the scenario's
-        # initial_state.radio block (serving cell PLMN/RAT/RSRP), resolved
-        # via resolve_radio_seed(); None if the scenario has no radio block,
-        # in which case RadioPhoneAO/RadioServingSystemAO keep their own
-        # built-in defaults. action_radio.yaml wires force_lte_cs_capability/
-        # force_sys_info/force_dc_status/force_signal_strength through
-        # RadioActionDispatcher.
         radio_subsystem = RadioSubsystem(
             slot_id=target_slot_runtime.sim_slot.slot_id if target_slot_runtime else _TARGET_SLOT_ID,
             radio_seed=resolve_radio_seed(runner.radio_runtime),
@@ -170,6 +162,11 @@ def main() -> int:
         )
         dispatcher.register_domain("wakeup", wakeup_subsystem)
         client.register_subsystem(wakeup_subsystem)
+        ecall_subsystem = EcallSubsystem(
+            slot_id=target_slot_runtime.sim_slot.slot_id if target_slot_runtime else _TARGET_SLOT_ID,
+        )
+        dispatcher.register_domain("ecall", ecall_subsystem)
+        client.register_subsystem(ecall_subsystem)
 
         dispatcher.register_domain("net", net_subsystem)
 

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.get_ecall_redial_config.rsp",
+  "title": "Get ECall Redial Config Response",
+  "description": "Backs taf_ecall's InitializeECallPtr() startup seed-read via ICallManager::getECallRedialConfig(callOrigTimeGap, callDropTimeGap). Mirrors CallManagerServerImpl::GetECallRedialConfig -- always returns both tables regardless of which one was last set.",
+  "type": "object",
+  "required": ["callOrigTimeGap", "callDropTimeGap"],
+  "properties": {
+    "callOrigTimeGap": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 },
+      "minItems": 1,
+      "maxItems": 10
+    },
+    "callDropTimeGap": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 },
+      "minItems": 1,
+      "maxItems": 2
+    }
+  },
+  "additionalProperties": false
+}

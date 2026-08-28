@@ -1,0 +1,10 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+
+# Usage:
+#   sml mqttcli pub sml/tools/mqttcli/commands/force_ecall_redial_restore.yaml
+
+topic: ctrl/cmd/action/ecall/force_ecall_redial_mode
+data:
+  config: SUCCESS

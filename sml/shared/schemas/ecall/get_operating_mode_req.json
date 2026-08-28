@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.get_operating_mode.req",
+  "title": "Get ECall Operating Mode Request",
+  "description": "Backs taf_ecall_GetConfiguredOperationMode -> IPhone::getECallOperatingMode(). Mirrors PhoneManagerServerImpl::GetECallOperatingMode / GetECallOperatingModeRequest.",
+  "type": "object",
+  "required": ["phoneId"],
+  "properties": {
+    "phoneId": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

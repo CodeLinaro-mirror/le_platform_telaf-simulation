@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.set_config.rsp",
+  "title": "Set ECall Config Response",
+  "description": "Empty on success.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

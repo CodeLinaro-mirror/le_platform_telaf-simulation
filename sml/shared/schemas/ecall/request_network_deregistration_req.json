@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.request_network_deregistration.req",
+  "title": "Request Network Deregistration Request",
+  "description": "Backs taf_ecall_TerminateRegistration -> ICallManager::requestNetworkDeregistration(). Only proceeds server-side if T9 is INACTIVE and T10 is ACTIVE (mirrors CallManagerServerImpl::RequestNetworkDeregistration's guard) -- otherwise an INVALID_STATE error envelope is returned. Mirrors RequestNetworkDeregistrationRequest.",
+  "type": "object",
+  "required": ["phoneId"],
+  "properties": {
+    "phoneId": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

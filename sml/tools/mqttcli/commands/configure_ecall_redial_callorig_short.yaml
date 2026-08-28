@@ -1,0 +1,12 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+
+# Usage:
+#   sml mqttcli pub sml/tools/mqttcli/commands/configure_ecall_redial_callorig_short.yaml
+#   sml mqttcli pub sml/tools/mqttcli/commands/force_ecall_redial_callorig_exhaust.yaml
+
+topic: mp/req/ecall/configure_ecall_redial
+data:
+  config: CALLORIG
+  timeGap: [3000, 3000, 3000]

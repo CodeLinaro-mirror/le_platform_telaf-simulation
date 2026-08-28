@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.end_ecall.rsp",
+  "title": "End ECall Response",
+  "description": "Empty on success. Unknown callIndex/phoneId is reported as a NOT_FOUND error envelope.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

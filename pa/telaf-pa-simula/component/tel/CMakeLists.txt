@@ -62,6 +62,8 @@ add_library(telux_tel SHARED
     VoiceServiceInfo.cpp   # taf_radio_GetNetRegState
     SignalStrength.cpp     # taf_radio_MeasureSignalMetrics + per-RAT getters
     CellInfo.cpp           # taf_radio_GetServingCellId / GetCurrentNetworkMccMnc
+    Call.cpp                # ICall -- eCall session value object
+    CallManager.cpp          # ICallManager -- eCall RPC surface (taf_ecall_*)
 )
 set_target_properties(telux_tel PROPERTIES
     VERSION ${LIBRARY_VERSION}

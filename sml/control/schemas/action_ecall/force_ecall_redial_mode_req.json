@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.ecall.force_ecall_redial_mode.req",
+  "title": "Force ECall Redial Mode",
+  "description": "Mirrors EcallStateMachine::ModemRedial's config test-hook (SUCCESS/CALLORIG/CALLDROP). Sticky override, same convention as force_ecall_timer_failure -- applies to every eCall started on every phoneId, not just the next one, until a later call with config=SUCCESS clears it. config=SUCCESS dials normally (the default). config=CALLORIG/CALLDROP fails the first dial attempt and enters the Redialing loop; succeedAtAttempt (1-based, counting from the first redial retry) makes that specific attempt connect instead of failing again, leaving all later attempts unfired -- omit/null to let every configured attempt fail through to MAX_REDIAL_ATTEMPTED. Not bounds-checked against the active config's table length (10 for CALLORIG, 2 for CALLDROP); a value beyond it simply never matches.",
+  "type": "object",
+  "required": ["config"],
+  "properties": {
+    "config": { "type": "string", "enum": ["SUCCESS", "CALLORIG", "CALLDROP"] },
+    "succeedAtAttempt": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 }
+  },
+  "additionalProperties": false
+}

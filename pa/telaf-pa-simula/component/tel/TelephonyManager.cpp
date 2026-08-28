@@ -10,13 +10,17 @@
 #include "NetworkSelectionManager.hpp"
 #include "PhoneManager.hpp"
 #include "ServingSystemManager.hpp"
+#include "CallManager.hpp"
 
 #include "../common/ListenerDispatchAO.hpp"
+#include "../common/Log.hpp"
 #include "../common/ModemBridge.hpp"
 
 #include <map>
 #include <memory>
 #include <mutex>
+#include <future>
+#include <chrono>
 #include <telux/tel/PhoneFactory.hpp>
 #include <telux/tel/PhoneManager.hpp>
 #include <vector>
@@ -34,32 +38,65 @@ public:
         : bridge_(common::simula::ModemBridge::instance())
     {
         bridge_.start();
-        // Same rationale as SimulaDataFactory's ctor (component/data/
-        // DataFactory.cpp): boot the shared listener-dispatch worker so
-        // registerListener() callbacks actually reach app code.
         common::simula::ListenerDispatchAO::instance().start();
     }
 
     std::shared_ptr<IPhoneManager> getPhoneManager(telux::common::InitResponseCb callback) override
     {
-        std::lock_guard<std::mutex> lk(managers_mutex_);
-        if (phone_manager_)
+        std::shared_ptr<simula::SimulaPhoneManager> mgr;
         {
-            if (callback)
-                phone_manager_->setInitCallback(std::move(callback));
-            return phone_manager_;
+            std::lock_guard<std::mutex> lk(managers_mutex_);
+            if (phone_manager_)
+            {
+                if (callback)
+                    phone_manager_->setInitCallback(std::move(callback));
+                return phone_manager_;
+            }
+            phone_manager_ = std::make_shared<simula::SimulaPhoneManager>(bridge_, nullptr);
+            phone_manager_->start();
+            mgr = phone_manager_;
         }
-        phone_manager_ = std::make_shared<simula::SimulaPhoneManager>(bridge_, std::move(callback));
-        phone_manager_->start();
-        return phone_manager_;
+        auto promise = std::make_shared<std::promise<void>>();
+        auto future  = promise->get_future();
+        mgr->setInitCallback([promise](telux::common::ServiceStatus) {
+            promise->set_value();
+        });
+        if (future.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
+            LOG_WARN("[TelephonyManager] getPhoneManager() timed out waiting for Ready");
+        if (callback)
+            mgr->setInitCallback(std::move(callback));
+        return mgr;
     }
     std::shared_ptr<ISmsManager> getSmsManager(int, telux::common::InitResponseCb) override
     {
         return nullptr;
     }
-    std::shared_ptr<ICallManager> getCallManager(telux::common::InitResponseCb) override
+    std::shared_ptr<ICallManager> getCallManager(telux::common::InitResponseCb callback) override
     {
-        return nullptr;
+        std::shared_ptr<simula::SimulaCallManager> mgr;
+        {
+            std::lock_guard<std::mutex> lk(managers_mutex_);
+            if (call_manager_)
+            {
+                // See getPhoneManager(): never drop the caller's InitResponseCb.
+                if (callback)
+                    call_manager_->setInitCallback(std::move(callback));
+                return call_manager_;
+            }
+            call_manager_ = std::make_shared<simula::SimulaCallManager>(bridge_, nullptr);
+            mgr = call_manager_;
+        }
+        // Timeout: 30 s matches the SML subsys_ready timeout used elsewhere.
+        auto promise = std::make_shared<std::promise<void>>();
+        auto future  = promise->get_future();
+        mgr->setInitCallback([promise](telux::common::ServiceStatus) {
+            promise->set_value();
+        });
+        if (future.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
+            LOG_WARN("[TelephonyManager] getCallManager() timed out waiting for Ready");
+        if (callback)
+            mgr->setInitCallback(std::move(callback));
+        return mgr;
     }
     std::shared_ptr<ICardManager> getCardManager(telux::common::InitResponseCb cb) override
     {
@@ -168,6 +205,7 @@ private:
     std::shared_ptr<simula::SimulaPhoneManager> phone_manager_;
     std::map<int, std::shared_ptr<simula::SimulaTelServingSystemManager>> serving_systems_;
     std::map<int, std::shared_ptr<simula::SimulaNetworkSelectionManager>> network_selections_;
+    std::shared_ptr<simula::SimulaCallManager> call_manager_;
 };
 
 PhoneFactory::PhoneFactory() = default;

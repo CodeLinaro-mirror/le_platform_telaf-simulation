@@ -1,0 +1,283 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+
+
+domain: ecall
+
+rpcs:
+  # --- ecall.start_ecall / end_ecall / answer_ecall / send_msd ------------
+  #     ICallManager (CallManagerServerImpl's eCall RPCs + EcallStateMachine)
+
+  - method: start_ecall
+    req_topic: "mp/req/ecall/start_ecall"
+    rsp_topic: "mp/rsp/ecall/start_ecall"
+    req_payload: schemas/ecall/start_ecall_req.json
+    rsp_payload: schemas/ecall/start_ecall_rsp.json
+    qos: 1
+    description: >-
+      Start an eCall. Backs taf_ecall_StartTest/StartManual/StartAutomatic
+      (type=TEST/MANUAL/AUTOMATIC) via ICallManager::makeECall()'s regulatory
+      overloads, and taf_ecall_StartPrivate (type=PRIVATE) via the
+      dialNumber+SIP-header overload. Mirrors CallManagerServerImpl::MakeECall,
+      which creates the Call record and kicks off EcallStateMachine
+      (ported to ecall.session.EcallSession) on a background task while
+      acking immediately -- DEVICE_IN_USE if an eCall is already in progress
+      on this phoneId (mirrors taf_ecall's isIdle() guard).
+
+  - method: end_ecall
+    req_topic: "mp/req/ecall/end_ecall"
+    rsp_topic: "mp/rsp/ecall/end_ecall"
+    req_payload: schemas/ecall/end_ecall_req.json
+    rsp_payload: schemas/ecall/end_ecall_rsp.json
+    qos: 1
+    description: >-
+      End the eCall (hangup or reject, decided client-side and out of
+      scope here -- this RPC always means "terminate"). Backs taf_ecall_End.
+      Mirrors CallManagerServerImpl::Hangup's HANGUP_REQUEST_FROM_USER
+      injection into EcallStateMachine.
+
+  - method: answer_ecall
+    req_topic: "mp/req/ecall/answer_ecall"
+    rsp_topic: "mp/rsp/ecall/answer_ecall"
+    req_payload: schemas/ecall/answer_ecall_req.json
+    rsp_payload: schemas/ecall/answer_ecall_rsp.json
+    qos: 1
+    description: >-
+      Answer an incoming eCall. Backs taf_ecall_Answer.
+
+  - method: send_msd
+    req_topic: "mp/req/ecall/send_msd"
+    rsp_topic: "mp/rsp/ecall/send_msd"
+    req_payload: schemas/ecall/send_msd_req.json
+    rsp_payload: schemas/ecall/send_msd_rsp.json
+    qos: 1
+    description: >-
+      Trigger MSD (Minimum Set of Data) transmission/update to PSAP. Backs
+      taf_ecall_SendMsd via ICallManager::updateECallMsd(). Mirrors
+      CallManagerServerImpl::UpdateECallMsd, which injects
+      MSD_PULL_REQUEST_FROM_PSAP into EcallStateMachine; the actual
+      SUCCESS/FAILURE outcome arrives later as an ecall.msd_transmission_status
+      indication, exactly as the old iscallback/delay ack preceded the real
+      ECallInfoEvent.
+
+  # --- ecall.set_config / get_config -- ICallManager (Set/GetConfig) ------
+
+  - method: set_config
+    req_topic: "mp/req/ecall/set_config"
+    rsp_topic: "mp/rsp/ecall/set_config"
+    req_payload: schemas/ecall/set_config_req.json
+    rsp_payload: schemas/ecall/set_config_rsp.json
+    qos: 1
+    description: >-
+      Set eCall configuration (mute-rx-audio, num type/overridden number,
+      canned-MSD, GNSS update interval, T2/T7/T9 timer values, MSD version).
+      Backs taf_ecall_UseUSimNumbers/SetPsapNumber (numType/overriddenNum),
+      taf_ecall_SetNadClearDownFallbackTime (t2Timer),
+      taf_ecall_SetNadMinNetworkRegistrationTime (t9Timer) via
+      ICallManager::setECallConfig(). Mirrors CallManagerServerImpl::SetConfig,
+      including its is*Valid validity-mask semantics. Global, not per-phoneId
+      (see schema description).
+
+  - method: get_config
+    req_topic: "mp/req/ecall/get_config"
+    rsp_topic: "mp/rsp/ecall/get_config"
+    req_payload: schemas/ecall/get_config_req.json
+    rsp_payload: schemas/ecall/get_config_rsp.json
+    qos: 1
+    description: >-
+      Query eCall configuration. Backs taf_ecall_GetPsapNumber,
+      taf_ecall_GetNadClearDownFallbackTime, taf_ecall_GetNadMinNetworkRegistrationTime
+      via ICallManager::getECallConfig(). Mirrors CallManagerServerImpl::GetConfig.
+
+  # --- ecall.set_operating_mode / get_operating_mode -- IPhone -----------
+  #     (PhoneManagerServerImpl::Set/GetECallOperatingMode)
+
+  - method: set_operating_mode
+    req_topic: "mp/req/ecall/set_operating_mode"
+    rsp_topic: "mp/rsp/ecall/set_operating_mode"
+    req_payload: schemas/ecall/set_operating_mode_req.json
+    rsp_payload: schemas/ecall/set_operating_mode_rsp.json
+    qos: 1
+    description: >-
+      Set the eCall operating mode (NORMAL/ECALL_ONLY/NONE). Backs
+      taf_ecall_ForceOnlyMode/ForcePersistentOnlyMode (mode=ECALL_ONLY) and
+      taf_ecall_ExitOnlyMode (mode=NORMAL) via IPhone::setECallOperatingMode().
+      Mirrors PhoneManagerServerImpl::SetECallOperatingMode, including its
+      operating-mode-change ecall.operating_mode indication.
+
+  - method: get_operating_mode
+    req_topic: "mp/req/ecall/get_operating_mode"
+    rsp_topic: "mp/rsp/ecall/get_operating_mode"
+    req_payload: schemas/ecall/get_operating_mode_req.json
+    rsp_payload: schemas/ecall/get_operating_mode_rsp.json
+    qos: 1
+    description: >-
+      Query the eCall operating mode. Backs
+      taf_ecall_GetConfiguredOperationMode via IPhone::getECallOperatingMode().
+      Mirrors PhoneManagerServerImpl::GetECallOperatingMode.
+
+  # --- ecall.update_hlap_timer / request_hlap_timer / -status ------------
+  #     ICallManager (HLAP timer RPCs, EN 16062:2015)
+
+  - method: update_hlap_timer
+    req_topic: "mp/req/ecall/update_hlap_timer"
+    rsp_topic: "mp/rsp/ecall/update_hlap_timer"
+    req_payload: schemas/ecall/update_hlap_timer_req.json
+    rsp_payload: schemas/ecall/update_hlap_timer_rsp.json
+    qos: 1
+    description: >-
+      Set an eCall HLAP timer value (currently only T10 is exercised by
+      TELAF). Backs taf_ecall_SetNadDeregistrationTime via
+      ICallManager::updateEcallHlapTimer(). Mirrors
+      CallManagerServerImpl's UpdateEcallHlapTimer handling (reads/writes
+      ecallHlapTimerStatus, independent of EcallStateMachine's own internal
+      simulated timers).
+
+  - method: request_hlap_timer
+    req_topic: "mp/req/ecall/request_hlap_timer"
+    rsp_topic: "mp/rsp/ecall/request_hlap_timer"
+    req_payload: schemas/ecall/request_hlap_timer_req.json
+    rsp_payload: schemas/ecall/request_hlap_timer_rsp.json
+    qos: 1
+    description: >-
+      Query an eCall HLAP timer's configured value (currently only T10 is
+      exercised by TELAF). Backs taf_ecall_GetNadDeregistrationTime via
+      ICallManager::requestEcallHlapTimer().
+
+  - method: request_hlap_timer_status
+    req_topic: "mp/req/ecall/request_hlap_timer_status"
+    rsp_topic: "mp/rsp/ecall/request_hlap_timer_status"
+    req_payload: schemas/ecall/request_hlap_timer_status_req.json
+    rsp_payload: schemas/ecall/request_hlap_timer_status_rsp.json
+    qos: 1
+    description: >-
+      Query status (ACTIVE/INACTIVE/UNKNOWN) of all 6 eCall HLAP timers.
+      Backs taf_ecall_GetHlapTimerState via
+      ICallManager::requestECallHlapTimerStatus(). Mirrors
+      CallManagerServerImpl's RequestECallHlapTimerStatus /
+      ECallHlapTimerStatus.
+
+  - method: request_network_deregistration
+    req_topic: "mp/req/ecall/request_network_deregistration"
+    rsp_topic: "mp/rsp/ecall/request_network_deregistration"
+    req_payload: schemas/ecall/request_network_deregistration_req.json
+    rsp_payload: schemas/ecall/request_network_deregistration_rsp.json
+    qos: 1
+    description: >-
+      Force NAD network deregistration. Backs taf_ecall_TerminateRegistration
+      via ICallManager::requestNetworkDeregistration(). Mirrors
+      CallManagerServerImpl::RequestNetworkDeregistration's guard (only
+      proceeds if T9 is INACTIVE and T10 is ACTIVE; otherwise INVALID_STATE)
+      and its ON_NETWORK_DEREGISTRATION_REQUEST injection into
+      EcallStateMachine.
+
+  # --- ecall.configure_ecall_redial / get_ecall_redial_config ------------
+  #     ICallManager (configureECallRedial/getECallRedialConfig). Backed by
+  #     a real reference implementation after all -- see
+  #     sdk/simulation/libs/tel/CallManagerStub.cpp,
+  #     sdk-simulation-server/tel/CallManagerServerImpl.cpp +
+  #     EcallStateMachine.cpp's ModemRedial state, and the default timing
+  #     tables in json/system-state/tel/ICallManagerStateSlot1.json.
+
+  - method: configure_ecall_redial
+    req_topic: "mp/req/ecall/configure_ecall_redial"
+    rsp_topic: "mp/rsp/ecall/configure_ecall_redial"
+    req_payload: schemas/ecall/configure_ecall_redial_req.json
+    rsp_payload: schemas/ecall/configure_ecall_redial_rsp.json
+    qos: 1
+    description: >-
+      Set the redial timing table for one of the two redial configs
+      (CALLORIG: origination failure, 1-10 entries; CALLDROP: drop before
+      MSD ack, 1-2 entries), in milliseconds between successive dial
+      attempts. Backs taf_ecall_SetInitialDialAttempts/
+      SetInitialDialIntervalBetweenDialAttempts via
+      ICallManager::configureECallRedial(). Mirrors
+      CallManagerServerImpl::ConfigureECallRedial, including its bounds
+      validation and persistence of the two tables independently.
+
+  - method: get_ecall_redial_config
+    req_topic: "mp/req/ecall/get_ecall_redial_config"
+    rsp_topic: "mp/rsp/ecall/get_ecall_redial_config"
+    req_payload: schemas/ecall/get_ecall_redial_config_req.json
+    rsp_payload: schemas/ecall/get_ecall_redial_config_rsp.json
+    qos: 1
+    description: >-
+      Query both redial timing tables. Backs taf_ecall's
+      InitializeECallPtr() startup seed-read via
+      ICallManager::getECallRedialConfig(). Mirrors
+      CallManagerServerImpl::GetECallRedialConfig.
+
+indications:
+  # --- ecall.call_state / msd_transmission_status / hlap_timer_event -----
+
+  - event: call_state
+    ind_topic: "mp/ind/ecall/call_state"
+    payload: schemas/ecall/call_state_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      eCall session state change (dialing/alerting/active/ended/...). Backs
+      ICallListener::onCallInfoChange for the eCall's own Call object. The
+      SML side fires this from ecall.session.EcallSession's port of
+      EcallStateMachine's changeCallState() calls (CallConnect/PSAPCallback
+      entry, hangup handling, etc).
+
+  - event: msd_transmission_status
+    ind_topic: "mp/ind/ecall/msd_transmission_status"
+    payload: schemas/ecall/msd_transmission_status_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      MSD transmission status change. Backs
+      ICallListener::onECallMsdTransmissionStatus. Mirrors
+      CallManagerServerImpl::msdTransmissionStatus(), fired at each MSD
+      protocol milestone inside EcallStateMachine's DecodeSendMSD/
+      CRCCheckonMSD/DecodeMSD states.
+
+  - event: hlap_timer_event
+    ind_topic: "mp/ind/ecall/hlap_timer_event"
+    payload: schemas/ecall/hlap_timer_event_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      HLAP timer status change (STARTED/STOPPED/EXPIRED). Backs
+      ICallListener::onECallHlapTimerEvent. Mirrors
+      CallManagerServerImpl::startTimer/sendEvent/expiryTimer, called from
+      every EcallStateMachine state as it starts/stops/waits-out T2/T5/T6/
+      T7/T9/T10.
+
+  # --- ecall.operating_mode ------------------------------------------------
+
+  - event: operating_mode
+    ind_topic: "mp/ind/ecall/operating_mode"
+    payload: schemas/ecall/operating_mode_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      eCall operating mode change + reason. Backs
+      ICallListener::onECallModeChanged. Mirrors PhoneManagerServerImpl's
+      ECallModeInfoChangeEvent, fired after a successful set_operating_mode.
+
+  # --- ecall.subsys_ready ---------------------------------------------------
+
+  - event: subsys_ready_call
+    ind_topic: "mp/ind/ecall/subsys_ready/call"
+    payload: schemas/ecall/subsys_ready_ind.json
+    qos: 1
+    retain: true
+    description: "ICallManager / IPhone eCall-surface subsystem readiness."
+
+  # --- ecall.redial ----------------------------------------------------
+
+  - event: redial
+    ind_topic: "mp/ind/ecall/redial"
+    payload: schemas/ecall/redial_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      Redial attempt outcome (will-redial + reason: CALL_ORIG_FAILURE/
+      CALL_DROP/MAX_REDIAL_ATTEMPTED/CALL_CONNECTED). Backs
+      ICallListener::onECallRedial. Mirrors CallManagerServerImpl's
+      onECallRedial(), fired from ecall.session.EcallSession's Redialing
+      state at each attempt.

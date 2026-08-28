@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.send_msd.req",
+  "title": "Send MSD Request",
+  "description": "Backs taf_ecall_SendMsd -> ICallManager::updateECallMsd(). Mirrors UpdateECallMsdRequest, which (like MakeECallRequest) never carried MSD bytes on the wire -- only phoneId, since the server only simulates protocol timing (DecodeSendMSD/CRCCheckonMSD/DecodeMSD HLAP states), never MSD content.",
+  "type": "object",
+  "required": ["phoneId"],
+  "properties": {
+    "phoneId": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

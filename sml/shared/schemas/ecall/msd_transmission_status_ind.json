@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.msd_transmission_status.ind",
+  "title": "MSD Transmission Status Indication",
+  "description": "Backs ICallListener::onECallMsdTransmissionStatus. Status values are the exact strings CallManagerServerImpl::msdTransmissionStatus()/EcallStateMachine emit (repurposing the ECallInfoEvent.timer wire field for CS eCall statuses, and the OUTBAND_* variants for NG/IMS eCall).",
+  "type": "object",
+  "required": ["phoneId", "status"],
+  "properties": {
+    "phoneId": { "type": "integer" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "START_RECEIVED",
+        "MSD_TRANSMISSION_STARTED",
+        "MSD_TRANSMISSION_SUCCESS",
+        "MSD_TRANSMISSION_FAILURE",
+        "LL_ACK_RECEIVED",
+        "OUTBAND_MSD_TRANSMISSION_STARTED",
+        "OUTBAND_MSD_TRANSMISSION_SUCCESS",
+        "OUTBAND_MSD_TRANSMISSION_FAILURE"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

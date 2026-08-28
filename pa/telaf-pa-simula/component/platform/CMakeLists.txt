@@ -18,7 +18,7 @@ if(NOT Boost_FOUND)
 endif()
 
 
-add_library(telux_platform SHARED DeviceInfoManager.cpp)
+add_library(telux_platform SHARED DeviceInfoManager.cpp SubsystemManager.cpp)
 target_compile_options(telux_platform PRIVATE -fvisibility=default)
 
 # Link telux_common so that telux::common::simula::log_impl

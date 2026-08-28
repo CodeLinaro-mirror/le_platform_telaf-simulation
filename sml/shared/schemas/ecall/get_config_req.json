@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.get_config.req",
+  "title": "Get ECall Config Request",
+  "description": "Empty -- mirrors tel_simulation.proto's GetConfig(google.protobuf.Empty). Backs taf_ecall_GetPsapNumber, GetNadClearDownFallbackTime, GetNadMinNetworkRegistrationTime.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.set_config.req",
+  "title": "Set ECall Config Request",
+  "description": "Backs taf_ecall_UseUSimNumbers/SetPsapNumber (numType/overriddenNum), taf_ecall_SetNadClearDownFallbackTime (t2Timer), taf_ecall_SetNadMinNetworkRegistrationTime (t9Timer) -- all via ICallManager::setECallConfig(EcallConfig). 1:1 port of tel_simulation.proto's SetConfigRequest, including its is*Valid validity-mask booleans (EcallConfigType bitmask on the wire). Deliberately has no phoneId field -- the old proto's SetConfigRequest/GetConfig(google.protobuf.Empty) had none either; eCall config is global, not per-phone, unlike every other eCall RPC.",
+  "type": "object",
+  "properties": {
+    "isMuteRxAudioValid": { "type": "boolean" },
+    "muteRxAudio": { "type": "boolean" },
+    "isNumTypeValid": { "type": "boolean" },
+    "numType": { "type": "string", "enum": ["DEFAULT", "OVERRIDDEN"] },
+    "isOverriddenNumValid": { "type": "boolean" },
+    "overriddenNum": { "type": "string" },
+    "isUseCannedMsdValid": { "type": "boolean" },
+    "useCannedMsd": { "type": "boolean" },
+    "isGnssUpdateIntervalValid": { "type": "boolean" },
+    "gnssUpdateInterval": { "type": "integer" },
+    "isT2TimerValid": { "type": "boolean" },
+    "t2Timer": { "type": "integer" },
+    "isT7TimerValid": { "type": "boolean" },
+    "t7Timer": { "type": "integer" },
+    "isT9TimerValid": { "type": "boolean" },
+    "t9Timer": { "type": "integer" },
+    "isMsdVersionValid": { "type": "boolean" },
+    "msdVersion": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

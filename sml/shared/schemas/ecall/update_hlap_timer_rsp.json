@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.update_hlap_timer.rsp",
+  "title": "Update ECall HLAP Timer Response",
+  "description": "Empty on success.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

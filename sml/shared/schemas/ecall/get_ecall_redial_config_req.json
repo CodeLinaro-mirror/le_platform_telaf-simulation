@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.get_ecall_redial_config.req",
+  "title": "Get ECall Redial Config Request",
+  "description": "No fields -- mirrors get_config_req.json's empty-request convention.",
+  "type": "object",
+  "additionalProperties": false
+}

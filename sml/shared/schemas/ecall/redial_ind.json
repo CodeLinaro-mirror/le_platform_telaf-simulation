@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.redial.ind",
+  "title": "ECall Redial Indication",
+  "description": "Backs ICallListener::onECallRedial(phoneId, ECallRedialInfo{willECallRedial, reason}). Mirrors CallManagerServerImpl::onECallRedial(), fired from ecall.session.EcallSession's Redialing state at each attempt: willRedial=true + CALL_ORIG_FAILURE/CALL_DROP on every attempt that fails but more remain; willRedial=false + MAX_REDIAL_ATTEMPTED once the configured attempts are exhausted; willRedial=false + CALL_CONNECTED if an attempt connects (test-hook driven -- see action_ecall.yaml's force_ecall_redial_mode).",
+  "type": "object",
+  "required": ["phoneId", "willRedial", "reason"],
+  "properties": {
+    "phoneId": { "type": "integer" },
+    "willRedial": { "type": "boolean" },
+    "reason": {
+      "type": "string",
+      "enum": ["CALL_ORIG_FAILURE", "CALL_DROP", "MAX_REDIAL_ATTEMPTED", "CALL_CONNECTED"]
+    }
+  },
+  "additionalProperties": false
+}

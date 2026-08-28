@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.start_ecall.rsp",
+  "title": "Start ECall Response",
+  "description": "Mirrors MakeECallReply's embedded Call message. A DEVICE_IN_USE error envelope is returned instead when an eCall is already in progress on this phoneId (mirrors taf_ecall's isIdle()/getInProgressCalls() guard).",
+  "type": "object",
+  "required": ["call"],
+  "properties": {
+    "call": {
+      "type": "object",
+      "required": ["callIndex", "phoneId", "callState", "direction"],
+      "properties": {
+        "callIndex": { "type": "integer" },
+        "phoneId": { "type": "integer" },
+        "callState": {
+          "type": "string",
+          "enum": ["DIALING", "ALERTING", "ACTIVE", "INCOMING", "WAITING", "HOLD", "ENDED", "UNKNOWN"]
+        },
+        "direction": { "type": "string", "enum": ["MO", "MT"] },
+        "remotePartyNumber": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

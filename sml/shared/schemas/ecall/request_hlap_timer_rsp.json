@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.request_hlap_timer.rsp",
+  "title": "Request ECall HLAP Timer Response",
+  "type": "object",
+  "required": ["timeDuration"],
+  "properties": {
+    "timeDuration": { "type": "integer", "description": "Milliseconds." }
+  },
+  "additionalProperties": false
+}

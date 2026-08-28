@@ -37,6 +37,25 @@ operatingModeToWire(telux::tel::OperatingMode mode)
     }
 }
 
+std::string
+ecallModeToWire(telux::tel::ECallMode mode)
+{
+    switch (mode)
+    {
+        case telux::tel::ECallMode::NORMAL:     return "NORMAL";
+        case telux::tel::ECallMode::ECALL_ONLY: return "ECALL_ONLY";
+        default:                                return "NONE";
+    }
+}
+
+telux::tel::ECallMode
+wireToEcallMode(const std::string& s)
+{
+    if (s == "NORMAL")      return telux::tel::ECallMode::NORMAL;
+    if (s == "ECALL_ONLY")  return telux::tel::ECallMode::ECALL_ONLY;
+    return telux::tel::ECallMode::NONE;
+}
+
 telux::tel::VoiceServiceState
 wireToVoiceServiceState(const std::string& s)
 {
@@ -509,30 +528,79 @@ SimulaPhone::requestSignalStrength(std::shared_ptr<telux::tel::ISignalStrengthCa
 }
 
 telux::common::Status
-SimulaPhone::setECallOperatingMode(telux::tel::ECallMode /*eCallMode*/, telux::common::ResponseCallback callback)
+SimulaPhone::setECallOperatingMode(telux::tel::ECallMode eCallMode, telux::common::ResponseCallback callback)
 {
     LOG_DEBUG(
-      "[Phone] setECallOperatingMode phoneId=%d hasCallback=%d (not supported)",
+      "[Phone] setECallOperatingMode phoneId=%d mode=%d hasCallback=%d",
       phoneId_,
+      static_cast<int>(eCallMode),
       callback ? 1 : 0
     );
-    // eCall is out of scope for the requested radio API list.
-    if (callback)
-        callback(telux::common::ErrorCode::NOT_SUPPORTED);
-    return telux::common::Status::NOTSUPPORTED;
+    nlohmann::json data = nlohmann::json::object();
+    data["phoneId"] = phoneId_;
+    data["mode"] = ecallModeToWire(eCallMode);
+    auto req = common::simula::makeRequestEnvelope(bridge_.currentPaId(), std::move(data));
+    LOG_DEBUG(
+      "[Phone] setECallOperatingMode send_request topic=%s corrId=%s",
+      topics::ecall::set_operating_mode::req,
+      req.corrId.c_str()
+    );
+    bridge_.send_request(
+      topics::ecall::set_operating_mode::req,
+      "ecall.set_operating_mode.rsp",
+      req,
+      [callback, corrId = req.corrId](std::optional<Envelope> rsp) {
+          if (!callback)
+              return;
+          if (!rsp || rsp->error)
+          {
+              LOG_WARN("[Phone] setECallOperatingMode response failed corrId=%s", corrId.c_str());
+              callback(telux::common::ErrorCode::OPERATION_TIMEOUT);
+              return;
+          }
+          LOG_DEBUG("[Phone] setECallOperatingMode response ok corrId=%s", corrId.c_str());
+          callback(telux::common::ErrorCode::SUCCESS);
+      },
+      kRpcTimeout
+    );
+    return telux::common::Status::SUCCESS;
 }
 
 telux::common::Status
 SimulaPhone::requestECallOperatingMode(telux::tel::ECallGetOperatingModeCallback callback)
 {
     LOG_DEBUG(
-      "[Phone] requestECallOperatingMode phoneId=%d hasCallback=%d (not supported)",
+      "[Phone] requestECallOperatingMode phoneId=%d hasCallback=%d",
       phoneId_,
       callback ? 1 : 0
     );
-    if (callback)
-        callback(telux::tel::ECallMode::NONE, telux::common::ErrorCode::NOT_SUPPORTED);
-    return telux::common::Status::NOTSUPPORTED;
+    nlohmann::json data = nlohmann::json::object();
+    data["phoneId"] = phoneId_;
+    auto req = common::simula::makeRequestEnvelope(bridge_.currentPaId(), std::move(data));
+    LOG_DEBUG(
+      "[Phone] requestECallOperatingMode send_request topic=%s corrId=%s",
+      topics::ecall::get_operating_mode::req,
+      req.corrId.c_str()
+    );
+    bridge_.send_request(
+      topics::ecall::get_operating_mode::req,
+      "ecall.get_operating_mode.rsp",
+      req,
+      [callback, corrId = req.corrId](std::optional<Envelope> rsp) {
+          if (!callback)
+              return;
+          if (!rsp || rsp->error || !rsp->data)
+          {
+              LOG_WARN("[Phone] requestECallOperatingMode response failed corrId=%s", corrId.c_str());
+              callback(telux::tel::ECallMode::NONE, telux::common::ErrorCode::OPERATION_TIMEOUT);
+              return;
+          }
+          LOG_DEBUG("[Phone] requestECallOperatingMode response ok corrId=%s", corrId.c_str());
+          callback(wireToEcallMode(rsp->data->value("mode", std::string())), telux::common::ErrorCode::SUCCESS);
+      },
+      kRpcTimeout
+    );
+    return telux::common::Status::SUCCESS;
 }
 
 telux::common::Status

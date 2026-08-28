@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.call_state.ind",
+  "title": "ECall Call State Indication",
+  "description": "Backs ICallListener::onCallInfoChange for the eCall's own Call object. Mirrors CallManagerServerImpl::changeCallState/triggerCallInfoChangeEvent's CallStateChangeEvent -- simplified from 'repeated Call calls' (the full call list) to just the one eCall session, since regulatory eCall blocks concurrent calls (see plan Assumption re: single in-progress eCall).",
+  "type": "object",
+  "required": ["callIndex", "phoneId", "callState", "direction"],
+  "properties": {
+    "callIndex": { "type": "integer" },
+    "phoneId": { "type": "integer" },
+    "callState": {
+      "type": "string",
+      "enum": ["DIALING", "ALERTING", "ACTIVE", "INCOMING", "WAITING", "HOLD", "ENDED", "UNKNOWN"]
+    },
+    "direction": { "type": "string", "enum": ["MO", "MT"] },
+    "remotePartyNumber": { "type": "string" },
+    "endCause": { "type": "string" }
+  },
+  "additionalProperties": false
+}

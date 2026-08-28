@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.configure_ecall_redial.rsp",
+  "title": "Configure ECall Redial Response",
+  "description": "Empty on success -- errors surface through the envelope's error field, matching set_config_rsp.json's convention.",
+  "type": "object",
+  "additionalProperties": false
+}

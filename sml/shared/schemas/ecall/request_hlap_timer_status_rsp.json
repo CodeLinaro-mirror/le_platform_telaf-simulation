@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.request_hlap_timer_status.rsp",
+  "title": "Request ECall HLAP Timer Status Response",
+  "description": "1:1 port of ECallHlapTimerStatus (all 6 HLAP timers, EN 16062:2015).",
+  "type": "object",
+  "required": ["t2", "t5", "t6", "t7", "t9", "t10"],
+  "properties": {
+    "t2": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "UNKNOWN"] },
+    "t5": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "UNKNOWN"] },
+    "t6": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "UNKNOWN"] },
+    "t7": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "UNKNOWN"] },
+    "t9": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "UNKNOWN"] },
+    "t10": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "UNKNOWN"] }
+  },
+  "additionalProperties": false
+}

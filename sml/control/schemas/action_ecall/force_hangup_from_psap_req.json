@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.ecall.force_hangup_from_psap.req",
+  "title": "Force Hangup From PSAP",
+  "description": "Injects EcallStateMachine::HANGUP_REQUEST_FROM_PSAP -- mirrors the old gRPC event-injector's hangupCall event, simulating the network/PSAP side ending the eCall rather than the user.",
+  "type": "object",
+  "required": ["phoneId"],
+  "properties": {
+    "phoneId": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

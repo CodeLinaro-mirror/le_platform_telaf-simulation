@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.answer_ecall.rsp",
+  "title": "Answer ECall Response",
+  "description": "Empty on success. Unknown callIndex/phoneId, or a call not in an answerable state, is reported as a NOT_FOUND/INVALID_STATE error envelope.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

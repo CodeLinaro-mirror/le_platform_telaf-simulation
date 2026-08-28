@@ -46,9 +46,10 @@ set(MODULE_LIST
     component/taf_pa_deviceinfo
     component/taf_pa_data
     component/taf_pa_sim
-	component/taf_pa_radio
     component/taf_pa_pms
     component/taf_pa_net
+    component/taf_pa_radio
+    component/taf_pa_ecall
 )
 
 foreach(module ${MODULE_LIST})

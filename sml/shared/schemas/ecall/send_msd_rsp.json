@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.send_msd.rsp",
+  "title": "Send MSD Response",
+  "description": "Empty on success -- the actual MSD transmission outcome (SUCCESS/FAILURE) arrives asynchronously as an ecall.msd_transmission_status indication once the ported EcallStateMachine session reaches it, exactly as the old UpdateECallMsdResponse's iscallback/delay ack preceded the real ECallInfoEvent notification.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

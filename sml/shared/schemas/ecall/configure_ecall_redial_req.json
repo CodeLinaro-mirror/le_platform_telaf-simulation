@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.configure_ecall_redial.req",
+  "title": "Configure ECall Redial Request",
+  "description": "Backs taf_ecall_SetInitialDialAttempts/SetInitialDialIntervalBetweenDialAttempts via ICallManager::configureECallRedial(RedialConfigType, timeGap). 1:1 port of CallManagerServerImpl::ConfigureECallRedial. config selects which of the two independent redial tables this call sets; timeGap is the millisecond gap before each successive dial attempt (1-10 entries for CALLORIG, 1-2 for CALLDROP, per CallManagerServerImpl's MIN/MAX_REDIAL_CONFIG bounds).",
+  "type": "object",
+  "required": ["config", "timeGap"],
+  "properties": {
+    "config": { "type": "string", "enum": ["CALLORIG", "CALLDROP"] },
+    "timeGap": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 },
+      "minItems": 1,
+      "maxItems": 10
+    }
+  },
+  "additionalProperties": false,
+  "if": {
+    "properties": { "config": { "const": "CALLDROP" } }
+  },
+  "then": {
+    "properties": {
+      "timeGap": { "maxItems": 2 }
+    }
+  }
+}

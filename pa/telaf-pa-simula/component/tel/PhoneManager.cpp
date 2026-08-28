@@ -62,6 +62,21 @@ operatingModeToWire(telux::tel::OperatingMode mode)
     }
 }
 
+telux::tel::ECallMode
+wireToEcallMode(const std::string& s)
+{
+    if (s == "NORMAL")     return telux::tel::ECallMode::NORMAL;
+    if (s == "ECALL_ONLY") return telux::tel::ECallMode::ECALL_ONLY;
+    return telux::tel::ECallMode::NONE;
+}
+
+telux::tel::ECallModeReason
+wireToEcallModeReason(const std::string& s)
+{
+    if (s == "ERA_GLONASS") return telux::tel::ECallModeReason::ERA_GLONASS;
+    return telux::tel::ECallModeReason::NORMAL;
+}
+
 telux::tel::VoiceServiceTechnology
 wireToVoiceServiceTech(const std::string& s)
 {
@@ -168,6 +183,7 @@ SimulaPhoneManager::unsubscribeFromBridge_()
     bridge_.unsubscribe_event(topics::radio::op_mode::ind);
     bridge_.unsubscribe_event(topics::radio::signal_strength::ind);
     bridge_.unsubscribe_event(topics::radio::cell_info::ind);
+    bridge_.unsubscribe_event(topics::ecall::operating_mode::ind);
     bridge_.unsubscribe_connectivity(conn_token_);
     conn_token_ = 0;
     bridge_.drain();
@@ -201,6 +217,11 @@ SimulaPhoneManager::start()
       topics::radio::cell_info::ind,
       "radio.cell_info.ind",
       [this](std::string_view topic, const Envelope& env) { handleCellInfoInd_(topic, env); }
+    );
+    bridge_.subscribe_event(
+      topics::ecall::operating_mode::ind,
+      "ecall.operating_mode.ind",
+      [this](std::string_view topic, const Envelope& env) { handleEcallOperatingModeInd_(topic, env); }
     );
     conn_token_ = bridge_.subscribe_connectivity([this](bool operational) {
         auto pld = std::make_shared<bool>(operational);
@@ -283,6 +304,20 @@ SimulaPhoneManager::handleCellInfoInd_(std::string_view topic, const Envelope& e
     auto pld = std::make_shared<StateIndPld>();
     pld->env = env;
     post_fifo({ CellInfoEvt_Signal, pld });
+}
+
+void
+SimulaPhoneManager::handleEcallOperatingModeInd_(std::string_view topic, const Envelope& env)
+{
+    LOG_DEBUG(
+      "[PhoneManager] handleEcallOperatingModeInd_ topic=%.*s corrId=%s",
+      static_cast<int>(topic.size()),
+      topic.data(),
+      env.corrId.c_str()
+    );
+    auto pld = std::make_shared<StateIndPld>();
+    pld->env = env;
+    post_fifo({ EcallOperatingModeEvt_Signal, pld });
 }
 
 void
@@ -515,6 +550,7 @@ PhoneMgrNotReady_St(chart::Hsm* h, chart::Event const* e)
         case OpModeEvt_Signal:
         case SignalStrengthEvt_Signal:
         case CellInfoEvt_Signal:
+        case EcallOperatingModeEvt_Signal:
             return chart::Status::HANDLED;
  
         case SetInitCb_Signal:
@@ -742,13 +778,31 @@ PhoneMgrReady_St(chart::Hsm* h, chart::Event const* e)
             return chart::Status::HANDLED;
         }
 
+        case EcallOperatingModeEvt_Signal:
+        {
+            auto pld = event_cast<StateIndPld>(*e);
+            if (!pld->env.data)
+                return chart::Status::HANDLED;
+            telux::tel::ECallModeInfo info{};
+            info.mode = wireToEcallMode(pld->env.data->value("mode", std::string()));
+            info.reason = wireToEcallModeReason(pld->env.data->value("reason", std::string()));
+            LOG_DEBUG(
+              "[PhoneManager] EcallOperatingModeEvt_Signal mode=%d reason=%d",
+              static_cast<int>(info.mode),
+              static_cast<int>(info.reason)
+            );
+            self->broadcastToListeners_([info](const std::shared_ptr<telux::tel::IPhoneListener>& l) {
+                l->onECallOperatingModeChange(DEFAULT_PHONE_ID, info);
+            });
+            return chart::Status::HANDLED;
+        }
+
         case RequestCellularCapability_Signal:
         {
             auto pld = event_cast<RequestCellularCapabilityPld>(*e);
             nlohmann::json data = nlohmann::json::object();
             auto req = common::simula::makeRequestEnvelope(self->bridge_.currentPaId(), std::move(data));
-            auto cb = pld->cb;
-            LOG_DEBUG(
+            auto cb = pld->cb;            LOG_DEBUG(
               "[PhoneManager] RequestCellularCapability_Signal send_request corrId=%s",
               req.corrId.c_str()
             );

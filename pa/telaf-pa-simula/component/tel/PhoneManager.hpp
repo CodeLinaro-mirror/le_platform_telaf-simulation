@@ -70,6 +70,7 @@ private:
     void handleOpModeInd_(std::string_view topic, const common::simula::Envelope& env);
     void handleSignalStrengthInd_(std::string_view topic, const common::simula::Envelope& env);
     void handleCellInfoInd_(std::string_view topic, const common::simula::Envelope& env);
+    void handleEcallOperatingModeInd_(std::string_view topic, const common::simula::Envelope& env);
     void broadcastToListeners_(
       std::function<void(const std::shared_ptr<telux::tel::IPhoneListener>&)> invoke
     );

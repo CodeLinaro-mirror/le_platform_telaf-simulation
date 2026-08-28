@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.subsys_ready.ind",
+  "title": "ECall Subsystem Ready Indication",
+  "description": "Same shape as radio.subsys_ready.ind / data.subsys_ready.ind -- one retained topic for the ecall Call Manager subsystem.",
+  "type": "object",
+  "required": ["ready", "status"],
+  "properties": {
+    "ready": { "type": "boolean" },
+    "status": { "type": "string", "enum": ["AVAILABLE", "UNAVAILABLE"] }
+  },
+  "additionalProperties": false
+}

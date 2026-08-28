@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.operating_mode.ind",
+  "title": "ECall Operating Mode Indication",
+  "description": "Backs ICallListener::onECallModeChanged. Mirrors PhoneManagerServerImpl's ECallModeInfoChangeEvent (ECall mode + reason).",
+  "type": "object",
+  "required": ["phoneId", "mode", "reason"],
+  "properties": {
+    "phoneId": { "type": "integer" },
+    "mode": { "type": "string", "enum": ["NORMAL", "ECALL_ONLY", "NONE"] },
+    "reason": { "type": "string", "enum": ["NORMAL", "ERA_GLONASS"] }
+  },
+  "additionalProperties": false
+}

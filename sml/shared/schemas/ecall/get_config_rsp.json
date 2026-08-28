@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecall.get_config.rsp",
+  "title": "Get ECall Config Response",
+  "description": "1:1 port of tel_simulation.proto's GetConfigResponse (minus its status field, which collapses into the envelope like every other domain).",
+  "type": "object",
+  "required": [
+    "isMuteRxAudioValid", "muteRxAudio", "isNumTypeValid", "numType",
+    "isOverriddenNumValid", "overriddenNum", "isUseCannedMsdValid", "useCannedMsd",
+    "isGnssUpdateIntervalValid", "gnssUpdateInterval", "isT2TimerValid", "t2Timer",
+    "isT7TimerValid", "t7Timer", "isT9TimerValid", "t9Timer",
+    "isMsdVersionValid", "msdVersion"
+  ],
+  "properties": {
+    "isMuteRxAudioValid": { "type": "boolean" },
+    "muteRxAudio": { "type": "boolean" },
+    "isNumTypeValid": { "type": "boolean" },
+    "numType": { "type": "string", "enum": ["DEFAULT", "OVERRIDDEN"] },
+    "isOverriddenNumValid": { "type": "boolean" },
+    "overriddenNum": { "type": "string" },
+    "isUseCannedMsdValid": { "type": "boolean" },
+    "useCannedMsd": { "type": "boolean" },
+    "isGnssUpdateIntervalValid": { "type": "boolean" },
+    "gnssUpdateInterval": { "type": "integer" },
+    "isT2TimerValid": { "type": "boolean" },
+    "t2Timer": { "type": "integer" },
+    "isT7TimerValid": { "type": "boolean" },
+    "t7Timer": { "type": "integer" },
+    "isT9TimerValid": { "type": "boolean" },
+    "t9Timer": { "type": "integer" },
+    "isMsdVersionValid": { "type": "boolean" },
+    "msdVersion": { "type": "integer" }
+  },
+  "additionalProperties": false
+}
