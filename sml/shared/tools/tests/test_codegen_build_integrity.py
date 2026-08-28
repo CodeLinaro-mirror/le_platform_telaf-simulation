@@ -41,12 +41,18 @@ _COMPONENT = _PA_ROOT / "component"
 
 _GEN_INCLUDE_RE = re.compile(r'#include\s+"generated/cpp/(\w+)\.h"')
 
-# component dir -> CMake target its sources compile into. component/sim has no
-# CMakeLists of its own: its .cpp files are pulled into telux_tel so that
-# PhoneFactory has a single definition (see component/tel/CMakeLists.txt).
+# component dir -> CMake target its sources compile into. Two dirs have no
+# CMakeLists of their own and are pulled into a sibling target:
+#   component/sim -> telux_tel, so PhoneFactory has a single definition
+#                    (see component/tel/CMakeLists.txt).
+#   component/net -> telux_data, because telux::data::net::IVlanManager and its
+#                    L2TP/NAT/SOCKS/settings siblings are handed out by
+#                    telux::data::DataFactory; a separate lib would be a
+#                    circular link dependency (see component/data/CMakeLists.txt).
 _DIR_TO_TARGET = {
     "common": "telux_common",
     "data": "telux_data",
+    "net": "telux_data",
     "sim": "telux_tel",
     "tel": "telux_tel",
     "platform": "telux_platform",

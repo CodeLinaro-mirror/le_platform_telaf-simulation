@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.restore_factory_settings.req",
+  "title": "Restore Factory Settings Request",
+  "type": "object",
+  "required": [
+    "opType"
+  ],
+  "properties": {
+    "opType": {
+      "type": "string",
+      "enum": [
+        "DATA_LOCAL",
+        "DATA_REMOTE"
+      ]
+    },
+    "isRebootNeeded": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "additionalProperties": false
+}

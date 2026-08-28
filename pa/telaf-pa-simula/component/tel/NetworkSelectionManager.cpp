@@ -469,7 +469,7 @@ NetSelReady_St(chart::Hsm* h, chart::Event const* e)
         {
             LOG_INFO("[NetworkSelectionManager] -> Ready");
             self->publishStatus_(telux::common::ServiceStatus::SERVICE_AVAILABLE);
-            if (!self->init_cbs_.empty())
+            // Independent audiences -- see PhoneMgrReady_St's Entry.
             {
                 std::vector<telux::common::InitResponseCb> cbs;
                 cbs.swap(self->init_cbs_);
@@ -477,18 +477,31 @@ NetSelReady_St(chart::Hsm* h, chart::Event const* e)
                     if (cb)
                         cb(telux::common::ServiceStatus::SERVICE_AVAILABLE);
             }
-            else
-            {
-                self->broadcastToListeners_(
-                  [](const std::shared_ptr<telux::tel::INetworkSelectionListener>& l) {
-                      l->onServiceStatusChange(telux::common::ServiceStatus::SERVICE_AVAILABLE);
-                  }
-                );
-            }
+            self->broadcastToListeners_(
+              [](const std::shared_ptr<telux::tel::INetworkSelectionListener>& l) {
+                  l->onServiceStatusChange(telux::common::ServiceStatus::SERVICE_AVAILABLE);
+              }
+            );
             return chart::Status::HANDLED;
         }
         case chart::Exit_Signal:
             LOG_INFO("[NetworkSelectionManager] -> NotReady");
+            // Fail queued init callbacks instead of stranding them -- see
+            // PhoneMgrReady_St's Exit.
+            if (!self->init_cbs_.empty())
+            {
+                LOG_WARN(
+                  "[NetworkSelectionManager] slot=%d leaving Ready with %zu pending init "
+                  "callback(s) -- failing them SERVICE_UNAVAILABLE",
+                  self->slotId_,
+                  self->init_cbs_.size()
+                );
+                std::vector<telux::common::InitResponseCb> cbs;
+                cbs.swap(self->init_cbs_);
+                for (auto& cb : cbs)
+                    if (cb)
+                        cb(telux::common::ServiceStatus::SERVICE_UNAVAILABLE);
+            }
             self->broadcastToListeners_(
               [](const std::shared_ptr<telux::tel::INetworkSelectionListener>& l) {
                   l->onServiceStatusChange(telux::common::ServiceStatus::SERVICE_UNAVAILABLE);

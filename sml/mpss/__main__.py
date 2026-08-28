@@ -17,6 +17,7 @@ from pathlib import Path
 from sml.common.mqtt_client import MqttClient
 from sml.common.config import ConfigError, load_config
 from sml.mpss.data import DataSubsystem
+from sml.mpss.net import NetSubsystem
 from sml.mpss.radio import RadioSubsystem
 from sml.common import instrumentation as _instr
 from sml.mpss.sim import SimSubsystem
@@ -38,11 +39,18 @@ from sml.runtime.scenario_runner import ScenarioRunner
 
 
 _SHUTDOWN_GRACE_S = 2.0
+_TARGET_SLOT_ID = 1
 _SML_ROOT = Path(__file__).resolve().parents[1]
 # Named Docker volume (see up_simulation.sh's `/persist` mount) rather than
 # _SML_ROOT, so persisted state doesn't land in the host bind-mount owned by
 # the container's root user.
 _PERSIST_ROOT = Path("/persist")
+
+
+def _register_default_net(client: MqttClient) -> NetSubsystem:
+    subsystem = NetSubsystem(slot_id=_TARGET_SLOT_ID)
+    client.register_subsystem(subsystem)
+    return subsystem
 
 
 def _install_signal_handlers(shutdown: threading.Event) -> None:
@@ -86,6 +94,7 @@ def main() -> int:
     _install_signal_handlers(shutdown)
 
     client = MqttClient(cfg)
+    net_subsystem = _register_default_net(client)
 
     if cfg.scenario:
         scenario_path = _SML_ROOT / cfg.scenario
@@ -97,22 +106,20 @@ def main() -> int:
             print(f"ERROR: failed to load scenario {cfg.scenario!r}: {exc}", file=sys.stderr)
             return 2
 
-        # MPSS currently only manages the referenced sim slot whose SlotId
-        # (telux getSlotId()) is 1 -- the DDS/permanent slot.
-        TARGET_SLOT_ID = 1   # MPSS data domain currently manages SlotId 1 only
         target_slot_runtime = next(
-            (s for s in runner.sim_slot_runtimes.values() if s.sim_slot.slot_id == TARGET_SLOT_ID),
+            (s for s in runner.sim_slot_runtimes.values()
+             if s.sim_slot.slot_id == _TARGET_SLOT_ID),
             None,
         )
         if target_slot_runtime is None:
             log.warning("no referenced sim_slot with slot_id=%d; data domain seeds with defaults",
-                        TARGET_SLOT_ID)
+                        _TARGET_SLOT_ID)
         persist_path = (
             _PERSIST_ROOT / "mpss" / "data" / "slot1" / "data_profiles.json"
             if "data_profiles" in runner.persistent else None
         )
         data_subsystem = DataSubsystem(
-            slot_id=target_slot_runtime.sim_slot.slot_id if target_slot_runtime else TARGET_SLOT_ID,
+            slot_id=target_slot_runtime.sim_slot.slot_id if target_slot_runtime else _TARGET_SLOT_ID,
             seed_profiles=resolve_seed_profiles(target_slot_runtime, runner.devices) if target_slot_runtime else [],
             interface_preset=resolve_interface_preset(target_slot_runtime) if target_slot_runtime else None,
             call_timing_preset=resolve_call_timing_preset(target_slot_runtime) if target_slot_runtime else None,
@@ -145,7 +152,7 @@ def main() -> int:
         # force_sys_info/force_dc_status/force_signal_strength through
         # RadioActionDispatcher.
         radio_subsystem = RadioSubsystem(
-            slot_id=target_slot_runtime.sim_slot.slot_id if target_slot_runtime else TARGET_SLOT_ID,
+            slot_id=target_slot_runtime.sim_slot.slot_id if target_slot_runtime else _TARGET_SLOT_ID,
             radio_seed=resolve_radio_seed(runner.radio_runtime),
         )
         dispatcher.register_domain("radio", radio_subsystem)
@@ -164,10 +171,12 @@ def main() -> int:
         dispatcher.register_domain("wakeup", wakeup_subsystem)
         client.register_subsystem(wakeup_subsystem)
 
+        dispatcher.register_domain("net", net_subsystem)
+
         client.register_subsystem(runner)
         log.info("scenario runner registered (mpss.scenario=%s)", cfg.scenario)
     else:
-        log.info("no mpss.scenario configured; data/sim domains not started")
+        log.info("no mpss.scenario configured; scenario domains not started")
 
     client.start()
 

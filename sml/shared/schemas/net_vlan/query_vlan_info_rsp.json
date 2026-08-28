@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.query_vlan_info.rsp",
+  "title": "Query VLAN Info Response",
+  "description": "One entry per configured VLAN, each mirroring telux::data::VlanConfig. The taf_net_Get*VlanEntry / GetVlanId / IsVlanAccelerated / GetVlanPriority accessors all iterate this list client-side.",
+  "type": "object",
+  "required": ["vlans"],
+  "properties": {
+    "vlans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["vlanId", "ifaceType", "isAccelerated", "priority", "nwType", "createBridge"],
+        "properties": {
+          "vlanId": { "type": "integer", "minimum": 1, "maximum": 4094 },
+          "ifaceType": {
+            "type": "string",
+            "enum": ["UNKNOWN", "WLAN", "ETH", "ECM", "RNDIS", "MHI", "VMTAP0",
+                     "VMTAP1", "ETH2", "AP_PRIMARY", "AP_SECONDARY",
+                     "AP_TERTIARY", "AP_QUATERNARY"]
+          },
+          "isAccelerated": { "type": "boolean" },
+          "priority": { "type": "integer", "minimum": 0, "maximum": 7 },
+          "nwType": { "type": "string", "enum": ["UNKNOWN", "LAN", "WAN"] },
+          "createBridge": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

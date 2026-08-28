@@ -1,0 +1,253 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# net_settings domain registry -- PA<->MPSS wire contract for
+# telux::data::IDataSettingsManager (backhaul preference, band-interference,
+# WWAN connectivity, MacSec, backhaul switch, IPPT, IP config, DDS).
+#
+# Note on the six SYNCHRONOUS methods
+# -----------------------------------
+# setIpPassThroughConfig / setIpPassThroughNatConfig / getIpPassThroughNatConfig
+# / getIpPassThroughConfig / setIpConfig / getIpConfig return
+# telux::common::ErrorCode directly rather than taking a ResponseCallback --
+# they must produce a value before returning to the caller. An MQTT round-trip
+# cannot honour that without blocking the caller's thread, which risks deadlock
+# if invoked from a listener callback.
+#
+# The resolution has two halves:
+#   * READS (getIppt*/getIpConfig) are answered from a PA-side mirror, seeded
+#     and maintained by the retained ippt_config_sync / ip_config_sync
+#     indications below. Ground truth still lives on MPSS (invariant (d)); the
+#     mirror is a cache, and a restarting PA re-learns state from the retained
+#     message instead of inventing defaults.
+#   * WRITES (setIppt*/setIpConfig) update that mirror and *also* issue the
+#     set_ippt_config / set_ippt_nat_config / set_ip_config RPCs below without
+#     waiting for the response, so MPSS converges. The ErrorCode the caller
+#     receives reflects local validation only -- which is the most any
+#     synchronous signature can honestly promise over an async transport.
+#
+# This is the one deviation from "every query is an RPC" in the net domain, and
+# it is forced by the SDK's own signatures, not by convenience.
+#
+# The remaining methods are all callback-shaped and use ordinary RPCs.
+# isDeviceDataUsageMonitoringEnabled() is also synchronous but is a pure read of
+# a retained flag, so it is answered from the same mirror.
+
+domain: net_settings
+
+rpcs:
+  - method: restore_factory_settings
+    req_topic: "mp/req/net_settings/restore_factory_settings"
+    rsp_topic: "mp/rsp/net_settings/restore_factory_settings"
+    req_payload: schemas/net_settings/restore_factory_settings_req.json
+    rsp_payload: schemas/net_settings/restore_factory_settings_rsp.json
+    qos: 1
+    description: >-
+      Reset network settings to factory defaults. Backs
+      IDataSettingsManager::restoreFactorySettings. isRebootNeeded is
+      forwarded so MPSS can model the "settings applied but pending reboot"
+      state the SDK documents.
+
+  - method: set_backhaul_pref
+    req_topic: "mp/req/net_settings/set_backhaul_pref"
+    rsp_topic: "mp/rsp/net_settings/set_backhaul_pref"
+    req_payload: schemas/net_settings/set_backhaul_pref_req.json
+    rsp_payload: schemas/net_settings/set_backhaul_pref_rsp.json
+    qos: 1
+    description: >-
+      Set the ordered backhaul preference for bridge0 traffic (first entry is
+      most preferred). Backs IDataSettingsManager::setBackhaulPreference.
+
+  - method: request_backhaul_pref
+    req_topic: "mp/req/net_settings/request_backhaul_pref"
+    rsp_topic: "mp/rsp/net_settings/request_backhaul_pref"
+    req_payload: schemas/net_settings/request_backhaul_pref_req.json
+    rsp_payload: schemas/net_settings/request_backhaul_pref_rsp.json
+    qos: 1
+    description: >-
+      Read back the current ordered backhaul preference. Backs
+      IDataSettingsManager::requestBackhaulPreference.
+
+  - method: set_band_interference
+    req_topic: "mp/req/net_settings/set_band_interference"
+    rsp_topic: "mp/rsp/net_settings/set_band_interference"
+    req_payload: schemas/net_settings/set_band_interference_req.json
+    rsp_payload: schemas/net_settings/set_band_interference_rsp.json
+    qos: 1
+    description: >-
+      Configure N79-5G / WLAN-5GHz interference avoidance. Backs
+      IDataSettingsManager::setBandInterferenceConfig. The config block is
+      optional because the SDK allows a null config when disabling.
+
+  - method: request_band_interference
+    req_topic: "mp/req/net_settings/request_band_interference"
+    rsp_topic: "mp/rsp/net_settings/request_band_interference"
+    req_payload: schemas/net_settings/request_band_interference_req.json
+    rsp_payload: schemas/net_settings/request_band_interference_rsp.json
+    qos: 1
+    description: >-
+      Read back interference-avoidance settings. Backs
+      IDataSettingsManager::requestBandInterferenceConfig. The config block is
+      absent when disabled, matching the SDK's documented "set to nullptr if
+      interference management is disabled".
+
+  - method: set_wwan_connectivity
+    req_topic: "mp/req/net_settings/set_wwan_connectivity"
+    rsp_topic: "mp/rsp/net_settings/set_wwan_connectivity"
+    req_payload: schemas/net_settings/set_wwan_connectivity_req.json
+    rsp_payload: schemas/net_settings/set_wwan_connectivity_rsp.json
+    qos: 1
+    description: >-
+      Allow/disallow WWAN connectivity for a slot. Backs
+      IDataSettingsManager::setWwanConnectivityConfig. Disallowing also tears
+      down active WWAN calls per the SDK contract, which MPSS models by
+      dropping them -- the data domain then publishes NET_NO_NET for each.
+
+  - method: request_wwan_connectivity
+    req_topic: "mp/req/net_settings/request_wwan_connectivity"
+    rsp_topic: "mp/rsp/net_settings/request_wwan_connectivity"
+    req_payload: schemas/net_settings/request_wwan_connectivity_req.json
+    rsp_payload: schemas/net_settings/request_wwan_connectivity_rsp.json
+    qos: 1
+    description: >-
+      Read back WWAN connectivity permission for a slot. Backs
+      IDataSettingsManager::requestWwanConnectivityConfig.
+
+  - method: set_macsec_state
+    req_topic: "mp/req/net_settings/set_macsec_state"
+    rsp_topic: "mp/rsp/net_settings/set_macsec_state"
+    req_payload: schemas/net_settings/set_macsec_state_req.json
+    rsp_payload: schemas/net_settings/set_macsec_state_rsp.json
+    qos: 1
+    description: >-
+      Enable/disable MacSec encryption on the ethernet link. Backs
+      IDataSettingsManager::setMacSecState.
+
+  - method: request_macsec_state
+    req_topic: "mp/req/net_settings/request_macsec_state"
+    rsp_topic: "mp/rsp/net_settings/request_macsec_state"
+    req_payload: schemas/net_settings/request_macsec_state_req.json
+    rsp_payload: schemas/net_settings/request_macsec_state_rsp.json
+    qos: 1
+    description: >-
+      Read back MacSec state. Backs
+      IDataSettingsManager::requestMacSecState.
+
+  - method: switch_backhaul
+    req_topic: "mp/req/net_settings/switch_backhaul"
+    rsp_topic: "mp/rsp/net_settings/switch_backhaul"
+    req_payload: schemas/net_settings/switch_backhaul_req.json
+    rsp_payload: schemas/net_settings/switch_backhaul_rsp.json
+    qos: 1
+    description: >-
+      Re-route traffic from one backhaul to another. Backs
+      IDataSettingsManager::switchBackHaul.
+
+  - method: request_dds_switch
+    req_topic: "mp/req/net_settings/request_dds_switch"
+    rsp_topic: "mp/rsp/net_settings/request_dds_switch"
+    req_payload: schemas/net_settings/request_dds_switch_req.json
+    rsp_payload: schemas/net_settings/request_dds_switch_rsp.json
+    qos: 1
+    description: >-
+      Request a DDS (default data subscription) switch, permanent or
+      temporary. Backs IDataSettingsManager::requestDdsSwitch (deprecated in
+      favour of IDualDataManager, but still implemented because taf_net and
+      existing clients call it).
+
+  - method: request_current_dds
+    req_topic: "mp/req/net_settings/request_current_dds"
+    rsp_topic: "mp/rsp/net_settings/request_current_dds"
+    req_payload: schemas/net_settings/request_current_dds_req.json
+    rsp_payload: schemas/net_settings/request_current_dds_rsp.json
+    qos: 1
+    description: >-
+      Read back the current DDS slot/type. Backs
+      IDataSettingsManager::requestCurrentDds.
+
+  - method: set_ippt_config
+    req_topic: "mp/req/net_settings/set_ippt_config"
+    rsp_topic: "mp/rsp/net_settings/set_ippt_config"
+    req_payload: schemas/net_settings/set_ippt_config_req.json
+    rsp_payload: schemas/net_settings/set_ippt_config_rsp.json
+    qos: 1
+    description: >-
+      Push one IP-passthrough entry to MPSS. Write half of
+      setIpPassThroughConfig, which returns ErrorCode synchronously: the PA
+      updates its mirror, fires this RPC without awaiting the response, and
+      returns a locally-determined ErrorCode. MPSS republishes the retained
+      ippt_config_sync mirror on success, which is how the PA (and any other
+      PA) learns the settled state.
+
+  - method: set_ippt_nat_config
+    req_topic: "mp/req/net_settings/set_ippt_nat_config"
+    rsp_topic: "mp/rsp/net_settings/set_ippt_nat_config"
+    req_payload: schemas/net_settings/set_ippt_nat_config_req.json
+    rsp_payload: schemas/net_settings/set_ippt_nat_config_rsp.json
+    qos: 1
+    description: >-
+      Enable/disable NAT for IP passthrough. Write half of
+      setIpPassThroughNatConfig; same synchronous rationale as
+      set_ippt_config.
+
+  - method: set_ip_config
+    req_topic: "mp/req/net_settings/set_ip_config"
+    rsp_topic: "mp/rsp/net_settings/set_ip_config"
+    req_payload: schemas/net_settings/set_ip_config_req.json
+    rsp_payload: schemas/net_settings/set_ip_config_rsp.json
+    qos: 1
+    description: >-
+      Push one per-interface IP configuration to MPSS. Write half of
+      setIpConfig; same synchronous rationale as set_ippt_config.
+
+indications:
+  - event: subsys_ready_net_settings
+    ind_topic: "mp/ind/net_settings/subsys_ready"
+    payload: schemas/net_settings/subsys_ready_net_settings_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      Retained settings-subsystem readiness, gating
+      SimulaDataSettingsManager's NotReady/Ready shell.
+
+  - event: wwan_connectivity_changed
+    ind_topic: "mp/ind/net_settings/wwan_connectivity_changed"
+    payload: schemas/net_settings/wwan_connectivity_changed_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      WWAN connectivity permission changed for a slot, driving
+      IDataSettingsListener::onWwanConnectivityConfigChange. Fires both for
+      an AP-initiated set_wwan_connectivity and for a network/platform-side
+      change injected via the net.force_wwan_connectivity action.
+
+  - event: dds_changed
+    ind_topic: "mp/ind/net_settings/dds_changed"
+    payload: schemas/net_settings/dds_changed_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      DDS switch occurred, driving IDataSettingsListener::onDdsChange.
+
+  - event: ippt_config_sync
+    ind_topic: "mp/ind/net_settings/ippt_config_sync"
+    payload: schemas/net_settings/ippt_config_sync_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      Retained IP-passthrough state mirror. Exists because
+      setIpPassThroughConfig / getIpPassThroughConfig /
+      setIpPassThroughNatConfig / getIpPassThroughNatConfig return ErrorCode
+      synchronously and cannot block on an RPC (see the domain header note).
+      MPSS publishes this retained snapshot so a starting or restarting PA
+      seeds its mirror from ground truth instead of inventing defaults; the
+      PA writes through to MPSS via the net.force_ippt_config action path.
+
+  - event: ip_config_sync
+    ind_topic: "mp/ind/net_settings/ip_config_sync"
+    payload: schemas/net_settings/ip_config_sync_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      Retained per-interface IP-config mirror, for the same synchronous-API
+      reason as ippt_config_sync (setIpConfig / getIpConfig).

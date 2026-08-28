@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_nat.request_nat_entries.rsp",
+  "title": "Request Static NAT Entries Response",
+  "type": "object",
+  "required": [
+    "entries"
+  ],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "addr",
+          "port",
+          "globalPort",
+          "proto"
+        ],
+        "properties": {
+          "addr": {
+            "type": "string",
+            "description": "Private IP address."
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535,
+            "description": "Private port."
+          },
+          "globalPort": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "proto": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255,
+            "description": "IANA IP protocol number; IpProtocol is a uint8_t, and 0xFF (IP_PROT_UNKNOWN) is the SDK's 'unset' sentinel."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

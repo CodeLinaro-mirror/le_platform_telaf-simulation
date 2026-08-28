@@ -110,6 +110,13 @@ ifneq ($(TELAF_SIMULATION_ENABLE_RPC),n)
 endif
 export TELAF_SIMULATION_ENABLE_DEVICE_INFO ?= n
 
+# tafNetSvc binds to tafDataCallSvc, so NET requires DCS. Exported because
+# DCS's own default is inside the IMPORT_SDK_SIMULATION guard above.
+export TELAF_SIMULATION_ENABLE_NET ?= n
+ifneq ($(TELAF_SIMULATION_ENABLE_NET),n)
+  export TELAF_SIMULATION_ENABLE_DCS := y
+endif
+
 SIMULATION_SOMEIP_GW_DEPS_y := _vsomeip
 SIMULATION_COMMON_API_DEPS_y := _capi_core_rt _capi_someip_rt _capi_tools
 SIMULATION_DEPS += \

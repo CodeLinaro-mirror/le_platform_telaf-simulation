@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.unbind_vlan.req",
+  "title": "Unbind VLAN From Backhaul Request",
+  "description": "Same shape as bind_vlan.req -- IVlanManager::unbindFromBackhaul takes the same VlanBindConfig.",
+  "type": "object",
+  "required": ["vlanId", "backhaul"],
+  "properties": {
+    "vlanId": { "type": "integer", "minimum": 1, "maximum": 4094 },
+    "backhaul": {
+      "type": "string",
+      "enum": ["ETH", "USB", "WLAN", "WWAN", "BLE"]
+    },
+    "slot": { "type": "integer", "minimum": 0 },
+    "profileId": { "type": "integer" },
+    "bhVlanId": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.request_band_interference.rsp",
+  "title": "Request Band Interference Config Response",
+  "description": "config is absent when disabled, matching the SDK's 'set to nullptr if interference management is disabled'.",
+  "type": "object",
+  "required": [
+    "isEnabled"
+  ],
+  "properties": {
+    "isEnabled": {
+      "type": "boolean"
+    },
+    "config": {
+      "type": "object",
+      "required": [
+        "priority"
+      ],
+      "properties": {
+        "priority": {
+          "type": "string",
+          "enum": [
+            "N79",
+            "WLAN"
+          ]
+        },
+        "wlanWaitTimeInSec": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n79WaitTimeInSec": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

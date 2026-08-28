@@ -111,16 +111,18 @@ if [ -n "${TELAF_IN_CONTAINER}" ]; then # [Docker-Container-Env]
     mkdir -m 700 -p $HOME/.ssh
     mount --bind $M_SSH_HOME $HOME/.ssh
 
-    # Create some default groups
-    groupadd system
-    groupadd diag
-    groupadd radio
-    groupadd inet
-    groupadd locclient
-    groupadd ubi
-    groupadd gps
-    groupadd sensors
-    groupadd shutdown
+    # Create some default groups.
+    #
+    # Idempotent on purpose: a bare `groupadd system` on an already-present
+    # group exits 9 and prints "group already exists". This block is reachable
+    # more than once per volume set (the /tmp/telaf_simulation_up guard above
+    # is on a tmpfs path, so it is lost across container restarts while the
+    # named volumes are not), and those failures are noise that hides the real
+    # group problem -- see the /etc/group note below.
+    for _g in system diag radio inet locclient ubi gps sensors shutdown; do
+        getent group "$_g" >/dev/null 2>&1 || groupadd "$_g"
+    done
+    unset _g
 
     # Create some default users
     useradd -m --shell /bin/bash tafcore
@@ -149,11 +151,75 @@ if [ -n "${TELAF_IN_CONTAINER}" ]; then # [Docker-Container-Env]
     chmod a+x /tmp/simulation_reboot
     ln -s /tmp/simulation_reboot /sbin/reboot
 
-    # Enable read-only mode in the container environment
+    # Enable read-only mode in the container environment.
+    #
+    # NOTE on the supervisor's "There are too many groups in the system"
+    # LE_CRIT (liblegato/linux/user.c GetAvailGid): that is NOT caused by these
+    # mounts being read-only. Legato probes writability with
+    #   IsEtcWritable = (0 == access(PASSWORD_FILE, W_OK))
+    # i.e. against /etc/passwd. Because that is intentionally read-only here,
+    # Legato uses its fixed "apps translation table" instead of allocating a
+    # fresh gid, and that table only contains apps present at framework build
+    # time. Creating an app that is not in it (e.g. tafDataCallUnitTest) finds
+    # no free slot and logs that message. Making /etc/group writable does not
+    # help -- the allocator never reaches the /etc path. Do not "fix" it here.
     cp /etc/passwd /tmp/passwd
     cp /etc/group /tmp/group
     mount --bind -o ro /tmp/passwd /etc/passwd
     mount --bind -o ro /tmp/group  /etc/group
+
+    # Make /etc/resolv.conf writable by tafNetSvc.
+    #
+    # taf_net_SetDNS() copies the DNS servers assigned to a PDN into the Linux
+    # resolver, opening DNS_INFO_FILE (/etc/resolv.conf, see
+    # telaf/components/tafNetSvc/tafNetwork/tafRoutingDns.hpp) with
+    # le_flock_TryOpenStream(..., LE_FLOCK_READ_AND_WRITE). tafNetSvc runs as
+    # the unprivileged user 'telaf' and only gains CAP_DAC_OVERRIDE in
+    # LE_CONFIG_TEST_COVERAGE builds, so on a normal build that open fails
+    # EACCES -> LE_FAULT (-6) and SetDNS can never succeed.
+    #
+    # Docker also bind-mounts its own /etc/resolv.conf from the host, so a
+    # plain chmod/chgrp on the mountpoint may not stick (and can be refused
+    # outright). Replace it with a container-local copy via the same
+    # bind-mount idiom used for /etc/passwd above -- read-write here -- then
+    # give the 'telaf' user write access through group ownership rather than
+    # a world-writable 0666 file.
+    #
+    # Kept in telaf-simulation (deployment/environment concern) so the
+    # imported telaf/ tree stays untouched; the container is --privileged, so
+    # this needs no extra docker run flags. Host DNS is unaffected: the copy
+    # shadows the mountpoint only inside this container's mount namespace.
+    cp /etc/resolv.conf /tmp/resolv.conf
+    mount --bind /tmp/resolv.conf /etc/resolv.conf
+    chgrp telaf /etc/resolv.conf 2>/dev/null || true
+    chmod 0664 /etc/resolv.conf 2>/dev/null || true
+
+    # Create 'bridge0' as a dummy LAN interface.
+    #
+    # taf_net_ChangeRoute() issues a real ioctl(SIOCADDRT/SIOCDELRT) with
+    # rt.rt_dev set to the caller's interface name, so the device must exist
+    # in the kernel. tafNetUnitTest hardcodes
+    #   #define ROUTE_INTERFACE "bridge0"          (tafNetUnitTest.c:64)
+    #   #define ROUTE_IP_V4_DEST_ADDR "192.168.225.0"
+    # which on target hardware is the LAN-side bridge. Nothing in the
+    # simulation creates it, so the ioctl fails ENODEV ("No such device") ->
+    # LE_FAULT -> LE_ASSERT aborts the test at section 2.2 before the
+    # remaining sections run.
+    #
+    # A 'dummy' link is the same mechanism the data domain already uses for
+    # rmnet_dataX interfaces (see _setup_iface() in sml/mpss/data/
+    # connection.py), which is why routing/DNS APIs already work against
+    # rmnet_data0. The 192.168.225.1/24 address makes bridge0 own the subnet
+    # the route test targets, so SIOCADDRT has a valid on-link route to add.
+    #
+    # bridge0 is a static LAN-side device with no data call behind it, so it
+    # is created once here rather than per-session in the MPSS data domain.
+    # All commands are best-effort: a missing 'ip' or an already-present
+    # device must never break container startup.
+    ip link add bridge0 type dummy 2>/dev/null || true
+    ip link set bridge0 mtu 1500 2>/dev/null || true
+    ip link set bridge0 up 2>/dev/null || true
+    ip addr add 192.168.225.1/24 dev bridge0 2>/dev/null || true
 
     # Change the hostname to a specific label: simulation
     # Also be used for syslog tag

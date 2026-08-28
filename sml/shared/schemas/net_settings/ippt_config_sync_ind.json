@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.ippt_config_sync.ind",
+  "title": "IP Passthrough Config Sync Indication",
+  "description": "Retained mirror of IPPT ground truth. Exists because setIpPassThroughConfig/getIpPassThroughConfig/setIpPassThroughNatConfig/getIpPassThroughNatConfig return ErrorCode synchronously and cannot block on an RPC; the PA seeds its write-through mirror from this retained snapshot.",
+  "type": "object",
+  "required": [
+    "natEnabled",
+    "entries"
+  ],
+  "properties": {
+    "natEnabled": {
+      "type": "boolean"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "profileId",
+          "vlanId",
+          "slot",
+          "ipptOpr"
+        ],
+        "properties": {
+          "profileId": {
+            "type": "integer"
+          },
+          "vlanId": {
+            "type": "integer"
+          },
+          "slot": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ipptOpr": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "DISABLE",
+              "ENABLE"
+            ]
+          },
+          "nwInterface": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "WLAN",
+              "ETH",
+              "ECM",
+              "RNDIS",
+              "MHI",
+              "VMTAP0",
+              "VMTAP1",
+              "ETH2",
+              "AP_PRIMARY",
+              "AP_SECONDARY",
+              "AP_TERTIARY",
+              "AP_QUATERNARY"
+            ]
+          },
+          "macAddr": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

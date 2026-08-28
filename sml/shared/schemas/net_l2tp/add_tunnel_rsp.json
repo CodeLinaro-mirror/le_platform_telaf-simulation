@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_l2tp.add_tunnel.rsp",
+  "title": "Add L2TP Tunnel Response",
+  "description": "Empty on success; failures travel in the envelope's error object.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

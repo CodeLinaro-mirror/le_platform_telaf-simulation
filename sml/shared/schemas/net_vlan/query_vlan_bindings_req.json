@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.query_vlan_bindings.req",
+  "title": "Query VLAN Bindings Request",
+  "description": "backhaul filters the result; omitting it returns every binding, which is what the deprecated queryVlanMappingList() needs (it projects the full table down to (profileId, vlanId) pairs for one slot).",
+  "type": "object",
+  "properties": {
+    "backhaul": {
+      "type": "string",
+      "enum": ["ETH", "USB", "WLAN", "WWAN", "BLE"]
+    },
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

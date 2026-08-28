@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.set_ippt_nat_config.rsp",
+  "title": "Set IPPT NAT Config Response",
+  "description": "Empty on success; failures travel in the envelope's error object. The PA does not await this response (the SDK method it backs is synchronous) -- it is defined so MPSS can report rejection and so the RPC is symmetric with the rest of the domain.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

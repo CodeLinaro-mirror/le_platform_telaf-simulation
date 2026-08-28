@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.set_band_interference.req",
+  "title": "Set Band Interference Config Request",
+  "description": "config is optional: the SDK permits a null config when disabling.",
+  "type": "object",
+  "required": [
+    "enable"
+  ],
+  "properties": {
+    "enable": {
+      "type": "boolean"
+    },
+    "config": {
+      "type": "object",
+      "required": [
+        "priority"
+      ],
+      "properties": {
+        "priority": {
+          "type": "string",
+          "enum": [
+            "N79",
+            "WLAN"
+          ]
+        },
+        "wlanWaitTimeInSec": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n79WaitTimeInSec": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

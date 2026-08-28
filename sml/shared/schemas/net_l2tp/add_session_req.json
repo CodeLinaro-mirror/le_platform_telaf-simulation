@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_l2tp.add_session.req",
+  "title": "Add L2TP Session Request",
+  "type": "object",
+  "required": [
+    "tunnelId",
+    "locId",
+    "peerId"
+  ],
+  "properties": {
+    "tunnelId": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "locId": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "peerId": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}

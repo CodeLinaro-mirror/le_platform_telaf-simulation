@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.bind_vlan.req",
+  "title": "Bind VLAN To Backhaul Request",
+  "description": "Mirrors telux::data::net::VlanBindConfig (vlanId + BackhaulInfo). slot/profileId are only meaningful for WWAN backhauls -- the SDK documents them as don't-care otherwise, so they are optional here. The deprecated bindWithProfile() path maps onto this with backhaul pinned to WWAN.",
+  "type": "object",
+  "required": ["vlanId", "backhaul"],
+  "properties": {
+    "vlanId": { "type": "integer", "minimum": 1, "maximum": 4094 },
+    "backhaul": {
+      "type": "string",
+      "enum": ["ETH", "USB", "WLAN", "WWAN", "BLE"]
+    },
+    "slot": { "type": "integer", "minimum": 0 },
+    "profileId": { "type": "integer" },
+    "bhVlanId": {
+      "type": "integer",
+      "description": "Set only when the backhaul is itself a VLAN (e.g. VLAN-over-ETH); mirrors BackhaulInfo::vlanId."
+    }
+  },
+  "additionalProperties": false
+}

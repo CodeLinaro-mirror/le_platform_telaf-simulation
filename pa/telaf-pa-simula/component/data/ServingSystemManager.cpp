@@ -119,7 +119,7 @@ SimulaServingSystemManager::SimulaServingSystemManager(
     : chart::ActiveObject("ServingSystemManager")
     , bridge_(bridge)
     , slotId_(slotId)
-    , init_cb_(std::move(initCb))
+    , init_gate_(std::move(initCb))
 {}
 
 SimulaServingSystemManager::~SimulaServingSystemManager()
@@ -141,6 +141,12 @@ SimulaServingSystemManager::unsubscribeFromBridge_()
     bridge_.unsubscribe_connectivity(conn_token_);
     conn_token_ = 0;
     bridge_.drain();
+}
+
+void
+SimulaServingSystemManager::addInitCallback(telux::common::InitResponseCb cb)
+{
+    init_gate_.add(std::move(cb));
 }
 
 void
@@ -389,13 +395,8 @@ ServReady_St(chart::Hsm* h, chart::Event const* e)
         {
             LOG_INFO("[ServingSystemManager] -> Ready");
             self->publishStatus_(telux::common::ServiceStatus::SERVICE_AVAILABLE);
-            if (!self->init_cb_fired_)
-            {
-                self->init_cb_fired_ = true;
-                if (self->init_cb_)
-                    self->init_cb_(telux::common::ServiceStatus::SERVICE_AVAILABLE);
-            }
-            else
+            if (!self->init_gate_.markReadyAndFire(
+                  telux::common::ServiceStatus::SERVICE_AVAILABLE))
             {
                 self->broadcastToListeners_(
                   [](const std::shared_ptr<telux::data::IServingSystemListener>& l) {

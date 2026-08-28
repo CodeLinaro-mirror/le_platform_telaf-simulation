@@ -11,6 +11,7 @@
 #define TELUX_DATA_SIMULA_SERVING_SYSTEM_MANAGER_HPP
 
 #include "../common/IModemBridge.hpp"
+#include "../common/InitCallbackGate.hpp"
 
 #include <chart/active_object.hpp>
 #include <memory>
@@ -39,6 +40,10 @@ public:
     // Boots the AO and wires up bridge subscriptions. Called once by
     // DataFactory after construction.
     void start();
+
+    // See InitCallbackGate.hpp: honour an InitResponseCb supplied by a later
+    // factory-getter call for an already-constructed manager.
+    void addInitCallback(telux::common::InitResponseCb cb);
 
     // telux::data::IServingSystemManager
     telux::common::ServiceStatus getServiceStatus() override;
@@ -89,8 +94,7 @@ private:
 
     common::simula::IModemBridge& bridge_;
     SlotId slotId_;
-    telux::common::InitResponseCb init_cb_;
-    bool init_cb_fired_{ false };
+    common::simula::InitCallbackGate init_gate_;
     // Handle for the connectivity observer registered in start(), withdrawn
     // in the dtor. 0 until start() runs, which unsubscribe_connectivity
     // treats as a no-op.

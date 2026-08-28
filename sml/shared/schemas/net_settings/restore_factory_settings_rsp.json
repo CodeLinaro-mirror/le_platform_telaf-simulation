@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.restore_factory_settings.rsp",
+  "title": "Restore Factory Settings Response",
+  "description": "Empty on success; failures travel in the envelope's error object.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

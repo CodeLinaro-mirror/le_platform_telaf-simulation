@@ -1,0 +1,127 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# net_vlan domain registry -- PA<->MPSS wire contract for the VLAN family of
+# telaf/interfaces/taf_net.api.
+#
+# Scope rationale (see also sml/mpss/net/__init__.py):
+#   taf_net.api declares 127 FUNCTIONs, but only a minority cross the modem
+#   boundary. Three tiers:
+#     1. Legato safe-ref / list accessors (GetFirstVlanEntry, GetVlanId,
+#        GetVlanInterfaceType, DeleteVlanEntryList, ...) operate purely on
+#        lists tafNetSvc has already materialised in its own address space.
+#        They never reach the PA, so they need no wire contract.
+#     2. Linux-local calls (ChangeRoute, SetDefaultGW, SetDNS, ...) act on the
+#        host's routing table / resolv.conf. DNS ground truth belongs to the
+#        data domain (a data call hands DNS out); see data.force_dns.
+#     3. TelSDK-backed calls -- the only tier that needs simulating. For VLAN
+#        that is telux::data::net::IVlanManager, whose 13 pure-virtuals reduce
+#        to the 6 RPCs + 1 indication below.
+#
+# The VLAN *entry table* (which VLANs exist, their priority/accel/bridge flags,
+# and their backhaul bindings) is modem ground truth, so MPSS owns it (World
+# State invariant (d)); the PA holds no VLAN table of its own and answers every
+# query from these RPCs.
+
+domain: net_vlan
+
+rpcs:
+  - method: create_vlan
+    req_topic: "mp/req/net_vlan/create_vlan"
+    rsp_topic: "mp/rsp/net_vlan/create_vlan"
+    req_payload: schemas/net_vlan/create_vlan_req.json
+    rsp_payload: schemas/net_vlan/create_vlan_rsp.json
+    qos: 1
+    description: >-
+      Create a VLAN on a PHY interface. Backs taf_net_CreateVlan +
+      SetVlanPriority/SetVlanNetworkType (which mutate the config struct
+      client-side before this single create call) and IVlanManager::createVlan.
+      The rsp carries isAccelerated because CreateVlanCb reports the offload
+      status the "server" decided, which need not equal the requested flag.
+
+  - method: remove_vlan
+    req_topic: "mp/req/net_vlan/remove_vlan"
+    rsp_topic: "mp/rsp/net_vlan/remove_vlan"
+    req_payload: schemas/net_vlan/remove_vlan_req.json
+    rsp_payload: schemas/net_vlan/remove_vlan_rsp.json
+    qos: 1
+    description: >-
+      Remove a VLAN by (vlanId, ifaceType). Backs taf_net_RemoveVlan and
+      IVlanManager::removeVlan.
+
+  - method: query_vlan_info
+    req_topic: "mp/req/net_vlan/query_vlan_info"
+    rsp_topic: "mp/rsp/net_vlan/query_vlan_info"
+    req_payload: schemas/net_vlan/query_vlan_info_req.json
+    rsp_payload: schemas/net_vlan/query_vlan_info_rsp.json
+    qos: 1
+    description: >-
+      List every configured VLAN. Backs IVlanManager::queryVlanInfo, and
+      through it the whole taf_net_GetVlanEntryList / GetFirstVlanEntry /
+      GetNextVlanEntry / GetVlanId / IsVlanAccelerated / GetVlanPriority /
+      GetVlanNetworkType accessor family -- those iterate the list this RPC
+      returns rather than each making a modem round-trip.
+
+  - method: bind_vlan
+    req_topic: "mp/req/net_vlan/bind_vlan"
+    rsp_topic: "mp/rsp/net_vlan/bind_vlan"
+    req_payload: schemas/net_vlan/bind_vlan_req.json
+    rsp_payload: schemas/net_vlan/bind_vlan_rsp.json
+    qos: 1
+    description: >-
+      Bind a VLAN to a backhaul. Backs taf_net_BindVlanWithBackhaul and
+      IVlanManager::bindToBackhaul, plus the deprecated
+      BindVlanWithProfile/Ex + bindWithProfile pair, which are the same
+      operation with backhaul pinned to WWAN.
+
+  - method: unbind_vlan
+    req_topic: "mp/req/net_vlan/unbind_vlan"
+    rsp_topic: "mp/rsp/net_vlan/unbind_vlan"
+    req_payload: schemas/net_vlan/unbind_vlan_req.json
+    rsp_payload: schemas/net_vlan/unbind_vlan_rsp.json
+    qos: 1
+    description: >-
+      Unbind a VLAN from a backhaul. Backs taf_net_UnbindVlanFromBackhaul /
+      UnbindVlanFromProfile and IVlanManager::unbindFromBackhaul /
+      unbindFromProfile.
+
+  - method: query_vlan_bindings
+    req_topic: "mp/req/net_vlan/query_vlan_bindings"
+    rsp_topic: "mp/rsp/net_vlan/query_vlan_bindings"
+    req_payload: schemas/net_vlan/query_vlan_bindings_req.json
+    rsp_payload: schemas/net_vlan/query_vlan_bindings_rsp.json
+    qos: 1
+    description: >-
+      List VLAN-to-backhaul bindings, optionally filtered by backhaul type.
+      Backs IVlanManager::queryVlanToBackhaulBindings and the deprecated
+      queryVlanMappingList (same table, projected to (profileId, vlanId)
+      pairs), and through them taf_net_GetVlanBoundProfileId /
+      GetVlanBoundPhoneId.
+
+indications:
+  - event: subsys_ready_net_vlan
+    ind_topic: "mp/ind/net_vlan/subsys_ready"
+    payload: schemas/net_vlan/subsys_ready_net_vlan_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      Retained VLAN-subsystem readiness. Gates SimulaVlanManager's
+      NotReady/Ready shell exactly as data's subsys_ready_data gates
+      SimulaDataConnectionManager, so getServiceStatus()/isSubsystemReady()
+      and the factory InitResponseCb have a real source of truth.
+
+  - event: hw_accel_state
+    ind_topic: "mp/ind/net_vlan/hw_accel_state"
+    payload: schemas/net_vlan/hw_accel_state_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      Hardware-acceleration service state, driving
+      IVlanListener::onHwAccelerationChanged and taf_net's
+      VlanHwAccelerationState EVENT.
+
+      Note: the data domain already has a hw_accel_state indication feeding
+      IDataConnectionListener::onHwAccelerationChanged. Both exist in the real
+      SDK as separate listener callbacks on separate managers, so they get
+      separate topics here rather than one shared topic -- a VLAN listener must
+      not be woken by a data-domain event.

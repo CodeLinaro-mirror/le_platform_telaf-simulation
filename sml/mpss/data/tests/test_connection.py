@@ -300,6 +300,121 @@ class TestForceCallDrop:
 
 
 # ---------------------------------------------------------------------------
+# force_dns -- backs taf_net_SetDNS simulation
+# ---------------------------------------------------------------------------
+
+class TestForceDns:
+    """taf_net_SetDNS reads DNS from the DCS profile cache, which is only
+    refreshed by a data-call event -- so force_dns must re-publish call_state
+    carrying the new DNS.
+
+    Status stays CONNECTED, not RECONFIGURED: DCS's ConvertDataCallStatus has
+    no RECONFIGURED case and falls through to TAF_DCS_DISCONNECTED, which makes
+    paSessionStateChangeEvtHandler call ResetIPv4Addresses() and wipe the DNS.
+    """
+
+    @staticmethod
+    def _connected_ao(pub):
+        ao = _make_ao(pub, connect_ms=50)
+        _send(ao, topics_data.start_data_call.req,
+              {"profileId": 1, "ipFamily": "IPV4V6", "ifname": "", "opType": "DATA_LOCAL", "slot": 1})
+        time.sleep(0.2)
+        pub.reset()
+        return ao
+
+    def test_publishes_connected_with_new_ipv4_dns(self):
+        pub = _MockPublish()
+        ao = self._connected_ao(pub)
+
+        ao.force_dns({"profileId": 1,
+                      "ipv4PrimaryDns": "1.1.1.1",
+                      "ipv4SecondaryDns": "1.0.0.1"})
+        time.sleep(0.1)
+
+        evts = _evt_calls(pub)
+        assert len(evts) == 1
+        data = evts[0]["payload"]["data"]
+        # CONNECTED: RECONFIGURED would make DCS reset the addresses.
+        assert data["status"] == "CONNECTED"
+        assert data["ipv4"]["primary_dns_address"] == "1.1.1.1"
+        assert data["ipv4"]["secondary_dns_address"] == "1.0.0.1"
+
+    def test_partial_update_keeps_untouched_values(self):
+        pub = _MockPublish()
+        ao = self._connected_ao(pub)
+
+        ao.force_dns({"profileId": 1, "ipv4PrimaryDns": "9.9.9.9"})
+        time.sleep(0.1)
+
+        data = _evt_calls(pub)[0]["payload"]["data"]
+        assert data["ipv4"]["primary_dns_address"] == "9.9.9.9"
+        # untouched -> keeps the ip_preset default
+        assert data["ipv4"]["secondary_dns_address"] == "8.8.4.4"
+        assert data["ipv6"]["primary_dns_address"] == "2001:4860:4860::8888"
+
+    def test_ipv6_dns_updated(self):
+        pub = _MockPublish()
+        ao = self._connected_ao(pub)
+
+        ao.force_dns({"profileId": 1, "ipv6PrimaryDns": "2606:4700:4700::1111"})
+        time.sleep(0.1)
+
+        data = _evt_calls(pub)[0]["payload"]["data"]
+        assert data["ipv6"]["primary_dns_address"] == "2606:4700:4700::1111"
+
+    def test_world_state_updated_so_next_call_sees_new_dns(self):
+        """Invariant (d): MPSS owns ground truth -- the seed must change too,
+        not just the live session, or a second profile's bring-up would hand
+        out stale DNS."""
+        pub = _MockPublish()
+        ao = self._connected_ao(pub)
+
+        ao.force_dns({"profileId": 1, "ipv4PrimaryDns": "1.1.1.1"})
+        time.sleep(0.1)
+        pub.reset()
+
+        _send(ao, topics_data.start_data_call.req,
+              {"profileId": 2, "ipFamily": "IPV4", "ifname": "", "opType": "DATA_LOCAL", "slot": 1})
+        time.sleep(0.2)
+
+        connected = [c for c in _evt_calls(pub)
+                     if c["payload"]["data"].get("status") == "CONNECTED"
+                     and c["payload"]["data"]["profileId"] == 2]
+        assert len(connected) == 1
+        assert connected[0]["payload"]["data"]["ipv4"]["primary_dns_address"] == "1.1.1.1"
+
+    def test_ipv4_only_call_does_not_sprout_ipv6_block(self):
+        pub = _MockPublish()
+        ao = _make_ao(pub, connect_ms=50)
+        _send(ao, topics_data.start_data_call.req,
+              {"profileId": 3, "ipFamily": "IPV4", "ifname": "", "opType": "DATA_LOCAL", "slot": 1})
+        time.sleep(0.2)
+        pub.reset()
+
+        ao.force_dns({"profileId": 3, "ipv6PrimaryDns": "2606:4700:4700::1111"})
+        time.sleep(0.1)
+
+        data = _evt_calls(pub)[0]["payload"]["data"]
+        assert "ipv6" not in data
+
+    def test_no_connected_session_is_a_noop(self):
+        pub = _MockPublish()
+        ao = _make_ao(pub)
+        before = len(pub.calls)
+        ao.force_dns({"profileId": 999, "ipv4PrimaryDns": "1.1.1.1"})
+        time.sleep(0.05)
+        assert len(pub.calls) == before
+
+    def test_payload_without_dns_fields_is_a_noop(self):
+        pub = _MockPublish()
+        ao = self._connected_ao(pub)
+        before = len(pub.calls)
+        ao.force_dns({"profileId": 1})
+        time.sleep(0.05)
+        assert len(pub.calls) == before
+
+
+# ---------------------------------------------------------------------------
 # Hierarchy: parent declared directly in handler else-branch
 # ---------------------------------------------------------------------------
 

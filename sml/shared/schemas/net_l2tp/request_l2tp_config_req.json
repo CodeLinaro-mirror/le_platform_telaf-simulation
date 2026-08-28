@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_l2tp.request_l2tp_config.req",
+  "title": "Request L2TP System Config Request",
+  "description": "No parameters: requestConfig returns the entire L2TP system configuration.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

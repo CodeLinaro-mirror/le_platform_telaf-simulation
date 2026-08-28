@@ -101,7 +101,7 @@ endforeach()
 # dropping the dependency (add_dependencies on a non-target is a no-op).
 set(CODEGEN_CONSUMERS
     telux_common   # component/common/ModemBridge.cpp -> validators.h
-    telux_data     # component/data/*.cpp             -> topics.h
+    telux_data     # component/data/*.cpp + component/net/*.cpp -> topics.h
     telux_tel      # component/sim/*.cpp (compiled into it)   -> topics.h
     telux_power    # component/power/*.cpp            -> topics.h
     taf_prop_pa_pms  # component/telaf-np/component/taf_prop_pms/ -> topics.h

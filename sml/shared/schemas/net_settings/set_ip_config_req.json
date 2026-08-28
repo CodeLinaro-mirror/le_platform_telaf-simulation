@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.set_ip_config.req",
+  "title": "Set IP Config Request",
+  "description": "One IpConfigParams + IpConfig pair. IPV4V6 is accepted by the schema but rejected by the manager: the SDK documents that setIpConfig must be called once per family. gwMask is absent -- documented as not required here.",
+  "type": "object",
+  "required": [
+    "ifType",
+    "ipFamily",
+    "ipType",
+    "ipOpr"
+  ],
+  "properties": {
+    "ifType": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "WLAN",
+        "ETH",
+        "ECM",
+        "RNDIS",
+        "MHI",
+        "VMTAP0",
+        "VMTAP1",
+        "ETH2",
+        "AP_PRIMARY",
+        "AP_SECONDARY",
+        "AP_TERTIARY",
+        "AP_QUATERNARY"
+      ]
+    },
+    "ipFamily": {
+      "type": "string",
+      "enum": [
+        "IPV4",
+        "IPV6",
+        "IPV4V6",
+        "UNKNOWN"
+      ]
+    },
+    "vlanId": {
+      "type": "integer"
+    },
+    "ipType": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "STATIC_IP",
+        "DYNAMIC_IP"
+      ]
+    },
+    "ipOpr": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "DISABLE",
+        "ENABLE",
+        "RECONFIGURE"
+      ]
+    },
+    "ifAddress": {
+      "type": "string"
+    },
+    "ifMask": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "gwAddress": {
+      "type": "string"
+    },
+    "primaryDnsAddress": {
+      "type": "string"
+    },
+    "secondaryDnsAddress": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

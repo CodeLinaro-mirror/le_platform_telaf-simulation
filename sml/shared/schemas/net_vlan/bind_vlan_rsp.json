@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.bind_vlan.rsp",
+  "title": "Bind VLAN To Backhaul Response",
+  "description": "Empty on success; failures travel in the envelope's error object.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

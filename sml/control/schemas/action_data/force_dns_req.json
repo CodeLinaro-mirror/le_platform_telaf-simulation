@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.data.force_dns.req",
+  "title": "Force DNS Addresses On An Active Data Call",
+  "description": "Re-writes the DNS server addresses handed out by an active data call and re-publishes mp/ind/data/call_state (status stays CONNECTED) so the PA re-applies them. Backs taf_net_SetDNS simulation: that API carries no DNS values of its own -- it reads them from the DCS profile cache, which is only refreshed by a data-call event. Status is deliberately NOT RECONFIGURED: DCS maps that to TAF_DCS_DISCONNECTED and would call ResetIPv4Addresses(), wiping the DNS.",
+  "type": "object",
+  "required": ["profileId"],
+  "properties": {
+    "profileId": { "type": "integer" },
+    "ipv4PrimaryDns": { "type": "string" },
+    "ipv4SecondaryDns": { "type": "string" },
+    "ipv6PrimaryDns": { "type": "string" },
+    "ipv6SecondaryDns": { "type": "string" }
+  },
+  "additionalProperties": false
+}

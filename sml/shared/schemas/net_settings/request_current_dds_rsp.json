@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.request_current_dds.rsp",
+  "title": "Request Current DDS Response",
+  "type": "object",
+  "required": [
+    "ddsType",
+    "slot"
+  ],
+  "properties": {
+    "ddsType": {
+      "type": "string",
+      "enum": [
+        "PERMANENT",
+        "TEMPORARY"
+      ]
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}

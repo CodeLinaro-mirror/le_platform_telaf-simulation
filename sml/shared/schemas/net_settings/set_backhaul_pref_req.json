@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.set_backhaul_pref.req",
+  "title": "Set Backhaul Preference Request",
+  "description": "Ordered list, most preferred first. An empty array is allowed and means 'no preference'.",
+  "type": "object",
+  "required": [
+    "backhaulPref"
+  ],
+  "properties": {
+    "backhaulPref": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ETH",
+          "USB",
+          "WLAN",
+          "WWAN",
+          "BLE"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

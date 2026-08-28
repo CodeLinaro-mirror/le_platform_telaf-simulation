@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.query_vlan_info.req",
+  "title": "Query VLAN Info Request",
+  "description": "No parameters: IVlanManager::queryVlanInfo returns every configured VLAN in the system.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

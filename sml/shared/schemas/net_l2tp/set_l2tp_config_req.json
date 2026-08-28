@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_l2tp.set_l2tp_config.req",
+  "title": "Set L2TP System Config Request",
+  "type": "object",
+  "required": [
+    "enable",
+    "enableMss",
+    "enableMtu"
+  ],
+  "properties": {
+    "enable": {
+      "type": "boolean"
+    },
+    "enableMss": {
+      "type": "boolean",
+      "description": "TCP MSS clamping on L2TP interfaces."
+    },
+    "enableMtu": {
+      "type": "boolean",
+      "description": "MTU sizing on underlying interfaces."
+    },
+    "mtuSize": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "0 means 'use the platform default (1422)', which is the SDK's documented behaviour for an unset size."
+    }
+  },
+  "additionalProperties": false
+}

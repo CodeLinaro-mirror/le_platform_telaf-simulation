@@ -226,7 +226,7 @@ SimulaDataProfileManager::SimulaDataProfileManager(
     : chart::ActiveObject("DataProfileManager")
     , bridge_(bridge)
     , slotId_(slotId)
-    , init_cb_(std::move(initCb))
+    , init_gate_(std::move(initCb))
 {}
 
 SimulaDataProfileManager::~SimulaDataProfileManager()
@@ -247,6 +247,12 @@ SimulaDataProfileManager::unsubscribeFromBridge_()
     bridge_.unsubscribe_connectivity(conn_token_);
     conn_token_ = 0;
     bridge_.drain();
+}
+
+void
+SimulaDataProfileManager::addInitCallback(telux::common::InitResponseCb cb)
+{
+    init_gate_.add(std::move(cb));
 }
 
 void
@@ -538,13 +544,8 @@ ProfileReady_St(chart::Hsm* h, chart::Event const* e)
         {
             LOG_INFO("[DataProfileManager] -> Ready");
             self->publishStatus_(telux::common::ServiceStatus::SERVICE_AVAILABLE);
-            if (!self->init_cb_fired_)
-            {
-                self->init_cb_fired_ = true;
-                if (self->init_cb_)
-                    self->init_cb_(telux::common::ServiceStatus::SERVICE_AVAILABLE);
-            }
-            else
+            if (!self->init_gate_.markReadyAndFire(
+                  telux::common::ServiceStatus::SERVICE_AVAILABLE))
             {
                 self->broadcastToListeners_(
                   [](const std::shared_ptr<telux::data::IDataProfileListener>& l) {

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.create_vlan.req",
+  "title": "Create VLAN Request",
+  "description": "Mirrors telux::data::VlanConfig. taf_net_SetVlanPriority / SetVlanNetworkType mutate the client-side config struct before CreateVlan is called, so they arrive as fields here rather than as RPCs of their own.",
+  "type": "object",
+  "required": ["vlanId", "ifaceType"],
+  "properties": {
+    "vlanId": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4094,
+      "description": "VLAN identifier (IEEE 802.1Q valid range 1-4094)."
+    },
+    "ifaceType": {
+      "type": "string",
+      "enum": ["UNKNOWN", "WLAN", "ETH", "ECM", "RNDIS", "MHI", "VMTAP0",
+               "VMTAP1", "ETH2", "AP_PRIMARY", "AP_SECONDARY", "AP_TERTIARY",
+               "AP_QUATERNARY"]
+    },
+    "isAccelerated": { "type": "boolean", "default": false },
+    "priority": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 7,
+      "default": 0,
+      "description": "IEEE 802.1p PCP class of service; 3-bit field, so 0-7."
+    },
+    "nwType": {
+      "type": "string",
+      "enum": ["UNKNOWN", "LAN", "WAN"],
+      "default": "LAN"
+    },
+    "createBridge": { "type": "boolean", "default": true }
+  },
+  "additionalProperties": false
+}

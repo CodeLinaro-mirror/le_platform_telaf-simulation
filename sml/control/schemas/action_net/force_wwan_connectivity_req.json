@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.net.force_wwan_connectivity.req",
+  "title": "Force WWAN Connectivity Permission",
+  "description": "Publishes mp/ind/net_settings/wwan_connectivity_changed so the PA drives IDataSettingsListener::onWwanConnectivityConfigChange.",
+  "type": "object",
+  "required": ["slot", "isConnectivityAllowed"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 },
+    "isConnectivityAllowed": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

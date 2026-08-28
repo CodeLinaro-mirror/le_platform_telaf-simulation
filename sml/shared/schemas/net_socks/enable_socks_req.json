@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_socks.enable_socks.req",
+  "title": "Enable SOCKS Proxy Request",
+  "type": "object",
+  "required": [
+    "enable"
+  ],
+  "properties": {
+    "enable": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

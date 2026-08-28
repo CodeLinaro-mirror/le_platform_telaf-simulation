@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.net.force_dds.req",
+  "title": "Force Current DDS",
+  "description": "Publishes mp/ind/net_settings/dds_changed so the PA drives IDataSettingsListener::onDdsChange. Mirrors telux::data::DdsInfo.",
+  "type": "object",
+  "required": ["slot", "ddsType"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 },
+    "ddsType": { "type": "string", "enum": ["PERMANENT", "TEMPORARY"] }
+  },
+  "additionalProperties": false
+}

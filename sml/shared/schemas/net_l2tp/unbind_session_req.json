@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_l2tp.unbind_session.req",
+  "title": "Unbind L2TP Session From Backhaul Request",
+  "type": "object",
+  "required": [
+    "locId",
+    "backhaul"
+  ],
+  "properties": {
+    "backhaul": {
+      "type": "string",
+      "enum": [
+        "ETH",
+        "USB",
+        "WLAN",
+        "WWAN",
+        "BLE"
+      ]
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "profileId": {
+      "type": "integer"
+    },
+    "bhVlanId": {
+      "type": "integer",
+      "description": "Set only when the backhaul is itself a VLAN; mirrors BackhaulInfo::vlanId."
+    },
+    "locId": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Local session id to bind; mirrors L2tpSessionBindConfig::locId."
+    }
+  },
+  "additionalProperties": false
+}

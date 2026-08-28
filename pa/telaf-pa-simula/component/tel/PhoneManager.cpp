@@ -483,6 +483,21 @@ PhoneMgrNotReady_St(chart::Hsm* h, chart::Event const* e)
     {
         case chart::Entry_Signal:
             LOG_INFO("[PhoneManager] -> NotReady");
+            // The single most common cause of the PA hanging here until
+            // taf::pa::data::SUBSYSTEM_INIT_TIMEOUT (90s) is that nothing is
+            // publishing the retained readiness topic -- i.e. MPSS is down, or
+            // started with no scenario so RadioSubsystem was never registered
+            // (see sml/mpss/__main__.py: the radio/data/sim/wakeup domains are
+            // all registered inside `if cfg.scenario:`). The broker link being
+            // up is NOT evidence to the contrary: mosq::on_connect rc=0 only
+            // proves mosquitto is reachable, not that anyone is publishing.
+            // Name the topic so the log points straight at the check to run.
+            LOG_WARN(
+              "[PhoneManager] waiting for retained '%s' (status=AVAILABLE); if this never "
+              "arrives, verify MPSS is running with a scenario configured and that the "
+              "topic is retained in the broker",
+              topics::radio::subsys_ready_phone::ind
+            );
             return chart::Status::HANDLED;
         case chart::Exit_Signal:
             return chart::Status::HANDLED;
@@ -565,7 +580,12 @@ PhoneMgrReady_St(chart::Hsm* h, chart::Event const* e)
         {
             LOG_INFO("[PhoneManager] -> Ready");
             self->publishStatus_(telux::common::ServiceStatus::SERVICE_AVAILABLE);
-            if (!self->init_cbs_.empty())
+            // Init callbacks and listeners are INDEPENDENT audiences: draining
+            // one must not silence the other. These were if/else, so on first
+            // boot (init_cbs_ non-empty from the ctor) listeners never saw the
+            // AVAILABLE edge -- while Exit_Signal broadcasts UNAVAILABLE
+            // unconditionally, letting a listener observe UNAVAILABLE with no
+            // preceding AVAILABLE.
             {
                 std::vector<telux::common::InitResponseCb> cbs;
                 cbs.swap(self->init_cbs_);
@@ -573,19 +593,38 @@ PhoneMgrReady_St(chart::Hsm* h, chart::Event const* e)
                     if (cb)
                         cb(telux::common::ServiceStatus::SERVICE_AVAILABLE);
             }
-            else
-            {
-                self->broadcastToListeners_([](const std::shared_ptr<telux::tel::IPhoneListener>& l) {
-                    l->onServiceStatusChange(telux::common::ServiceStatus::SERVICE_AVAILABLE);
-                });
-            }
+            self->broadcastToListeners_([](const std::shared_ptr<telux::tel::IPhoneListener>& l) {
+                l->onServiceStatusChange(telux::common::ServiceStatus::SERVICE_AVAILABLE);
+            });
             return chart::Status::HANDLED;
         }
         case chart::Exit_Signal:
+        {
+            // Leaving Ready (readiness=UNAVAILABLE, or the bridge link
+            // dropping) strands anything queued into init_cbs_ while we were
+            // Ready: NotReady's SetInitCb_Signal only appends, and nothing
+            // fires it until we return to Ready. If MPSS never publishes
+            // readiness again, the caller blocks for the full
+            // taf::pa::data::SUBSYSTEM_INIT_TIMEOUT (90s) with no diagnostic.
+            // Fail them here so the PA gets a prompt, actionable answer.
+            if (!self->init_cbs_.empty())
+            {
+                LOG_WARN(
+                  "[PhoneManager] leaving Ready with %zu pending init callback(s) -- "
+                  "failing them SERVICE_UNAVAILABLE rather than stranding the caller",
+                  self->init_cbs_.size()
+                );
+                std::vector<telux::common::InitResponseCb> cbs;
+                cbs.swap(self->init_cbs_);
+                for (auto& cb : cbs)
+                    if (cb)
+                        cb(telux::common::ServiceStatus::SERVICE_UNAVAILABLE);
+            }
             self->broadcastToListeners_([](const std::shared_ptr<telux::tel::IPhoneListener>& l) {
                 l->onServiceStatusChange(telux::common::ServiceStatus::SERVICE_UNAVAILABLE);
             });
             return chart::Status::HANDLED;
+        }
 
         case ReadinessEvt_Signal:
         {

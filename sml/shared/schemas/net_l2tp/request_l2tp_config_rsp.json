@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_l2tp.request_l2tp_config.rsp",
+  "title": "Request L2TP System Config Response",
+  "description": "Mirrors L2tpSysConfig. Feeds the whole taf_net tunnel/session accessor family, so every field those accessors read must be present.",
+  "type": "object",
+  "required": [
+    "enableMtu",
+    "enableTcpMss",
+    "mtuSize",
+    "tunnels"
+  ],
+  "properties": {
+    "enableMtu": {
+      "type": "boolean"
+    },
+    "enableTcpMss": {
+      "type": "boolean"
+    },
+    "mtuSize": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "tunnels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "locId"
+        ],
+        "properties": {
+          "prot": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "IP",
+              "UDP"
+            ],
+            "description": "Encapsulation protocol; mirrors L2tpProtocol."
+          },
+          "locId": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "peerId": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "localUdpPort": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "peerUdpPort": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "peerIpv6Addr": {
+            "type": "string"
+          },
+          "peerIpv6GwAddr": {
+            "type": "string"
+          },
+          "peerIpv4Addr": {
+            "type": "string"
+          },
+          "peerIpv4GwAddr": {
+            "type": "string"
+          },
+          "locIface": {
+            "type": "string",
+            "description": "Interface name to create the tunnel on."
+          },
+          "ipType": {
+            "type": "string",
+            "enum": [
+              "IPV4",
+              "IPV6",
+              "IPV4V6",
+              "UNKNOWN"
+            ]
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "locId",
+                "peerId"
+              ],
+              "properties": {
+                "locId": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "peerId": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

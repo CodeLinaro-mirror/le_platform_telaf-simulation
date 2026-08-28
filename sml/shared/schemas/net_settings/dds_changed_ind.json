@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.dds_changed.ind",
+  "title": "DDS Changed Indication",
+  "description": "Drives IDataSettingsListener::onDdsChange.",
+  "type": "object",
+  "required": [
+    "ddsType",
+    "slot"
+  ],
+  "properties": {
+    "ddsType": {
+      "type": "string",
+      "enum": [
+        "PERMANENT",
+        "TEMPORARY"
+      ]
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}

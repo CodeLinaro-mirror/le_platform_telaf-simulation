@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.request_backhaul_pref.rsp",
+  "title": "Request Backhaul Preference Response",
+  "type": "object",
+  "required": [
+    "backhaulPref"
+  ],
+  "properties": {
+    "backhaulPref": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ETH",
+          "USB",
+          "WLAN",
+          "WWAN",
+          "BLE"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

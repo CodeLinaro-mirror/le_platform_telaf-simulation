@@ -17,6 +17,11 @@
 #define TELUX_DATA_SIMULA_DATA_FACTORY_HPP
 
 #include "../common/IModemBridge.hpp"
+#include "../net/VlanManager.hpp"
+#include "../net/L2tpManager.hpp"
+#include "../net/NatManager.hpp"
+#include "../net/SocksManager.hpp"
+#include "../net/DataSettingsManager.hpp"
 #include "DataConnectionManager.hpp"
 #include "DataProfileManager.hpp"
 #include "ServingSystemManager.hpp"
@@ -123,6 +128,17 @@ private:
     std::map<SlotId, std::shared_ptr<SimulaDataConnectionManager>> connection_managers_;
     std::map<SlotId, std::shared_ptr<SimulaDataProfileManager>> profile_managers_;
     std::map<SlotId, std::shared_ptr<SimulaServingSystemManager>> serving_managers_;
+    // All five net-family manager getters are OperationType-scoped except
+    // L2TP, whose SDK getter has no OperationType argument.
+    std::map<telux::data::OperationType,
+             std::shared_ptr<telux::data::net::simula::SimulaVlanManager>> vlan_managers_;
+    std::map<telux::data::OperationType,
+             std::shared_ptr<telux::data::net::simula::SimulaNatManager>> nat_managers_;
+    std::map<telux::data::OperationType,
+             std::shared_ptr<telux::data::net::simula::SimulaSocksManager>> socks_managers_;
+    std::map<telux::data::OperationType,
+             std::shared_ptr<SimulaDataSettingsManager>> settings_managers_;
+    std::shared_ptr<telux::data::net::simula::SimulaL2tpManager> l2tp_manager_;
 };
 
 }  // namespace telux::data::simula

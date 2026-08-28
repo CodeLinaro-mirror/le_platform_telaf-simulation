@@ -161,6 +161,26 @@ applyAddrInfo(SimulaDataCall& call, const nlohmann::json& data, telux::data::Dat
     }
 }
 
+// Returns true if `data`'s ipv4/ipv6 address blocks differ from what the call
+// currently holds. Used to tell a bare RAT-change re-publish (identical
+// addresses, only bearer_tech moved) from a genuine mid-call address change
+// such as a DNS update driven by the `data.force_dns` test action.
+bool
+addrInfoDiffers(SimulaDataCall& call, const nlohmann::json& data)
+{
+    auto differs = [](const nlohmann::json& a, const telux::data::IpAddrInfo& cur) {
+        return a.value("if_address", std::string()) != cur.ifAddress
+            || a.value("gw_address", std::string()) != cur.gwAddress
+            || a.value("primary_dns_address", std::string()) != cur.primaryDnsAddress
+            || a.value("secondary_dns_address", std::string()) != cur.secondaryDnsAddress;
+    };
+    if (data.contains("ipv4") && differs(data["ipv4"], call.getIpv4Info().addr))
+        return true;
+    if (data.contains("ipv6") && differs(data["ipv6"], call.getIpv6Info().addr))
+        return true;
+    return false;
+}
+
 struct RpcResultPld
 {
     std::optional<Envelope> rsp;
@@ -855,6 +875,20 @@ Connected_St(chart::Hsm* h, chart::Event const* e)
                         self->call_->setBearerTech(
                           wireToBearerTech(pld->env.data->value("bearer_tech", std::string()))
                         );
+                    // ...but a repeat CONNECTED can also carry genuinely new
+                    // addresses -- MPSS's `data.force_dns` action re-publishes
+                    // CONNECTED with new DNS to simulate taf_net_SetDNS.
+                    // CONNECTED (not RECONFIGURED) is deliberate on the MPSS
+                    // side: DCS maps RECONFIGURED to TAF_DCS_DISCONNECTED and
+                    // would call ResetIPv4Addresses(), wiping the DNS instead
+                    // of storing it (see _apply_force_dns in connection.py).
+                    // Only re-apply + notify when something actually changed,
+                    // so a bare RAT-change re-publish stays a no-op here.
+                    if (addrInfoDiffers(*self->call_, *pld->env.data))
+                    {
+                        applyAddrInfo(*self->call_, *pld->env.data, status);
+                        self->notifyListeners_(self->call_);
+                    }
                     return chart::Status::HANDLED;
                 case telux::data::DataCallStatus::NET_NO_NET:
                     self->call_->setStatus(status);
@@ -1170,7 +1204,7 @@ SimulaDataConnectionManager::SimulaDataConnectionManager(
     : chart::ActiveObject("DataConnectionManager")
     , bridge_(bridge)
     , slotId_(slotId)
-    , init_cb_(std::move(initCb))
+    , init_gate_(std::move(initCb))
 {}
 
 SimulaDataConnectionManager::~SimulaDataConnectionManager()
@@ -1207,6 +1241,12 @@ SimulaDataConnectionManager::unsubscribeFromBridge_()
     bridge_.unsubscribe_connectivity(conn_token_);
     conn_token_ = 0;
     bridge_.drain();
+}
+
+void
+SimulaDataConnectionManager::addInitCallback(telux::common::InitResponseCb cb)
+{
+    init_gate_.add(std::move(cb));
 }
 
 void
@@ -1692,13 +1732,8 @@ Ready_St(chart::Hsm* h, chart::Event const* e)
         {
             LOG_INFO("[DataConnectionManager] -> Ready");
             self->publishStatus_(telux::common::ServiceStatus::SERVICE_AVAILABLE);
-            if (!self->init_cb_fired_)
-            {
-                self->init_cb_fired_ = true;
-                if (self->init_cb_)
-                    self->init_cb_(telux::common::ServiceStatus::SERVICE_AVAILABLE);
-            }
-            else
+            if (!self->init_gate_.markReadyAndFire(
+                  telux::common::ServiceStatus::SERVICE_AVAILABLE))
             {
                 self->broadcastToListeners_(
                   telux::data::DataConnectionIndicationsType::DEFAULT,

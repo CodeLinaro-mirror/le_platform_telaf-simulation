@@ -1,0 +1,124 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# net_l2tp domain registry -- PA<->MPSS wire contract for the L2TP family of
+# telaf/interfaces/taf_net.api (telux::data::net::IL2tpManager).
+#
+# MPSS owns the tunnel/session tables and the system-level L2TP config
+# (enable/MSS/MTU) because they are modem ground truth (World State invariant
+# (d)). The PA caches none of it: requestConfig is answered from
+# request_l2tp_config, which is also what backs the whole
+# taf_net_GetFirstTunnelEntry / GetNextTunnelEntry / GetTunnelLocalId /
+# GetTunnelPeerId / GetTunnelProtocol / GetFirstSessionEntry / ... accessor
+# family -- those iterate the list tafNetSvc already holds after one
+# round-trip, so they need no wire contract of their own.
+
+domain: net_l2tp
+
+rpcs:
+  - method: set_l2tp_config
+    req_topic: "mp/req/net_l2tp/set_l2tp_config"
+    rsp_topic: "mp/rsp/net_l2tp/set_l2tp_config"
+    req_payload: schemas/net_l2tp/set_l2tp_config_req.json
+    rsp_payload: schemas/net_l2tp/set_l2tp_config_rsp.json
+    qos: 1
+    description: >-
+      Enable/disable L2TP and its MSS-clamping / MTU-setting options. Backs
+      taf_net_SetL2tpConfig and IL2tpManager::setConfig. mtuSize 0 means
+      "use the platform default (1422)", which is the SDK's documented
+      behaviour for an unset size, so it is forwarded as-is rather than
+      being resolved PA-side.
+
+  - method: request_l2tp_config
+    req_topic: "mp/req/net_l2tp/request_l2tp_config"
+    rsp_topic: "mp/rsp/net_l2tp/request_l2tp_config"
+    req_payload: schemas/net_l2tp/request_l2tp_config_req.json
+    rsp_payload: schemas/net_l2tp/request_l2tp_config_rsp.json
+    qos: 1
+    description: >-
+      Return the whole L2TP system config: the enableMtu/enableTcpMss/mtuSize
+      flags plus every tunnel and its sessions. Backs
+      IL2tpManager::requestConfig and, through it, taf_net's tunnel/session
+      accessor family.
+
+  - method: add_tunnel
+    req_topic: "mp/req/net_l2tp/add_tunnel"
+    rsp_topic: "mp/rsp/net_l2tp/add_tunnel"
+    req_payload: schemas/net_l2tp/add_tunnel_req.json
+    rsp_payload: schemas/net_l2tp/add_tunnel_rsp.json
+    qos: 1
+    description: >-
+      Create one L2TP tunnel, optionally with its initial sessions. Backs
+      taf_net_AddL2tpTunnel and IL2tpManager::addTunnel.
+
+  - method: remove_tunnel
+    req_topic: "mp/req/net_l2tp/remove_tunnel"
+    rsp_topic: "mp/rsp/net_l2tp/remove_tunnel"
+    req_payload: schemas/net_l2tp/remove_tunnel_req.json
+    rsp_payload: schemas/net_l2tp/remove_tunnel_rsp.json
+    qos: 1
+    description: >-
+      Remove a tunnel by local id. Backs taf_net_RemoveL2tpTunnel and
+      IL2tpManager::removeTunnel. Removing a tunnel also drops its sessions
+      and any session-to-backhaul bindings, so a stale binding can't outlive
+      the tunnel it referred to.
+
+  - method: add_session
+    req_topic: "mp/req/net_l2tp/add_session"
+    rsp_topic: "mp/rsp/net_l2tp/add_session"
+    req_payload: schemas/net_l2tp/add_session_req.json
+    rsp_payload: schemas/net_l2tp/add_session_rsp.json
+    qos: 1
+    description: >-
+      Add one session to an existing tunnel without disturbing the tunnel's
+      other sessions. Backs IL2tpManager::addSession.
+
+  - method: remove_session
+    req_topic: "mp/req/net_l2tp/remove_session"
+    rsp_topic: "mp/rsp/net_l2tp/remove_session"
+    req_payload: schemas/net_l2tp/remove_session_req.json
+    rsp_payload: schemas/net_l2tp/remove_session_rsp.json
+    qos: 1
+    description: >-
+      Remove one session from a tunnel. Backs IL2tpManager::removeSession.
+
+  - method: bind_session
+    req_topic: "mp/req/net_l2tp/bind_session"
+    rsp_topic: "mp/rsp/net_l2tp/bind_session"
+    req_payload: schemas/net_l2tp/bind_session_req.json
+    rsp_payload: schemas/net_l2tp/bind_session_rsp.json
+    qos: 1
+    description: >-
+      Bind an L2TP session (by local id) to a backhaul. Backs
+      IL2tpManager::bindSessionToBackhaul.
+
+  - method: unbind_session
+    req_topic: "mp/req/net_l2tp/unbind_session"
+    rsp_topic: "mp/rsp/net_l2tp/unbind_session"
+    req_payload: schemas/net_l2tp/unbind_session_req.json
+    rsp_payload: schemas/net_l2tp/unbind_session_rsp.json
+    qos: 1
+    description: >-
+      Unbind an L2TP session from a backhaul. Backs
+      IL2tpManager::unbindSessionFromBackhaul.
+
+  - method: query_session_bindings
+    req_topic: "mp/req/net_l2tp/query_session_bindings"
+    rsp_topic: "mp/rsp/net_l2tp/query_session_bindings"
+    req_payload: schemas/net_l2tp/query_session_bindings_req.json
+    rsp_payload: schemas/net_l2tp/query_session_bindings_rsp.json
+    qos: 1
+    description: >-
+      List session-to-backhaul bindings, optionally filtered by backhaul
+      type. Backs IL2tpManager::querySessionToBackhaulBindings.
+
+indications:
+  - event: subsys_ready_net_l2tp
+    ind_topic: "mp/ind/net_l2tp/subsys_ready"
+    payload: schemas/net_l2tp/subsys_ready_net_l2tp_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      Retained L2TP-subsystem readiness, gating SimulaL2tpManager's
+      NotReady/Ready shell. IL2tpListener has no event beyond
+      onServiceStatusChange, so this is the family's only indication.

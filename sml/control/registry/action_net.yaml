@@ -1,0 +1,77 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Net-domain ctrl/cmd/action/net/** registry (Sim-Test-Contract-Spec.md
+# A5.2). Actions inject network/platform-side changes that MPSS itself would
+# normally drive and for which no AP-facing RPC exists -- there is no
+# "the platform turned hardware acceleration off" request, so this is the
+# test-only entry point for exercising that side of the net domain's
+# indications (mp/ind/net_vlan/hw_accel_state).
+#
+# Scope note: VLAN is the first net family implemented; L2TP/NAT/SOCKS/
+# settings actions land alongside their own registries as those families are
+# added (see sml/mpss/net/__init__.py for the tiering rationale).
+
+kind: action
+domain: net
+
+actions:
+  - method: force_vlan_hw_accel
+    req_topic: "ctrl/cmd/action/net/force_vlan_hw_accel"
+    req_payload: schemas/action_net/force_vlan_hw_accel_req.json
+    qos: 1
+    description: >-
+      Force the VLAN hardware-acceleration service state, re-publishing
+      mp/ind/net_vlan/hw_accel_state so the PA drives
+      IVlanListener::onHwAccelerationChanged and, through it, taf_net's
+      VlanHwAccelerationState EVENT.
+
+      Deliberately distinct from data.force_hw_accel: the real SDK exposes
+      hardware-acceleration changes as callbacks on two different managers
+      (IVlanListener and IDataConnectionListener), so a VLAN listener must
+      not be woken by a data-domain event.
+
+  - method: force_wwan_connectivity
+    req_topic: "ctrl/cmd/action/net/force_wwan_connectivity"
+    req_payload: schemas/action_net/force_wwan_connectivity_req.json
+    qos: 1
+    description: >-
+      Force WWAN connectivity permission for a slot, re-publishing
+      mp/ind/net_settings/wwan_connectivity_changed so the PA drives
+      IDataSettingsListener::onWwanConnectivityConfigChange. Models a
+      platform/policy-side change the AP did not request -- the AP-initiated
+      path is the set_wwan_connectivity RPC.
+
+  - method: force_dds
+    req_topic: "ctrl/cmd/action/net/force_dds"
+    req_payload: schemas/action_net/force_dds_req.json
+    qos: 1
+    description: >-
+      Force the current DDS slot/type, re-publishing
+      mp/ind/net_settings/dds_changed so the PA drives
+      IDataSettingsListener::onDdsChange. Models a network-initiated DDS
+      switch, which has no AP-facing request.
+
+  - method: force_ippt_config
+    req_topic: "ctrl/cmd/action/net/force_ippt_config"
+    req_payload: schemas/action_net/force_ippt_config_req.json
+    qos: 1
+    description: >-
+      Set IP-passthrough ground truth and re-publish the retained
+      mp/ind/net_settings/ippt_config_sync mirror.
+
+      This is an action rather than an RPC because the SDK methods it backs
+      (setIpPassThroughConfig / getIpPassThroughConfig /
+      setIpPassThroughNatConfig / getIpPassThroughNatConfig) return
+      telux::common::ErrorCode synchronously and so cannot block on a
+      request/response round-trip. It doubles as the PA's write-through path
+      and as the test entry point for seeding IPPT state.
+
+  - method: force_ip_config
+    req_topic: "ctrl/cmd/action/net/force_ip_config"
+    req_payload: schemas/action_net/force_ip_config_req.json
+    qos: 1
+    description: >-
+      Set per-interface IP-config ground truth and re-publish the retained
+      mp/ind/net_settings/ip_config_sync mirror. Same synchronous-API
+      rationale as force_ippt_config (setIpConfig / getIpConfig).

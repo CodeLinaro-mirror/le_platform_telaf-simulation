@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.hw_accel_state.ind",
+  "title": "VLAN Hardware Acceleration State Indication",
+  "description": "Drives IVlanListener::onHwAccelerationChanged. Deliberately a separate topic from data.hw_accel_state.ind: the real SDK exposes these as callbacks on two different managers, so a VLAN listener must not be woken by a data-domain event.",
+  "type": "object",
+  "required": ["state"],
+  "properties": {
+    "state": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.set_macsec_state.req",
+  "title": "Set MacSec State Request",
+  "type": "object",
+  "required": [
+    "enable"
+  ],
+  "properties": {
+    "enable": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

@@ -63,6 +63,10 @@ apps:
     $TELAF_ROOT/apps/tafServices/tafDevInfoSvc
 #endif
 
+#if ${TELAF_SIMULATION_ENABLE_NET} = y
+    $TELAF_ROOT/apps/tafServices/tafNetSvc
+#endif
+
 #if ${TELAF_SIMULATION_ENABLE_RADIO} = y
     $TELAF_ROOT/apps/tafServices/tafRadioSvc
 #endif
@@ -74,6 +78,8 @@ apps:
     // $TELAF_ROOT/apps/test/tafDataCallTest/tafDataCallUnitTest/tafDataCallUnitTest
     // $TELAF_ROOT/apps/test/tafSimTest/tafSimUnitTest/tafSimUnitTest
     // $TELAF_ROOT/apps/test/tafSimTest/tafSimIntegrationTest/tafSimIntTest
+    // $TELAF_ROOT/apps/test/tafNetTest/tafNetIntTest/tafNetIntTest
+    // $TELAF_ROOT/apps/test/tafNetTest/tafNetUnitTest/tafNetUnitTest
     // $TELAF_ROOT/apps/test/tafLocationTest/tafLocationUnitTest/tafLocationUnitTest
     // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdConnUnitTest/tafMngdConnUnitTest
     // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdConnIntTest/tafMngdConnIntTest

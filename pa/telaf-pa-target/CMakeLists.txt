@@ -40,6 +40,7 @@ set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 set(CMAKE_INSTALL_RPATH "$ORIGIN:")
 
 # Only build the components that the simulation currently needs.
+# taf_pa_net links telux_data, so it must come after telaf-pa-simula.
 set(MODULE_LIST
     component/taf_pa_common
     component/taf_pa_deviceinfo
@@ -47,6 +48,7 @@ set(MODULE_LIST
     component/taf_pa_sim
 	component/taf_pa_radio
     component/taf_pa_pms
+    component/taf_pa_net
 )
 
 foreach(module ${MODULE_LIST})

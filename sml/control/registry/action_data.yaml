@@ -86,3 +86,25 @@ actions:
       Force the APN throttle status for a profile, publishing
       mp/ind/data/throttle_status and updating what request_throttle_status
       returns.
+
+  - method: force_dns
+    req_topic: "ctrl/cmd/action/data/force_dns"
+    req_payload: schemas/action_data/force_dns_req.json
+    qos: 1
+    description: >-
+      Force the DNS server addresses handed out by an active data call,
+      re-publishing mp/ind/data/call_state so the PA re-applies the new
+      addresses to its IpFamilyInfo and forwards them up to the DCS profile
+      cache.
+
+      This is the network-side entry point for simulating taf_net_SetDNS:
+      that API takes no DNS values of its own -- it reads them out of the
+      DCS profile (taf_dcs_GetIPv4DNSAddresses/GetIPv6DNSAddresses) for the
+      profile bound to the interface name, and the only thing that refreshes
+      that cache is a data-call event. Values omitted from the payload keep
+      whatever the call currently carries.
+
+      The re-published status stays CONNECTED rather than RECONFIGURED:
+      TafDcsUtils::ConvertDataCallStatus has no RECONFIGURED case and falls
+      through to TAF_DCS_DISCONNECTED, which would make DCS call
+      ResetIPv4Addresses() and clear the DNS instead of storing it.

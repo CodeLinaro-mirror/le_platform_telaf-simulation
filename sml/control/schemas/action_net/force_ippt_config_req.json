@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.net.force_ippt_config.req",
+  "title": "Force IP Passthrough Config",
+  "description": "Sets IPPT ground truth on MPSS and re-publishes the retained mp/ind/net_settings/ippt_config_sync mirror. Entries are upserted (keyed on profileId+vlanId+slot), not replaced wholesale, so a single-entry write does not clear the rest of the table. natEnabled is optional so NAT can be toggled without restating entries.",
+  "type": "object",
+  "properties": {
+    "natEnabled": { "type": "boolean" },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["profileId", "vlanId", "slot", "ipptOpr"],
+        "properties": {
+          "profileId": { "type": "integer" },
+          "vlanId": { "type": "integer" },
+          "slot": { "type": "integer", "minimum": 0 },
+          "ipptOpr": { "type": "string", "enum": ["UNKNOWN", "DISABLE", "ENABLE"] },
+          "nwInterface": {
+            "type": "string",
+            "enum": ["UNKNOWN", "WLAN", "ETH", "ECM", "RNDIS", "MHI", "VMTAP0",
+                     "VMTAP1", "ETH2", "AP_PRIMARY", "AP_SECONDARY",
+                     "AP_TERTIARY", "AP_QUATERNARY"]
+          },
+          "macAddr": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

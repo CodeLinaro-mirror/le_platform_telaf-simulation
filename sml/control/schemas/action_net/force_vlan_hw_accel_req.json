@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.net.force_vlan_hw_accel.req",
+  "title": "Force VLAN Hardware Acceleration State",
+  "description": "Publishes mp/ind/net_vlan/hw_accel_state so the PA drives IVlanListener::onHwAccelerationChanged. Mirrors telux::data::ServiceState (ACTIVE/INACTIVE).",
+  "type": "object",
+  "required": ["state"],
+  "properties": {
+    "state": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] }
+  },
+  "additionalProperties": false
+}

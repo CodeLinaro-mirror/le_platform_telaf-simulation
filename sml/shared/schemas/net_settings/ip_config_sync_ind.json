@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.ip_config_sync.ind",
+  "title": "IP Config Sync Indication",
+  "description": "Retained mirror of per-interface IP config, for the same synchronous-API reason as ippt_config_sync (setIpConfig/getIpConfig return ErrorCode directly). gwMask is omitted: the SDK documents it as not required here.",
+  "type": "object",
+  "required": [
+    "entries"
+  ],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "ifType",
+          "ipFamily",
+          "ipType",
+          "ipOpr"
+        ],
+        "properties": {
+          "ifType": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "WLAN",
+              "ETH",
+              "ECM",
+              "RNDIS",
+              "MHI",
+              "VMTAP0",
+              "VMTAP1",
+              "ETH2",
+              "AP_PRIMARY",
+              "AP_SECONDARY",
+              "AP_TERTIARY",
+              "AP_QUATERNARY"
+            ]
+          },
+          "ipFamily": {
+            "type": "string",
+            "enum": [
+              "IPV4",
+              "IPV6",
+              "IPV4V6",
+              "UNKNOWN"
+            ]
+          },
+          "vlanId": {
+            "type": "integer"
+          },
+          "ipType": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "STATIC_IP",
+              "DYNAMIC_IP"
+            ]
+          },
+          "ipOpr": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "DISABLE",
+              "ENABLE",
+              "RECONFIGURE"
+            ]
+          },
+          "ifAddress": {
+            "type": "string"
+          },
+          "ifMask": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "gwAddress": {
+            "type": "string"
+          },
+          "primaryDnsAddress": {
+            "type": "string"
+          },
+          "secondaryDnsAddress": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

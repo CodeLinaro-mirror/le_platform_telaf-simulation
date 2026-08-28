@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.remove_vlan.rsp",
+  "title": "Remove VLAN Response",
+  "description": "Empty on success; failures travel in the envelope's error object, per the shared envelope contract.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

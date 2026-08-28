@@ -68,6 +68,7 @@ class DataActionDispatcher:
             "data.force_qos": lambda p: self._connection_ao.force_qos(p),
             "data.force_hw_accel": lambda p: self._connection_ao.force_hw_accel(p),
             "data.force_throttle": lambda p: self._connection_ao.force_throttle(p),
+            "data.force_dns": lambda p: self._connection_ao.force_dns(p),
         }
 
     def start(self, subscribe_fn: Callable, unsubscribe_fn: Callable | None = None) -> None:

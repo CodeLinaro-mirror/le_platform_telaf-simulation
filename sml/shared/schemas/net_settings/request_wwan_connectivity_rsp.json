@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.request_wwan_connectivity.rsp",
+  "title": "Request WWAN Connectivity Response",
+  "type": "object",
+  "required": [
+    "slot",
+    "isAllowed"
+  ],
+  "properties": {
+    "slot": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "isAllowed": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

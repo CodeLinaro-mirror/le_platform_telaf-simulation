@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.switch_backhaul.req",
+  "title": "Switch Backhaul Request",
+  "type": "object",
+  "required": [
+    "source",
+    "dest"
+  ],
+  "properties": {
+    "source": {
+      "type": "object",
+      "required": [
+        "backhaul"
+      ],
+      "properties": {
+        "backhaul": {
+          "type": "string",
+          "enum": [
+            "ETH",
+            "USB",
+            "WLAN",
+            "WWAN",
+            "BLE"
+          ]
+        },
+        "slot": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "profileId": {
+          "type": "integer"
+        },
+        "bhVlanId": {
+          "type": "integer",
+          "description": "Set only when the backhaul is itself a VLAN; mirrors BackhaulInfo::vlanId."
+        }
+      },
+      "additionalProperties": false
+    },
+    "dest": {
+      "type": "object",
+      "required": [
+        "backhaul"
+      ],
+      "properties": {
+        "backhaul": {
+          "type": "string",
+          "enum": [
+            "ETH",
+            "USB",
+            "WLAN",
+            "WWAN",
+            "BLE"
+          ]
+        },
+        "slot": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "profileId": {
+          "type": "integer"
+        },
+        "bhVlanId": {
+          "type": "integer",
+          "description": "Set only when the backhaul is itself a VLAN; mirrors BackhaulInfo::vlanId."
+        }
+      },
+      "additionalProperties": false
+    },
+    "applyToAll": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.subsys_ready_net_settings.ind",
+  "title": "Data Settings Subsystem Ready Indication",
+  "description": "Retained. FAILED is distinguished from UNAVAILABLE because the manager maps it to ServiceStatus::SERVICE_FAILED.",
+  "type": "object",
+  "required": [
+    "ready",
+    "status"
+  ],
+  "properties": {
+    "ready": {
+      "type": "boolean"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "AVAILABLE",
+        "UNAVAILABLE",
+        "FAILED"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

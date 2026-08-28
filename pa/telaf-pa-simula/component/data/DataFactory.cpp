@@ -32,14 +32,12 @@ SimulaDataFactory::getDataConnectionManager(SlotId slotId, telux::common::InitRe
     if (it != connection_managers_.end())
     {
         LOG_DEBUG("[DataFactory] getDataConnectionManager slot=%d already exists -- returning cached instance", static_cast<int>(slotId));
-        // Manager already exists and boots asynchronously; a second caller
-        // asking for the same slot doesn't get its own InitResponseCb fired
-        // (mirrors the real SDK's factory-getter contract: InitResponseCb
-        // fires once per underlying subsystem becoming ready, not once per
-        // caller) -- if it's already Ready, report that synchronously so
-        // the caller isn't left hanging forever.
-        if (clientCallback && it->second->isSubsystemReady())
-            clientCallback(telux::common::ServiceStatus::SERVICE_AVAILABLE);
+        // Manager already exists and boots asynchronously. Register the
+        // caller's InitResponseCb on the live manager rather than dropping it:
+        // a caller that re-fetches an existing manager to supply a callback
+        // (the pattern the net PA uses -- see getNatManager) must still be
+        // notified. The gate invokes it immediately if already Ready.
+        it->second->addInitCallback(std::move(clientCallback));
         return it->second;
     }
     auto mgr =
@@ -57,8 +55,7 @@ SimulaDataFactory::getDataProfileManager(SlotId slotId, telux::common::InitRespo
     if (it != profile_managers_.end())
     {
         LOG_DEBUG("[DataFactory] getDataProfileManager slot=%d already exists -- returning cached instance", static_cast<int>(slotId));
-        if (clientCallback && it->second->isSubsystemReady())
-            clientCallback(telux::common::ServiceStatus::SERVICE_AVAILABLE);
+        it->second->addInitCallback(std::move(clientCallback));
         return it->second;
     }
     auto mgr =
@@ -76,8 +73,7 @@ SimulaDataFactory::getServingSystemManager(SlotId slotId, telux::common::InitRes
     if (it != serving_managers_.end())
     {
         LOG_DEBUG("[DataFactory] getServingSystemManager slot=%d already exists -- returning cached instance", static_cast<int>(slotId));
-        if (clientCallback && it->second->getServiceStatus() == telux::common::ServiceStatus::SERVICE_AVAILABLE)
-            clientCallback(telux::common::ServiceStatus::SERVICE_AVAILABLE);
+        it->second->addInitCallback(std::move(clientCallback));
         return it->second;
     }
     auto mgr =
@@ -97,9 +93,29 @@ SimulaDataFactory::getDataFilterManager(SlotId, telux::common::InitResponseCb)
 }
 
 std::shared_ptr<telux::data::net::INatManager>
-SimulaDataFactory::getNatManager(telux::data::OperationType, telux::common::InitResponseCb)
+SimulaDataFactory::getNatManager(
+  telux::data::OperationType opType, telux::common::InitResponseCb clientCallback
+)
 {
-    return nullptr;
+    std::lock_guard<std::mutex> lk(mutex_);
+    auto it = nat_managers_.find(opType);
+    if (it != nat_managers_.end())
+    {
+        // Existing manager: the target PA calls this getter a second time with
+        // the callback that backs its 30s promise wait (see
+        // telaf-pa/component/taf_pa_net/tafNatPa.cpp initialize()), so the
+        // callback must be registered on the live manager -- dropping it here
+        // is what stranded the PA until PA_TIMEOUT. The gate fires it
+        // immediately if readiness has already been reported.
+        it->second->addInitCallback(std::move(clientCallback));
+        return it->second;
+    }
+    auto mgr = std::make_shared<telux::data::net::simula::SimulaNatManager>(
+      opType, bridge_, std::move(clientCallback)
+    );
+    nat_managers_.emplace(opType, mgr);
+    mgr->start();
+    return mgr;
 }
 
 std::shared_ptr<telux::data::net::IFirewallManager>
@@ -125,15 +141,46 @@ SimulaDataFactory::getNewIpFilter(telux::data::IpProtocol)
 }
 
 std::shared_ptr<telux::data::net::IVlanManager>
-SimulaDataFactory::getVlanManager(telux::data::OperationType, telux::common::InitResponseCb)
+SimulaDataFactory::getVlanManager(
+  telux::data::OperationType opType, telux::common::InitResponseCb clientCallback
+)
 {
-    return nullptr;
+    std::lock_guard<std::mutex> lk(mutex_);
+    auto it = vlan_managers_.find(opType);
+    if (it != vlan_managers_.end())
+    {
+        // See getNatManager: the second getter call carries the callback the
+        // PA actually waits on, so hand it to the live manager's gate.
+        it->second->addInitCallback(std::move(clientCallback));
+        return it->second;
+    }
+    auto mgr = std::make_shared<telux::data::net::simula::SimulaVlanManager>(
+      opType, bridge_, std::move(clientCallback)
+    );
+    vlan_managers_.emplace(opType, mgr);
+    mgr->start();
+    return mgr;
 }
 
 std::shared_ptr<telux::data::net::ISocksManager>
-SimulaDataFactory::getSocksManager(telux::data::OperationType, telux::common::InitResponseCb)
+SimulaDataFactory::getSocksManager(
+  telux::data::OperationType opType, telux::common::InitResponseCb clientCallback
+)
 {
-    return nullptr;
+    std::lock_guard<std::mutex> lk(mutex_);
+    auto it = socks_managers_.find(opType);
+    if (it != socks_managers_.end())
+    {
+        // See getNatManager.
+        it->second->addInitCallback(std::move(clientCallback));
+        return it->second;
+    }
+    auto mgr = std::make_shared<telux::data::net::simula::SimulaSocksManager>(
+      opType, bridge_, std::move(clientCallback)
+    );
+    socks_managers_.emplace(opType, mgr);
+    mgr->start();
+    return mgr;
 }
 
 std::shared_ptr<telux::data::net::IBridgeManager>
@@ -143,15 +190,44 @@ SimulaDataFactory::getBridgeManager(telux::common::InitResponseCb)
 }
 
 std::shared_ptr<telux::data::net::IL2tpManager>
-SimulaDataFactory::getL2tpManager(telux::common::InitResponseCb)
+SimulaDataFactory::getL2tpManager(telux::common::InitResponseCb clientCallback)
 {
-    return nullptr;
+    std::lock_guard<std::mutex> lk(mutex_);
+    if (l2tp_manager_)
+    {
+        // See getNatManager. tafL2tpPa.cpp returns PA_FAULT (-6) on timeout
+        // rather than PA_TIMEOUT, which is why L2TP logged a different code
+        // for the same underlying cause.
+        l2tp_manager_->addInitCallback(std::move(clientCallback));
+        return l2tp_manager_;
+    }
+    l2tp_manager_ = std::make_shared<telux::data::net::simula::SimulaL2tpManager>(
+      bridge_, std::move(clientCallback)
+    );
+    l2tp_manager_->start();
+    return l2tp_manager_;
 }
 
 std::shared_ptr<telux::data::IDataSettingsManager>
-SimulaDataFactory::getDataSettingsManager(telux::data::OperationType, telux::common::InitResponseCb)
+SimulaDataFactory::getDataSettingsManager(
+  telux::data::OperationType opType, telux::common::InitResponseCb clientCallback
+)
 {
-    return nullptr;
+    std::lock_guard<std::mutex> lk(mutex_);
+    auto it = settings_managers_.find(opType);
+    if (it != settings_managers_.end())
+    {
+        // See getNatManager. tafVlanPa.cpp's initialize() waits on this one
+        // too, after the VLAN manager comes up.
+        it->second->addInitCallback(std::move(clientCallback));
+        return it->second;
+    }
+    auto mgr = std::make_shared<SimulaDataSettingsManager>(
+      opType, bridge_, std::move(clientCallback)
+    );
+    settings_managers_.emplace(opType, mgr);
+    mgr->start();
+    return mgr;
 }
 
 std::shared_ptr<telux::data::IClientManager>

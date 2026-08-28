@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.create_vlan.rsp",
+  "title": "Create VLAN Response",
+  "description": "isAccelerated is the offload status the modem actually applied. CreateVlanCb reports it separately from the requested flag because a platform may refuse acceleration yet still create the VLAN.",
+  "type": "object",
+  "required": ["isAccelerated"],
+  "properties": {
+    "isAccelerated": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

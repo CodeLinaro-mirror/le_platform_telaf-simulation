@@ -1,0 +1,35 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# net_socks domain registry -- PA<->MPSS wire contract for the SOCKS-proxy
+# family of telaf/interfaces/taf_net.api (telux::data::net::ISocksManager).
+#
+# Scope note: ISocksManager is by far the smallest of the five net families --
+# it has exactly one operational method (enableSocks). The remaining
+# taf_net SOCKS-shaped entry points are Legato-local: they manipulate
+# tafNetSvc's own auth/association lists in-process and only reach the modem
+# via this single enable/disable toggle, so one RPC covers the family.
+
+domain: net_socks
+
+rpcs:
+  - method: enable_socks
+    req_topic: "mp/req/net_socks/enable_socks"
+    rsp_topic: "mp/rsp/net_socks/enable_socks"
+    req_payload: schemas/net_socks/enable_socks_req.json
+    rsp_payload: schemas/net_socks/enable_socks_rsp.json
+    qos: 1
+    description: >-
+      Enable or disable the SOCKS proxy service. Backs
+      taf_net_EnableSocksProxy and ISocksManager::enableSocks.
+
+indications:
+  - event: subsys_ready_net_socks
+    ind_topic: "mp/ind/net_socks/subsys_ready"
+    payload: schemas/net_socks/subsys_ready_net_socks_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      Retained SOCKS-subsystem readiness, gating SimulaSocksManager's
+      NotReady/Ready shell. ISocksListener has no event beyond
+      onServiceStatusChange, so this is the family's only indication.

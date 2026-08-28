@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.set_wwan_connectivity.req",
+  "title": "Set WWAN Connectivity Request",
+  "type": "object",
+  "required": [
+    "slot",
+    "allow"
+  ],
+  "properties": {
+    "slot": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "allow": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

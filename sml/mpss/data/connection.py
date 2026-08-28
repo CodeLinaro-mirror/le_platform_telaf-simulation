@@ -22,6 +22,7 @@ fifo; no lock around ``_sessions`` (only the AO thread reads or writes).
 """
 from __future__ import annotations
 
+import ipaddress
 import json
 import logging
 import subprocess
@@ -88,6 +89,44 @@ class IfnamePool:
 
     def is_in_use(self, ifname: str) -> bool:
         return ifname in self._in_use
+
+
+def _offset_ip(addr: str, offset: int) -> str:
+    """Shift a v4/v6 address by `offset`, returning it unchanged on any parse
+    failure.
+
+    Real modems put every concurrent PDN on its OWN subnet: each bearer gets a
+    distinct v4 block and its own v6 prefix from the network, so rmnet_data0 and
+    rmnet_data1 never share an address or a gateway. The simulator seeds a
+    single ip_preset, so without an offset every session would report identical
+    addresses -- which is why `SetDefaultGW` on the second interface failed with
+    "No route to host"/"Network is unreachable": the gateway was on
+    rmnet_data0's subnet, not the interface it was being applied to.
+
+    See V4_SUBNET_STRIDE / V6_SUBNET_STRIDE for the per-family step.
+    """
+    try:
+        return str(ipaddress.ip_address(addr) + offset)
+    except ValueError:
+        return addr
+
+
+# Per-bearer subnet stride. v4 advances one /24 (256 hosts) per bearer:
+# 10.0.0.x -> 10.0.1.x -> 10.0.2.x. v6 must advance a whole /64 -- stepping by
+# 1 would leave every bearer inside 2001:db8::/64, so the gateway of bearer N
+# would be on-link for bearer 0's prefix and the kernel would reject
+# SIOCADDRT with EINVAL ("Invalid argument"). 2**64 gives
+# 2001:db8::/64 -> 2001:db8:0:1::/64 -> 2001:db8:0:2::/64, each with its own
+# on-link gateway, exactly as a real network delegates prefixes.
+V4_SUBNET_STRIDE = 256
+V6_SUBNET_STRIDE = 1 << 64
+
+# Synthetic link-layer address pinned for every simulated bearer gateway. A
+# dummy link has no peer to answer ARP/NS, so without a permanent neighbour
+# entry the gateway stays INCOMPLETE and routes through it are unusable. The
+# value is arbitrary but must be a locally-administered unicast MAC (second
+# nibble 2) so it can never collide with real hardware.
+_GW_LLADDR = "02:00:00:00:00:01"
 
 
 # ---------------------------------------------------------------------------
@@ -460,6 +499,9 @@ class DataConnectionAO(ActiveObject):
     def force_throttle(self, data: dict) -> None:
         self.post_fifo(Event(signal=signals.ForceThrottle, payload=data))
 
+    def force_dns(self, data: dict) -> None:
+        self.post_fifo(Event(signal=signals.ForceDns, payload=data))
+
     def on_network_rat_changed(self, network_rat: str) -> None:
         self.post_fifo(Event(signal=signals.NetworkRatChanged, payload=network_rat))
 
@@ -789,6 +831,72 @@ class DataConnectionAO(ActiveObject):
             session.update_bearer_tech(bearer_tech)
             self._publish_call_state(session)
 
+    def _apply_force_dns(self, data: dict) -> None:
+        """Re-write DNS on an active call and re-publish RECONFIGURED.
+
+        Backs ``taf_net_SetDNS`` simulation. That API carries no DNS values of
+        its own -- it reads them from the DCS profile cache
+        (``taf_dcs_GetIPv4DNSAddresses``/``GetIPv6DNSAddresses``) for the
+        profile bound to an interface name, and the only thing that refreshes
+        that cache is a data-call event. So "change the DNS the modem handed
+        out" is expressed as a call_state re-publish, not an RPC.
+
+        Status stays ``CONNECTED`` rather than ``RECONFIGURED``, which looks
+        like the natural choice but is actively wrong here: DCS's
+        ``TafDcsUtils::ConvertDataCallStatus`` has no RECONFIGURED case, so it
+        falls through to ``TAF_DCS_DISCONNECTED`` (tafDcsUtils.cpp:225), and
+        ``paSessionStateChangeEvtHandler`` then takes the
+        ``TAF_DCS_DISCONNECTED == ipv4ConnState`` branch and calls
+        ``ResetIPv4Addresses()`` -- clearing the very DNS we just set, making
+        SetDNS return LE_NOT_FOUND. CONNECTED maps cleanly to
+        ``TAF_DCS_CONNECTED`` and drives ``SetIPv4Addresses(new DNS)``.
+
+        The PA counterpart (``Connected_St``'s NET_CONNECTED case) re-applies
+        ``applyAddrInfo`` when the address block differs, so a repeat CONNECTED
+        carrying new DNS propagates instead of being ignored as a bare
+        RAT-change re-stamp.
+        """
+        profile_id = data["profileId"]
+        session = self._sessions.get(profile_id)
+        if session is None or session.status != "CONNECTED":
+            _log.warning("force_dns: no CONNECTED session for profileId=%s", profile_id)
+            return
+
+        # Seed update: keys absent from the payload keep their current value.
+        seed_updates = {}
+        for wire_key, seed_key in (
+            ("ipv4PrimaryDns",   "ipv4_dns_primary"),
+            ("ipv4SecondaryDns", "ipv4_dns_secondary"),
+            ("ipv6PrimaryDns",   "ipv6_dns_primary"),
+            ("ipv6SecondaryDns", "ipv6_dns_secondary"),
+        ):
+            if wire_key in data:
+                seed_updates[seed_key] = data[wire_key]
+        if not seed_updates:
+            _log.warning("force_dns: no DNS fields in payload for profileId=%d; ignoring",
+                         profile_id)
+            return
+        self._ip_config = self._ip_config.model_copy(update=seed_updates)
+
+        # Patch the live session's address blocks in place. Only families the
+        # call actually carries are touched -- an IPV4-only call must not
+        # sprout an ipv6 block, or the PA would apply a v6 address to a call
+        # that never had one.
+        if session.ipv4 is not None:
+            if "ipv4PrimaryDns" in data:
+                session.ipv4["primary_dns_address"] = data["ipv4PrimaryDns"]
+            if "ipv4SecondaryDns" in data:
+                session.ipv4["secondary_dns_address"] = data["ipv4SecondaryDns"]
+        if session.ipv6 is not None:
+            if "ipv6PrimaryDns" in data:
+                session.ipv6["primary_dns_address"] = data["ipv6PrimaryDns"]
+            if "ipv6SecondaryDns" in data:
+                session.ipv6["secondary_dns_address"] = data["ipv6SecondaryDns"]
+
+        payload = session.to_data_call_state()
+        self._pub_ind(topics_data.call_state.ind, "data.call_state.ind", payload)
+        _log.info("force_dns applied to profileId=%d (%s)", profile_id, seed_updates)
+
     def _collect_throughput_infos(self) -> list[dict]:
         active_profile_ids = {s.profile_id for s in self._sessions.values() if s.status == "CONNECTED"}
         infos = []
@@ -830,27 +938,37 @@ class DataConnectionAO(ActiveObject):
         self._cancel_scheduled(session.timer_uuid)
         session.timer_uuid = None
         ip_cfg = self._ip_config
+        # Derive this bearer's own subnet. Index is taken from the allocated
+        # ifname suffix (rmnet_data0 -> 0, rmnet_data1 -> 1) rather than a
+        # counter, so an interface reused after a disconnect keeps a stable
+        # address instead of drifting on every reconnect.
+        try:
+            idx = int(session.ifname[len(self._interface_preset.ifname_prefix):])
+        except (ValueError, TypeError):
+            idx = 0
+        v4_off = idx * V4_SUBNET_STRIDE
+        v6_off = idx * V6_SUBNET_STRIDE
         ipv4 = None
         ipv6 = None
         if session.ip_family in ("IPV4", "IPV4V6"):
             ipv4 = {
-                "if_address":           ip_cfg.ipv4_addr,
-                "gw_address":           ip_cfg.ipv4_gateway,
+                "if_address":           _offset_ip(ip_cfg.ipv4_addr, v4_off),
+                "gw_address":           _offset_ip(ip_cfg.ipv4_gateway, v4_off),
                 "primary_dns_address":   ip_cfg.ipv4_dns_primary,
                 "secondary_dns_address": ip_cfg.ipv4_dns_secondary,
                 "subnet_mask":           ip_cfg.ipv4_subnet_mask,
             }
         if session.ip_family in ("IPV6", "IPV4V6"):
             ipv6 = {
-                "if_address":           ip_cfg.ipv6_addr,
-                "gw_address":           ip_cfg.ipv6_gateway,
+                "if_address":           _offset_ip(ip_cfg.ipv6_addr, v6_off),
+                "gw_address":           _offset_ip(ip_cfg.ipv6_gateway, v6_off),
                 "primary_dns_address":   ip_cfg.ipv6_dns_primary,
                 "secondary_dns_address": ip_cfg.ipv6_dns_secondary,
                 "prefix_len":            ip_cfg.ipv6_prefix_len,
             }
         bearer_tech = RAT_TO_BEARER_TECH.get(self._get_network_rat_fn(), "UNKNOWN")
         session.connected(ipv4, ipv6, bearer_tech)
-        self._setup_iface(session.ifname, ip_cfg.ipv4_mtu)
+        self._setup_iface(session.ifname, ip_cfg.ipv4_mtu, ipv4, ipv6)
         self._publish_call_state(session)
         _log.debug("call profileId=%d connected (ifname=%s)", profile_id, session.ifname)
 
@@ -873,15 +991,76 @@ class DataConnectionAO(ActiveObject):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _setup_iface(ifname: str, mtu: int) -> None:
+    def _setup_iface(ifname: str, mtu: int,
+                     ipv4: Optional[dict] = None,
+                     ipv6: Optional[dict] = None) -> None:
+        """Create the dummy iface AND give it this bearer's addresses.
+
+        Assigning the address is what makes the gateway on-link. Previously the
+        iface was created bare, so tafNetSvc's SetDefaultGW ioctl had no route
+        to 10.0.0.254 and failed with "Network is unreachable" / "No route to
+        host". A real rmnet comes up already addressed by the modem, so doing it
+        here matches on-target behaviour.
+
+        IPv6 needs two extra steps that IPv4 does not:
+
+        * ``accept_dad=0`` + ``nodad``. By default the kernel runs Duplicate
+          Address Detection on a new v6 address, which leaves it ``tentative``
+          for a second or so. A route whose gateway resolves through a tentative
+          source address is rejected by ``SIOCADDRT`` with EINVAL -- this is the
+          "Failed to add route/gateway, error:Invalid argument" seen on
+          rmnet_data1. Suppressing DAD makes the address immediately usable,
+          which is correct here: these are point-to-point simulated bearers with
+          no other node on the link to collide with.
+        * a permanent neighbour entry for the gateway. A dummy link has no peer
+          to answer neighbour solicitation, so the gateway would stay
+          INCOMPLETE and the route would be unusable even once added. Real rmnet
+          bearers are point-to-point and never ARP/NS for their gateway, so
+          pinning the entry reproduces on-target behaviour rather than faking it.
+        """
         try:
             subprocess.run(["ip", "link", "add", ifname, "type", "dummy"],
                            check=False, capture_output=True)
             subprocess.run(["ip", "link", "set", ifname, "mtu", str(mtu)],
                            check=False, capture_output=True)
+            # Must precede address assignment to take effect for this address.
+            if ipv6:
+                subprocess.run(
+                    ["sysctl", "-w", f"net.ipv6.conf.{ifname}.accept_dad=0"],
+                    check=False, capture_output=True)
             subprocess.run(["ip", "link", "set", ifname, "up"],
                            check=False, capture_output=True)
-            _log.debug("dummy iface %s created mtu=%d", ifname, mtu)
+            if ipv4:
+                mask = ipv4.get("subnet_mask", "255.255.255.0")
+                try:
+                    prefix = ipaddress.IPv4Network(f"0.0.0.0/{mask}").prefixlen
+                except ValueError:
+                    prefix = 24
+                subprocess.run(
+                    ["ip", "-4", "addr", "add",
+                     f"{ipv4['if_address']}/{prefix}", "dev", ifname],
+                    check=False, capture_output=True)
+                gw4 = ipv4.get("gw_address")
+                if gw4:
+                    subprocess.run(
+                        ["ip", "-4", "neigh", "replace", gw4, "lladdr",
+                         _GW_LLADDR, "nud", "permanent", "dev", ifname],
+                        check=False, capture_output=True)
+            if ipv6:
+                subprocess.run(
+                    ["ip", "-6", "addr", "add",
+                     f"{ipv6['if_address']}/{ipv6.get('prefix_len', 64)}",
+                     "dev", ifname, "nodad"],
+                    check=False, capture_output=True)
+                gw6 = ipv6.get("gw_address")
+                if gw6:
+                    subprocess.run(
+                        ["ip", "-6", "neigh", "replace", gw6, "lladdr",
+                         _GW_LLADDR, "nud", "permanent", "dev", ifname],
+                        check=False, capture_output=True)
+            _log.debug("dummy iface %s up mtu=%d v4=%s v6=%s", ifname, mtu,
+                       ipv4.get("if_address") if ipv4 else None,
+                       ipv6.get("if_address") if ipv6 else None)
         except Exception as exc:  # noqa: BLE001
             _log.warning("could not create dummy iface %s: %s", ifname, exc)
 
@@ -959,7 +1138,8 @@ def smfn_operating(chart, e):
         status = return_status.HANDLED
     elif e.signal in (signals.ForceCallDrop, signals.ForceThroughput,
                        signals.ForceQos, signals.ForceHwAccel,
-                       signals.ForceThrottle, signals.NetworkRatChanged,
+                       signals.ForceThrottle, signals.ForceDns,
+                       signals.NetworkRatChanged,
                        signals.ThroughputTick,
                        signals.CallConnectTimeout, signals.CallDisconnectTimeout):
         _log.debug("connection AO: %s dropped -- not Ready", e.signal_name)
@@ -1036,6 +1216,9 @@ def smfn_ready(chart, e):
         status = return_status.HANDLED
     elif e.signal == signals.ForceThrottle:
         chart._apply_force_throttle(e.payload)
+        status = return_status.HANDLED
+    elif e.signal == signals.ForceDns:
+        chart._apply_force_dns(e.payload)
         status = return_status.HANDLED
     elif e.signal == signals.NetworkRatChanged:
         chart._apply_network_rat_changed(e.payload)

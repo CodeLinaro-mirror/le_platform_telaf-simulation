@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_l2tp.remove_tunnel.req",
+  "title": "Remove L2TP Tunnel Request",
+  "type": "object",
+  "required": [
+    "tunnelId"
+  ],
+  "properties": {
+    "tunnelId": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}

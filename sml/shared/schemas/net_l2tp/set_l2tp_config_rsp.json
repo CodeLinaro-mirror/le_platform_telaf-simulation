@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_l2tp.set_l2tp_config.rsp",
+  "title": "Set L2TP System Config Response",
+  "description": "Empty on success; failures travel in the envelope's error object.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

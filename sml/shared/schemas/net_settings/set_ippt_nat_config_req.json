@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.set_ippt_nat_config.req",
+  "title": "Set IPPT NAT Config Request",
+  "type": "object",
+  "required": [
+    "enableNat"
+  ],
+  "properties": {
+    "enableNat": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

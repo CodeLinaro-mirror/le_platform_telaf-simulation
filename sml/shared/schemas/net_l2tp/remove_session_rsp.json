@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_l2tp.remove_session.rsp",
+  "title": "Remove L2TP Session Response",
+  "description": "Empty on success; failures travel in the envelope's error object.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

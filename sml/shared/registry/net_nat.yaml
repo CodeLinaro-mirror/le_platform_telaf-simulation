@@ -1,0 +1,62 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# net_nat domain registry -- PA<->MPSS wire contract for the static-NAT (SNAT)
+# family of telaf/interfaces/taf_net.api (telux::data::net::INatManager).
+#
+# MPSS owns the SNAT entry table (modem ground truth, World State invariant
+# (d)); the PA answers requestStaticNatEntries from request_nat_entries rather
+# than from a local cache. taf_net's GetFirstNatEntry / GetNextNatEntry /
+# GetNatPrivateIp / GetNatPrivatePort / GetNatGlobalPort / GetNatProtocol
+# accessors iterate that returned list client-side, so they add no topics.
+#
+# INatManager exposes each operation twice: a current BackhaulInfo-based
+# overload and a deprecated profileId-based one. Both map to the same RPC --
+# the deprecated form is just BackhaulInfo with backhaul pinned to WWAN, so
+# there is one wire method per operation, not two.
+
+domain: net_nat
+
+rpcs:
+  - method: add_nat_entry
+    req_topic: "mp/req/net_nat/add_nat_entry"
+    rsp_topic: "mp/rsp/net_nat/add_nat_entry"
+    req_payload: schemas/net_nat/add_nat_entry_req.json
+    rsp_payload: schemas/net_nat/add_nat_entry_rsp.json
+    qos: 1
+    description: >-
+      Add a static NAT (port-forwarding) entry on a backhaul. Backs
+      taf_net_AddStaticNatEntry and both INatManager::addStaticNatEntry
+      overloads.
+
+  - method: remove_nat_entry
+    req_topic: "mp/req/net_nat/remove_nat_entry"
+    rsp_topic: "mp/rsp/net_nat/remove_nat_entry"
+    req_payload: schemas/net_nat/remove_nat_entry_req.json
+    rsp_payload: schemas/net_nat/remove_nat_entry_rsp.json
+    qos: 1
+    description: >-
+      Remove a static NAT entry. Backs taf_net_RemoveStaticNatEntry and both
+      INatManager::removeStaticNatEntry overloads.
+
+  - method: request_nat_entries
+    req_topic: "mp/req/net_nat/request_nat_entries"
+    rsp_topic: "mp/rsp/net_nat/request_nat_entries"
+    req_payload: schemas/net_nat/request_nat_entries_req.json
+    rsp_payload: schemas/net_nat/request_nat_entries_rsp.json
+    qos: 1
+    description: >-
+      List the static NAT entries configured on a backhaul. Backs both
+      INatManager::requestStaticNatEntries overloads and, through them,
+      taf_net's NAT accessor family.
+
+indications:
+  - event: subsys_ready_net_nat
+    ind_topic: "mp/ind/net_nat/subsys_ready"
+    payload: schemas/net_nat/subsys_ready_net_nat_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      Retained NAT-subsystem readiness, gating SimulaNatManager's
+      NotReady/Ready shell. INatListener has no event beyond
+      onServiceStatusChange, so this is the family's only indication.

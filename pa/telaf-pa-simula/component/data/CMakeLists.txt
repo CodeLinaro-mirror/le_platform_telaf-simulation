@@ -42,6 +42,9 @@ endif()
 set(TELUX_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../sdk-include)
 set(CHART_INCLUDE     ${CMAKE_CURRENT_SOURCE_DIR}/../chart/include)
 set(COMMON_INCLUDE    ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+# component/net/ -- net-domain managers (VlanManager and siblings) are built
+# into this target; see the add_library comment below.
+set(NET_INCLUDE       ${CMAKE_CURRENT_SOURCE_DIR}/../net)
 # sml/, so call sites can `#include "generated/cpp/topics.h"` -- the
 # sml/simula_shared/ Code-Gen pipeline output (see gen_cpp.py).
 set(SML_ROOT_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../../../sml)
@@ -50,11 +53,19 @@ include_directories(
     ${TELUX_SDK_INCLUDE}
     ${CHART_INCLUDE}
     ${COMMON_INCLUDE}
+    ${NET_INCLUDE}
     ${SML_ROOT_INCLUDE}
 )
 
 # ---------------------------------------------------------------------------
 # libtelux_data.so — simulated telux::data SDK.
+#
+# component/net/ sources are compiled into this same target rather than a
+# separate libtelux_net.so: telux::data::net::IVlanManager (and its L2TP/NAT/
+# SOCKS siblings) are handed out by telux::data::DataFactory, which lives
+# here. Splitting them would create a circular link dependency -- the factory
+# needs the net managers' constructors, and the net managers need the data
+# domain's Signals.hpp base for their non-overlapping chart signal range.
 
 add_library(telux_data SHARED
     DataProfile.cpp
@@ -62,6 +73,11 @@ add_library(telux_data SHARED
     DataProfileManager.cpp
     ServingSystemManager.cpp
     DataFactory.cpp
+    ../net/VlanManager.cpp
+    ../net/L2tpManager.cpp
+    ../net/NatManager.cpp
+    ../net/SocksManager.cpp
+    ../net/DataSettingsManager.cpp
 )
 
 target_link_libraries(telux_data PUBLIC

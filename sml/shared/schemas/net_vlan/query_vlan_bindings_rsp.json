@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.query_vlan_bindings.rsp",
+  "title": "Query VLAN Bindings Response",
+  "type": "object",
+  "required": ["bindings"],
+  "properties": {
+    "bindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["vlanId", "backhaul"],
+        "properties": {
+          "vlanId": { "type": "integer", "minimum": 1, "maximum": 4094 },
+          "backhaul": {
+            "type": "string",
+            "enum": ["ETH", "USB", "WLAN", "WWAN", "BLE"]
+          },
+          "slot": { "type": "integer", "minimum": 0 },
+          "profileId": { "type": "integer" },
+          "bhVlanId": { "type": "integer" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_vlan.subsys_ready_net_vlan.ind",
+  "title": "VLAN Subsystem Ready Indication",
+  "description": "Retained. Same shape as data.subsys_ready.ind; FAILED is included because SimulaVlanManager maps it to ServiceStatus::SERVICE_FAILED, mirroring how the data manager's readiness handler distinguishes UNAVAILABLE from FAILED.",
+  "type": "object",
+  "required": ["ready", "status"],
+  "properties": {
+    "ready": { "type": "boolean" },
+    "status": {
+      "type": "string",
+      "enum": ["AVAILABLE", "UNAVAILABLE", "FAILED"]
+    }
+  },
+  "additionalProperties": false
+}

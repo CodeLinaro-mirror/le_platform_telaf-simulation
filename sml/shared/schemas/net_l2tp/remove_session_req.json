@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_l2tp.remove_session.req",
+  "title": "Remove L2TP Session Request",
+  "type": "object",
+  "required": [
+    "tunnelId",
+    "sessionId"
+  ],
+  "properties": {
+    "tunnelId": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sessionId": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}

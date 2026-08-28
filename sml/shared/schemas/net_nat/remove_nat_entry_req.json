@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_nat.remove_nat_entry.req",
+  "title": "Remove Static NAT Entry Request",
+  "type": "object",
+  "required": [
+    "backhaul",
+    "addr",
+    "port",
+    "globalPort",
+    "proto"
+  ],
+  "properties": {
+    "backhaul": {
+      "type": "string",
+      "enum": [
+        "ETH",
+        "USB",
+        "WLAN",
+        "WWAN",
+        "BLE"
+      ]
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "profileId": {
+      "type": "integer"
+    },
+    "bhVlanId": {
+      "type": "integer",
+      "description": "Set only when the backhaul is itself a VLAN; mirrors BackhaulInfo::vlanId."
+    },
+    "addr": {
+      "type": "string",
+      "description": "Private IP address."
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "Private port."
+    },
+    "globalPort": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "proto": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255,
+      "description": "IANA IP protocol number; IpProtocol is a uint8_t, and 0xFF (IP_PROT_UNKNOWN) is the SDK's 'unset' sentinel."
+    }
+  },
+  "additionalProperties": false
+}

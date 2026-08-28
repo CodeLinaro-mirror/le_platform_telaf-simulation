@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.set_ippt_config.req",
+  "title": "Set IP Passthrough Config Request",
+  "description": "One IpptParams + IpptConfig pair. The device block (nwInterface/macAddr) is optional: the SDK performs the operation on the existing configuration when no IpptDeviceConfig is supplied.",
+  "type": "object",
+  "required": [
+    "profileId",
+    "vlanId",
+    "slot",
+    "ipptOpr"
+  ],
+  "properties": {
+    "profileId": {
+      "type": "integer"
+    },
+    "vlanId": {
+      "type": "integer"
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ipptOpr": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "DISABLE",
+        "ENABLE"
+      ]
+    },
+    "nwInterface": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "WLAN",
+        "ETH",
+        "ECM",
+        "RNDIS",
+        "MHI",
+        "VMTAP0",
+        "VMTAP1",
+        "ETH2",
+        "AP_PRIMARY",
+        "AP_SECONDARY",
+        "AP_TERTIARY",
+        "AP_QUATERNARY"
+      ]
+    },
+    "macAddr": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

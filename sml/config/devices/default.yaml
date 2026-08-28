@@ -77,10 +77,31 @@ sim_cards:
     imsi: "460000123456789"
     home_plmn: "46000"
 
+# A single SIM legitimately carries several APN profiles, and a real modem
+# can hold concurrent PDN sessions on them -- one default/internet bearer
+# plus on-demand bearers (IMS, MMS, tethering, ...) each with its own
+# rmnet_dataN interface and its own IP block. So these are multiple
+# profiles on ONE sim_slot, not multiple SIMs.
+#
+# profile_ondemand (mpss_profile_id: 2) exists because the on-demand PDN
+# APIs are exercised against profile id 2 (tafNetUnitTest.c's
+# ON_DEMAND_PDN_PROFILE_ID). taf_net_*DestNatEntryOnDemandPdn() calls
+# tafNat.IsRmnetBringUp(profileId) FIRST and returns LE_FAULT when that
+# profile has no rmnet up -- before it ever validates the IP string -- so
+# without a live profile-2 bearer even the negative tests report the wrong
+# error code.
 data_profiles:
   - id: profile_home
     mpss_profile_id: 1
     apn: "internet"
+    ip_family: IPV4V6
+    auth_type: NONE
+    username: ""
+    password: ""
+    tech_type: "3GPP"
+  - id: profile_ondemand
+    mpss_profile_id: 2
+    apn: "ims"
     ip_family: IPV4V6
     auth_type: NONE
     username: ""
@@ -155,6 +176,14 @@ throughput_presets:
     ul_max_throughput: 50000
     ul_queue_size: 0
     dl_throughput: 10000
+  # On-demand IMS bearer (profile 2) -- lower rates than the default
+  # internet bearer, as a signalling PDN would typically see.
+  - id: profile_2_throughput
+    profile_id: 2
+    ul_throughput: 1000
+    ul_max_throughput: 20000
+    ul_queue_size: 0
+    dl_throughput: 4000
 
 qos_presets:
   - id: profile_1_qos

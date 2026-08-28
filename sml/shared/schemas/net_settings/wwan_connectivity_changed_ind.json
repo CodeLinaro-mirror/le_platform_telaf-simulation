@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_settings.wwan_connectivity_changed.ind",
+  "title": "WWAN Connectivity Changed Indication",
+  "description": "Drives IDataSettingsListener::onWwanConnectivityConfigChange.",
+  "type": "object",
+  "required": [
+    "slot",
+    "isConnectivityAllowed"
+  ],
+  "properties": {
+    "slot": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "isConnectivityAllowed": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

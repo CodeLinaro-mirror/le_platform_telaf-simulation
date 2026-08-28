@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "net_l2tp.query_session_bindings.req",
+  "title": "Query L2TP Session Bindings Request",
+  "description": "Omitting backhaul returns every binding.",
+  "type": "object",
+  "properties": {
+    "backhaul": {
+      "type": "string",
+      "enum": [
+        "ETH",
+        "USB",
+        "WLAN",
+        "WWAN",
+        "BLE"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

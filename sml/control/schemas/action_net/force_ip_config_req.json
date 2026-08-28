@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.net.force_ip_config.req",
+  "title": "Force Per-Interface IP Config",
+  "description": "Sets per-interface IP-config ground truth on MPSS and re-publishes the retained mp/ind/net_settings/ip_config_sync mirror. Entries are upserted, keyed on ifType+ipFamily+vlanId. gwMask is absent because the SDK documents it as not required for this API.",
+  "type": "object",
+  "required": ["entries"],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ifType", "ipFamily", "ipType", "ipOpr"],
+        "properties": {
+          "ifType": {
+            "type": "string",
+            "enum": ["UNKNOWN", "WLAN", "ETH", "ECM", "RNDIS", "MHI", "VMTAP0",
+                     "VMTAP1", "ETH2", "AP_PRIMARY", "AP_SECONDARY",
+                     "AP_TERTIARY", "AP_QUATERNARY"]
+          },
+          "ipFamily": { "type": "string", "enum": ["IPV4", "IPV6", "IPV4V6", "UNKNOWN"] },
+          "vlanId": { "type": "integer" },
+          "ipType": { "type": "string", "enum": ["UNKNOWN", "STATIC_IP", "DYNAMIC_IP"] },
+          "ipOpr": {
+            "type": "string",
+            "enum": ["UNKNOWN", "DISABLE", "ENABLE", "RECONFIGURE"]
+          },
+          "ifAddress": { "type": "string" },
+          "ifMask": { "type": "integer", "minimum": 0 },
+          "gwAddress": { "type": "string" },
+          "primaryDnsAddress": { "type": "string" },
+          "secondaryDnsAddress": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
