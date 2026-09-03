@@ -108,8 +108,7 @@ commands:
 bindings:
 {
     <telaf>.DeviceManager -> <tafcore>.DeviceManager
-    <tafcore>.DeviceManagerTool -> <tafcore>.DeviceManagerTool
-    <root>.DeviceManagerTool -> <tafcore>.DeviceManagerTool
+    <telaf>.DeviceManagerTool -> <tafcore>.DeviceManagerTool
     <telaf>.sdirTool -> <tafcore>.sdirTool
 }
 
