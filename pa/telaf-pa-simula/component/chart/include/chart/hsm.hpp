@@ -24,6 +24,8 @@
 #include "assert.hpp"
 #include "event.hpp"
 
+#include <atomic>
+
 namespace chart {
 
 class Hsm;
@@ -71,7 +73,7 @@ public:
     // chain + INIT recursion) if the active handler returns NEED_TO_TRANSFER.
     void dispatch(Event const& e);
 
-    StateFn current_state() const { return state_; }
+    StateFn current_state() const { return state_.load(); }
 
     // Register a trace callback. Called after every transition with the
     // signal, source state, and settled destination state. Pass nullptr to
@@ -97,7 +99,9 @@ public:
     bool last_event_ignored() const { return last_ignored_; }
 
 protected:
-    StateFn state_ = nullptr;  // current active leaf state
+    std::atomic<StateFn> state_{nullptr};  // current active leaf state; written only by
+                                            // the AO worker thread, read cross-thread by
+                                            // isReadyDerived_()-style callers
     StateFn temp_  = nullptr;  // scratch slot mutated by to() / super()
     TraceFn trace_fn_  = nullptr;
     void*   trace_ctx_ = nullptr;
@@ -138,9 +142,9 @@ inline int Hsm::collect_lineage(StateFn from, StateFn out[kMaxNest]) {
 
 inline void Hsm::init(StateFn initial) {
     CHART_REQUIRE(initial != nullptr);
-    state_ = &Hsm::top;
+    state_.store(&Hsm::top);
     temp_  = initial;
-    StateFn t = state_;  // = &Hsm::top initially; later = the just-entered leaf.
+    StateFn t = state_.load();  // = &Hsm::top initially; later = the just-entered leaf.
 
     Event empty{None_Signal,  {}};
     Event entry{Entry_Signal, {}};
@@ -170,10 +174,10 @@ inline void Hsm::init(StateFn initial) {
         temp_ = t;    // restore in case INIT inspects it
     } while (t(this, &init_evt) == Status::NEED_TO_TRANSFER);
 
-    state_ = t;
+    state_.store(t);
     temp_  = t;
     if (trace_fn_)
-        trace_fn_(trace_ctx_, None_Signal, &Hsm::top, state_);
+        trace_fn_(trace_ctx_, None_Signal, &Hsm::top, state_.load());
 }
 
 inline void Hsm::dispatch(Event const& e) {
@@ -182,13 +186,13 @@ inline void Hsm::dispatch(Event const& e) {
     Event entry_evt{Entry_Signal, {}};
     Event init_evt{Init_Signal, {}};
 
-    StateFn original_state = state_;
+    StateFn original_state = state_.load();
     StateFn s = nullptr;  // handler that processes the event
     Status r;
     last_ignored_ = false;
 
     // 1) Walk current → super → super … until a handler doesn't return TO_SUPER.
-    temp_ = state_;
+    temp_ = state_.load();
     do {
         s = temp_;
         // Instrumentation: record the visit before invoking the handler so
@@ -216,7 +220,7 @@ inline void Hsm::dispatch(Event const& e) {
             }
         }
         if (r == Status::IGNORED) last_ignored_ = true;
-        state_ = original_state;
+        state_.store(original_state);
         temp_  = original_state;
         return;
     }
@@ -290,10 +294,10 @@ inline void Hsm::dispatch(Event const& e) {
         cur = new_target;
     }
 
-    state_ = cur;
+    state_.store(cur);
     temp_  = cur;
     if (trace_fn_)
-        trace_fn_(trace_ctx_, e.sig, original_state, state_);
+        trace_fn_(trace_ctx_, e.sig, original_state, state_.load());
 }
 
 }  // namespace chart

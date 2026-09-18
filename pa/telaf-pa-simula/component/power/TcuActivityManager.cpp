@@ -407,6 +407,8 @@ SimulaTcuActivityManager::getAllMachineNames(std::vector<std::string>& machineNa
       std::promise<std::pair<telux::common::Status, std::vector<std::string>>>>();
     auto future = pld->result->get_future();
     post_fifo({ PowerSignals::GetAllMachineNames_Signal, pld });
+    if (future.wait_for(kRpcTimeout) != std::future_status::ready)
+        return telux::common::Status::EXPIRED;
     auto [status, names] = future.get();
     machineNames = std::move(names);
     return status;
@@ -492,9 +494,16 @@ SimulaTcuActivityManager::setActivityState(
 telux::common::Status
 SimulaTcuActivityManager::sendActivityStateAck(telux::power::TcuActivityStateAck ack)
 {
-    auto mapped = ack == telux::power::TcuActivityStateAck::SUSPEND_ACK
-                    ? telux::power::TcuActivityState::SUSPEND
-                    : telux::power::TcuActivityState::SHUTDOWN;
+    telux::power::TcuActivityState mapped;
+    switch (ack)
+    {
+        case telux::power::TcuActivityStateAck::SUSPEND_ACK:
+            mapped = telux::power::TcuActivityState::SUSPEND;
+            break;
+        default:
+            mapped = telux::power::TcuActivityState::SHUTDOWN;
+            break;
+    }
     return sendActivityStateAck(telux::power::StateChangeResponse::ACK, mapped);
 }
 
