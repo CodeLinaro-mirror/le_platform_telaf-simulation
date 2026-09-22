@@ -1,0 +1,30 @@
+From 4dc2d2b613bf26cc5edf4ccf32aa9d00251695b8 Mon Sep 17 00:00:00 2001
+From: Andrew Zhao <zhax@qti.qualcomm.com>
+Date: Tue, 16 Jun 2026 13:30:24 +0800
+Subject: [PATCH] fix_subscription_issue
+
+Signed-off-by: Andrew Zhao <zhax@qti.qualcomm.com>
+---
+ implementation/routing/src/routing_manager_impl.cpp | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/implementation/routing/src/routing_manager_impl.cpp b/implementation/routing/src/routing_manager_impl.cpp
+index 79f40804..4c5d8eba 100644
+--- a/implementation/routing/src/routing_manager_impl.cpp
++++ b/implementation/routing/src/routing_manager_impl.cpp
+@@ -1387,6 +1387,12 @@ bool routing_manager_impl::offer_service_remotely(service_t _service,
+                         << std::setw(4) << _instance
+                         << "]";
+                 ret = false;
++            } else if (its_offering_client == get_client()) {
++                // Service is offered by the routing manager host app itself.
++                // Events are already in events_ container (no shadow events needed).
++                // Directly create TCP/UDP server endpoint and trigger SD OfferService.
++                on_resend_provided_events_response(
++                        pending_remote_offer_add(_service, _instance));
+             } else {
+                 if (stub_ && !stub_->send_provided_event_resend_request(its_offering_client,
+                         pending_remote_offer_add(_service, _instance))) {
+-- 
+2.34.1
+

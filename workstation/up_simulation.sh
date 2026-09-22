@@ -243,7 +243,7 @@ if [ -n "${TELAF_IN_CONTAINER}" ]; then # [Docker-Container-Env]
     mkdir -p /legato
     mkdir -p /tmp/legato_logs
     mkdir -p /tmp/legato
-
+    mkdir -p /tmp/vsomeip
     mkdir -p /data/le_fs
     mkdir -p /data/persist
     mkdir -p /data/ManagedServices
@@ -251,6 +251,7 @@ if [ -n "${TELAF_IN_CONTAINER}" ]; then # [Docker-Container-Env]
     install -d -o telaf -g telaf /data/diag
 
     chmod 0777 /data/le_fs
+    chmod 0777 /tmp/vsomeip
 
     MOUNTPOINT_TELAF="/mnt/legato"
     mount -o bind $MOUNTPOINT_TELAF /legato

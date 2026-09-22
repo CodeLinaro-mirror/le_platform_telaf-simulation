@@ -166,6 +166,9 @@ vsomeip_: _cmake _boost _dlt
 	$Q echo "[$@] patch to fix vsomeip client not returning to initial wait phase"
 	$Q cd $(SIMULATION_DEPS_SOURCE)/$@ \
 	&& patch -p1 < $(SIMULATION_HOME)/deps/patches/0002-Fix-vsomeip-client-not-returning-to-initial-wait-phase.patch
+	$Q echo "[$@] patch to fix local routing-manager service subscriptions"
+	$Q cd $(SIMULATION_DEPS_SOURCE)/$@ \
+	&& patch -p1 < $(SIMULATION_HOME)/deps/patches/0016-fix_subscription_issue.patch
 	$Q cd $(SIMULATION_DEPS_SOURCE)/$@ \
 	  && echo "[$@] configure firstly" \
 	    && mkdir -p build && cd build \
@@ -174,6 +177,7 @@ vsomeip_: _cmake _boost _dlt
 	      -DBoost_LIBRARY_DIR=$(SIMULATION_DEPS_ROOTFS)/lib \
 	      -DENABLE_SIGNAL_HANDLING=1 \
 	      -DENABLE_MULTIPLE_ROUTING_MANAGERS=1 \
+	      -DBASE_PATH=/tmp/vsomeip/ \
 	      -DCMAKE_INSTALL_PREFIX=$(SIMULATION_DEPS_ROOTFS) -DCMAKE_PREFIX_PATH=$(SIMULATION_DEPS_ROOTFS) .. > ./__config.log 2>&1 \
 	  && echo "[$@] compiling ..." \
 	    && $(SIMULATION_HOST_XTOOLS)/bin/cmake --build . -- -j $(shell nproc) > ./__build.log 2>&1
@@ -181,6 +185,10 @@ vsomeip_: _cmake _boost _dlt
 	$Q cd $(SIMULATION_DEPS_SOURCE)/$@/build \
 	  && echo "[$@] installing ..." \
 	    && $(SIMULATION_HOST_XTOOLS)/bin/cmake --build . --target install > ./__install.log 2>&1
+	$Q echo "[$@] installing vSomeIP socket tmpfiles rule" \
+	  && install -d $(SIMULATION_DEPS_ROOTFS)/etc/tmpfiles.d \
+	  && install -m 0644 $(SIMULATION_HOME)/deps/patches/vsomeip-tmpfiles.conf \
+	       $(SIMULATION_DEPS_ROOTFS)/etc/tmpfiles.d/vsomeip.conf
 	$Q echo "[$@] Done"
 
 
