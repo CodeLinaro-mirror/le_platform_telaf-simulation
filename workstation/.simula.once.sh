@@ -12,9 +12,7 @@ if [ -e "$MNGD_CONN_SVC_JSON"  ]; then
 fi
 
 # Try to export all environment variables for Common API
-if [ -e /legato/taf_rootfs/etc/vsomeip/E01HelloWorld/commonapi4someip.ini ]; then
-    export COMMONAPI_CONFIG=/legato/taf_rootfs/etc/vsomeip/E01HelloWorld/commonapi4someip.ini
-    export VSOMEIP_CONFIGURATION=/legato/taf_rootfs/etc/vsomeip/E01HelloWorld/vsomeip-local.json
+if [ -e /legato/systems/current/appsWriteable/tafIvssDataSvc/commonapiRef.ini ]; then
     export LD_LIBRARY_PATH=/legato/taf_rootfs/lib:$LD_LIBRARY_PATH
 fi
 
@@ -39,10 +37,3 @@ fi
 # Use supervisorctl -c /root/sml/supervisord.sml.conf <status|restart|stop>
 supervisord -c /root/sml/supervisord.sml.conf
 
-# Adjust DefaultCallbackDelay to resolve missing Dialling state in Ecall flow
-ICALL_MANAGER_JSON=/data/telux/json/api/tel/ICallManagerSlot1.json
-if [ -e "$ICALL_MANAGER_JSON"  ]; then
-	if ! sed -i 's/"DefaultCallbackDelay"[[:space:]]*:[[:space:]]*[0-9]\+/"DefaultCallbackDelay" : 0/'  "$ICALL_MANAGER_JSON"; then
-        echo "Warning: Failed to update DefaultCallbackDelay in $ICALL_MANAGER_JSON" >&2
-    fi
-fi
