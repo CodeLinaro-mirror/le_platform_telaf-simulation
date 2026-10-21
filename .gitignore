@@ -23,6 +23,9 @@ workstation/diag_client_default.ini
 workstation/diag_test_38_36_37.py
 diag.sinc
 *.log
+stub/ivss/test/ClientTest/install-soa/*
+stub/ivss/test/ClientTest/src-gen/*
+workstation/install-soa/*
 
 *.so
 *.o

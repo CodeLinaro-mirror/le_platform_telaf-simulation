@@ -12,6 +12,7 @@ from .. import __version__ as mversion
 from ..utest import tafSmsUnitTest_helper as utest_sms_helper
 from ..utest import tafSomeipGWTest_helper as utest_someip_helper
 from ..utest import tafDataCallUnitTest_helper as utest_dcs_helper
+from ..utest import tafIvssTest_helper as utest_ivss_helper
 from .container import master, slavex
 from ..tool import replace as t_replace
 from ..tool import diag_client
@@ -25,13 +26,16 @@ def precondition_test():
 def dispatch_subcmd_jobs(args):
 
     if args.subcommand == "utest":
-        precondition_test()
+        if args.which_utest != "ivss":
+            precondition_test()
         if args.which_utest == "someip":
             utest_someip_helper.to_run()
         elif args.which_utest == "sms":
             utest_sms_helper.to_run()
         elif args.which_utest == "dcs":
             utest_dcs_helper.to_run()
+        elif args.which_utest == "ivss":
+            utest_ivss_helper.to_run(args.mask)
 
     elif args.subcommand == "slave":
         try:
@@ -85,7 +89,9 @@ def doit():
                                   help="show the master information for prompt")
 
     subparser_utest = subparsers.add_parser("utest", help="Run some helper scripts for unit test")
-    subparser_utest.add_argument('which_utest', choices=('sms', 'someip', 'dcs'), help="Unit testcase list that supported")
+    subparser_utest.add_argument('which_utest', choices=('sms', 'someip', 'dcs', 'ivss'), help="Unit testcase list that supported")
+    subparser_utest.add_argument('mask', nargs='?', default=None,
+                                  help="Optional service mask (e.g. 0x1) forwarded to IvssClientTest, only used by 'ivss'")
 
     subparser_tool = subparsers.add_parser("tool", help="Provide some tools to simplify operations")
     subparser_tools = subparser_tool.add_subparsers(dest="tools", help="Collect some tools in here")
