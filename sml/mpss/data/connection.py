@@ -40,6 +40,7 @@ from sml.common.envelope import (
 )
 from sml.config.models import CallTimingPresetSeed, InterfacePresetSeed, IpConfigSeed
 from generated.python.topics import data as topics_data
+from generated.python.topics import net_modem as topics_modem
 from generated.python.validators import validate as validate_payload
 
 
@@ -436,6 +437,13 @@ class DataConnectionAO(ActiveObject):
         # AO-thread-only; no lock (only the AO thread mutates).
         self._sessions: Dict[int, CallSession] = {}
         self._pool: Optional[IfnamePool] = None
+        # Mirror of net_modem's per-slot WWAN connectivity permission, kept in
+        # sync by the wwan_connectivity_changed indication. net_modem owns the
+        # value (it is the modem-side setting); this AO only needs it to honour
+        # the SDK contract that disallowing WWAN tears down active calls and
+        # blocks new ones. Defaults to allowed, matching net_modem's own
+        # default, so a data call before any set/force still works.
+        self._wwan_allowed: Dict[int, bool] = {}
         # ThroughputReporter schedules its ticks through this AO's own
         # periodic post_fifo -- the tick payload holds the interval so
         # the AO can re-schedule after each fire.
@@ -570,6 +578,13 @@ class DataConnectionAO(ActiveObject):
             topics_data.set_throughput_interval.req:   self._handle_set_throughput_interval,
             topics_data.request_throughput_info.req:   self._handle_request_throughput_info,
             topics_data.request_throttle_status.req:   self._handle_request_throttle_status,
+            # Cross-domain: net_modem owns the WWAN connectivity permission but
+            # only the data domain holds the sessions it governs, so this AO
+            # subscribes to net_modem's indication rather than net_modem
+            # reaching into _sessions. Keeps the single-writer rule (each AO
+            # mutates only its own state) and goes over the existing wire
+            # contract, so MQTT-level tests observe the coupling.
+            topics_modem.wwan_connectivity_changed.ind: self._handle_wwan_changed,
         }
         self._handlers = mapping
         self._owned_topics = frozenset(mapping.keys())
@@ -628,6 +643,19 @@ class DataConnectionAO(ActiveObject):
         ip_family = data.get("ipFamily", "IPV4V6")
         requested_ifname = data.get("ifname", "")
         op_type = data.get("opType", "DATA_LOCAL")
+
+        # WWAN connectivity gate. net_modem's setWwanConnectivityConfig decides
+        # whether the modem may bring up a PDN at all, so a disallowed slot must
+        # refuse new calls -- otherwise disallowing WWAN would tear down active
+        # calls (see _handle_wwan_changed) while still letting a client
+        # immediately re-establish one. Checked before the ifname pool is
+        # touched so a rejected call leaks no interface.
+        if not self._is_wwan_allowed():
+            self._send_error(topics_data.start_data_call.rsp, msg, "INVALID_OPERATION",
+                             f"WWAN connectivity is disallowed for slot {self._slot}")
+            _log.info("start_data_call profileId=%s refused -- WWAN disallowed (slot=%d)",
+                      profile_id, self._slot)
+            return
 
         existing = self._sessions.get(profile_id)
         if existing is not None:
@@ -750,6 +778,60 @@ class DataConnectionAO(ActiveObject):
              "mcc": preset["mcc"], "mnc": preset["mnc"]}
         )
         self._pub_rsp(topics_data.request_throttle_status.rsp, "data.request_throttle_status.rsp", env)
+
+    # ------------------------------------------------------------------
+    # Cross-domain: net_modem WWAN connectivity
+    # ------------------------------------------------------------------
+
+    def _is_wwan_allowed(self) -> bool:
+        """Whether this AO's slot may currently carry a WWAN PDN.
+
+        Defaults to True for an unseen slot: net_modem's own default is
+        "allowed", and the indication only fires on a *change*, so a data call
+        made before any set/force must not be refused for lack of news.
+        """
+        return self._wwan_allowed.get(self._slot, True)
+
+    def _handle_wwan_changed(self, msg: dict) -> None:
+        """Mirror net_modem's WWAN permission and enforce it on live calls.
+
+        Backs the SDK contract that ``setWwanConnectivityConfig(false)`` tears
+        down active WWAN calls: every session on the affected slot is dropped
+        to NO_NET with end_reason NETWORK_DROP and a call_state indication, so
+        the PA sees per-call teardown exactly as it would on target. Re-allowing
+        does not restore anything -- a torn-down PDN has to be re-established
+        by the client, which ``_handle_start`` then permits again.
+        """
+        data = msg.get("data") or {}
+        slot = data["slot"]
+        allowed = data["isConnectivityAllowed"]
+        self._wwan_allowed[slot] = allowed
+        _log.info("WWAN connectivity slot=%d allowed=%s (this AO slot=%d)",
+                  slot, allowed, self._slot)
+        if allowed or slot != self._slot:
+            return
+        self._drop_all_sessions_no_net()
+
+    def _drop_all_sessions_no_net(self) -> None:
+        """Force every live session on this slot to NO_NET.
+
+        Mirrors ``_apply_force_call_drop`` but sweeps the whole slot. Sessions
+        already terminal are skipped so a second disallow is a no-op rather
+        than a stream of duplicate indications.
+        """
+        doomed = [s for s in self._sessions.values() if s.status != "NO_NET"]
+        for session in doomed:
+            self._sessions.pop(session.profile_id, None)
+            self._cancel_scheduled(session.timer_uuid)
+            session.timer_uuid = None
+            session.force_drop()
+            self._pool.release(session.ifname)
+            self._teardown_iface(session.ifname)
+            self._publish_call_state(session)
+            _log.info("call profileId=%d dropped to NO_NET -- WWAN disallowed (ifname=%s)",
+                      session.profile_id, session.ifname)
+        if not doomed:
+            _log.debug("WWAN disallowed on slot=%d: no live sessions to drop", self._slot)
 
     # ------------------------------------------------------------------
     # World State mutators -- run on AO thread via SIG_FORCE_* events.

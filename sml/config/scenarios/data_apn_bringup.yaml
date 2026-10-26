@@ -21,8 +21,8 @@ setup:
   duration: "30s"
 
 timeline_owners:
-  apss: [power]
-  mpss: [data, sim, radio, wakeup]
+  apss: [power, net]
+  mpss: [data, sim, radio, wakeup, net_modem]
 
 initial_state:
   modems: [modem_0_online]

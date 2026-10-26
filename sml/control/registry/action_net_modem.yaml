@@ -1,0 +1,38 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# net_modem-domain ctrl/cmd/action/net_modem/** registry
+# (Sim-Test-Contract-Spec.md A5.2).
+#
+# These two actions inject modem/network-side changes that have no AP-facing
+# request. They are split out of action_net.yaml because the state they mutate
+# -- WWAN connectivity gating and the default data subscription -- is modem
+# ground truth owned by MPSS (see shared/registry/net_modem.yaml), and an
+# action must be serviced by whichever process owns the state it writes.
+# Routing them to APSS would make APSS publish indications about state it does
+# not own, breaking World State invariant (d).
+
+kind: action
+domain: net_modem
+
+actions:
+  - method: force_wwan_connectivity
+    req_topic: "ctrl/cmd/action/net_modem/force_wwan_connectivity"
+    req_payload: schemas/action_net_modem/force_wwan_connectivity_req.json
+    qos: 1
+    description: >-
+      Force WWAN connectivity permission for a slot, re-publishing
+      mp/ind/net_modem/wwan_connectivity_changed so the PA drives
+      IDataSettingsListener::onWwanConnectivityConfigChange. Models a
+      platform/policy-side change the AP did not request -- the AP-initiated
+      path is the net_modem set_wwan_connectivity RPC.
+
+  - method: force_dds
+    req_topic: "ctrl/cmd/action/net_modem/force_dds"
+    req_payload: schemas/action_net_modem/force_dds_req.json
+    qos: 1
+    description: >-
+      Force the current DDS slot/type, re-publishing
+      mp/ind/net_modem/dds_changed so the PA drives
+      IDataSettingsListener::onDdsChange. Models a network-initiated DDS
+      switch, which has no AP-facing request.

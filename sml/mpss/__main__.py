@@ -17,7 +17,7 @@ from pathlib import Path
 from sml.common.mqtt_client import MqttClient
 from sml.common.config import ConfigError, load_config
 from sml.mpss.data import DataSubsystem
-from sml.mpss.net import NetSubsystem
+from sml.mpss.net_modem import NetModemSubsystem
 from sml.mpss.ecall import EcallSubsystem
 from sml.mpss.radio import RadioSubsystem
 from sml.common import instrumentation as _instr
@@ -48,8 +48,17 @@ _SML_ROOT = Path(__file__).resolve().parents[1]
 _PERSIST_ROOT = Path("/persist")
 
 
-def _register_default_net(client: MqttClient) -> NetSubsystem:
-    subsystem = NetSubsystem(slot_id=_TARGET_SLOT_ID)
+def _register_default_net_modem(client: MqttClient) -> NetModemSubsystem:
+    """Register the modem-owned slice of IDataSettingsManager.
+
+    The other five net families (VLAN, L2TP, NAT, SOCKS, and the AP-local half
+    of the settings manager) live on APSS -- the real target PA acquires them
+    with OperationType::DATA_LOCAL, so the AP owns that state. Only WWAN
+    connectivity gating, DDS switching and band interference remain here,
+    because the modem is the only component that can honour them (World State
+    invariant (d)). See shared/registry/net_modem.yaml.
+    """
+    subsystem = NetModemSubsystem(slot_id=_TARGET_SLOT_ID)
     client.register_subsystem(subsystem)
     return subsystem
 
@@ -95,7 +104,7 @@ def main() -> int:
     _install_signal_handlers(shutdown)
 
     client = MqttClient(cfg)
-    net_subsystem = _register_default_net(client)
+    net_modem_subsystem = _register_default_net_modem(client)
 
     if cfg.scenario:
         scenario_path = _SML_ROOT / cfg.scenario
@@ -168,7 +177,7 @@ def main() -> int:
         dispatcher.register_domain("ecall", ecall_subsystem)
         client.register_subsystem(ecall_subsystem)
 
-        dispatcher.register_domain("net", net_subsystem)
+        dispatcher.register_domain("net_modem", net_modem_subsystem)
 
         client.register_subsystem(runner)
         log.info("scenario runner registered (mpss.scenario=%s)", cfg.scenario)
@@ -193,3 +202,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

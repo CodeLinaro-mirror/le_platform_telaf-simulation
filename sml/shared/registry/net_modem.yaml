@@ -1,0 +1,139 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# net_modem domain registry -- PA<->MPSS wire contract for the MODEM-BOUND
+# half of telux::data::IDataSettingsManager (WWAN connectivity gating, DDS
+# switching, N79-5G / WLAN-5GHz band-interference avoidance).
+#
+# Why this file exists
+# --------------------
+# The rest of the net domain moved to APSS because the real target PA acquires
+# every net manager with OperationType::DATA_LOCAL -- the operation settles on
+# the processor that invoked it, so the AP owns that state.
+#
+# These three method families are the exception. DATA_LOCAL says where the
+# *call* is serviced, not that the modem is uninvolved, and for these the modem
+# is the only component that can actually honour the request:
+#
+#   * WWAN connectivity -- gates whether the modem may bring up a WWAN PDN at
+#     all. Disallowing tears down active WWAN calls, which only the modem can
+#     do; the data domain (also MPSS) then publishes NET_NO_NET per call.
+#     An AP-local flag could not produce that teardown.
+#   * DDS (default data subscription) -- selects which SIM slot carries default
+#     data. This is a multi-SIM modem arbitration, coupled to the sim/radio
+#     domains' ground truth, and survives nothing the AP can reset.
+#   * Band interference -- N79-5G vs WLAN-5GHz coexistence is RF-level
+#     scheduling inside the modem. The AP has no RF scheduler.
+#
+# Keeping these on MPSS preserves World State invariant (d): the authoritative
+# modem state lives in MPSS, and the PA holds at most a derived cache.
+#
+# Naming: the domain is `net_modem` rather than `net_settings_modem` so the
+# generated C++/Python symbol is `topics::net_modem::...` -- short, and it
+# reads as "the net domain's modem-owned slice". The PA's single
+# SimulaDataSettingsManager fronts both this and net_settings, gating Ready on
+# both readiness indications.
+
+domain: net_modem
+counterpart: mpss
+
+rpcs:
+  - method: set_wwan_connectivity
+    req_topic: "mp/req/net_modem/set_wwan_connectivity"
+    rsp_topic: "mp/rsp/net_modem/set_wwan_connectivity"
+    req_payload: schemas/net_settings/set_wwan_connectivity_req.json
+    rsp_payload: schemas/net_settings/set_wwan_connectivity_rsp.json
+    qos: 1
+    description: >-
+      Allow/disallow WWAN connectivity for a slot. Backs
+      IDataSettingsManager::setWwanConnectivityConfig. Disallowing also tears
+      down active WWAN calls per the SDK contract, which MPSS models by
+      dropping them -- the data domain then publishes NET_NO_NET for each.
+      Modem-owned: only the modem can refuse to bring up a PDN.
+
+  - method: request_wwan_connectivity
+    req_topic: "mp/req/net_modem/request_wwan_connectivity"
+    rsp_topic: "mp/rsp/net_modem/request_wwan_connectivity"
+    req_payload: schemas/net_settings/request_wwan_connectivity_req.json
+    rsp_payload: schemas/net_settings/request_wwan_connectivity_rsp.json
+    qos: 1
+    description: >-
+      Read back WWAN connectivity permission for a slot. Backs
+      IDataSettingsManager::requestWwanConnectivityConfig.
+
+  - method: set_band_interference
+    req_topic: "mp/req/net_modem/set_band_interference"
+    rsp_topic: "mp/rsp/net_modem/set_band_interference"
+    req_payload: schemas/net_settings/set_band_interference_req.json
+    rsp_payload: schemas/net_settings/set_band_interference_rsp.json
+    qos: 1
+    description: >-
+      Configure N79-5G / WLAN-5GHz interference avoidance. Backs
+      IDataSettingsManager::setBandInterferenceConfig. The config block is
+      optional because the SDK allows a null config when disabling.
+      Modem-owned: RF coexistence scheduling has no AP-side equivalent.
+
+  - method: request_band_interference
+    req_topic: "mp/req/net_modem/request_band_interference"
+    rsp_topic: "mp/rsp/net_modem/request_band_interference"
+    req_payload: schemas/net_settings/request_band_interference_req.json
+    rsp_payload: schemas/net_settings/request_band_interference_rsp.json
+    qos: 1
+    description: >-
+      Read back interference-avoidance settings. Backs
+      IDataSettingsManager::requestBandInterferenceConfig. The config block is
+      absent when disabled, matching the SDK's documented "set to nullptr if
+      interference management is disabled".
+
+  - method: request_dds_switch
+    req_topic: "mp/req/net_modem/request_dds_switch"
+    rsp_topic: "mp/rsp/net_modem/request_dds_switch"
+    req_payload: schemas/net_settings/request_dds_switch_req.json
+    rsp_payload: schemas/net_settings/request_dds_switch_rsp.json
+    qos: 1
+    description: >-
+      Request a DDS (default data subscription) switch, permanent or
+      temporary. Backs IDataSettingsManager::requestDdsSwitch (deprecated in
+      favour of IDualDataManager, but still implemented because taf_net and
+      existing clients call it). Modem-owned: multi-SIM data arbitration.
+
+  - method: request_current_dds
+    req_topic: "mp/req/net_modem/request_current_dds"
+    rsp_topic: "mp/rsp/net_modem/request_current_dds"
+    req_payload: schemas/net_settings/request_current_dds_req.json
+    rsp_payload: schemas/net_settings/request_current_dds_rsp.json
+    qos: 1
+    description: >-
+      Read back the current DDS slot/type. Backs
+      IDataSettingsManager::requestCurrentDds.
+
+indications:
+  - event: subsys_ready_net_modem
+    ind_topic: "mp/ind/net_modem/subsys_ready"
+    payload: schemas/net_settings/subsys_ready_net_settings_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      Retained readiness for the modem-owned settings slice. The PA's single
+      SimulaDataSettingsManager becomes Ready only when this AND
+      net_settings' subsys_ready_net_settings are both AVAILABLE, so a client
+      can never call a modem-bound setter while MPSS is still down.
+
+  - event: wwan_connectivity_changed
+    ind_topic: "mp/ind/net_modem/wwan_connectivity_changed"
+    payload: schemas/net_settings/wwan_connectivity_changed_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      WWAN connectivity permission changed for a slot, driving
+      IDataSettingsListener::onWwanConnectivityConfigChange. Fires both for
+      an AP-initiated set_wwan_connectivity and for a network/platform-side
+      change injected via the net_modem.force_wwan_connectivity action.
+
+  - event: dds_changed
+    ind_topic: "mp/ind/net_modem/dds_changed"
+    payload: schemas/net_settings/dds_changed_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      DDS switch occurred, driving IDataSettingsListener::onDdsChange.

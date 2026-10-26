@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "action.net.force_ippt_config.req",
   "title": "Force IP Passthrough Config",
-  "description": "Sets IPPT ground truth on MPSS and re-publishes the retained mp/ind/net_settings/ippt_config_sync mirror. Entries are upserted (keyed on profileId+vlanId+slot), not replaced wholesale, so a single-entry write does not clear the rest of the table. natEnabled is optional so NAT can be toggled without restating entries.",
+  "description": "Sets IPPT ground truth on APSS and re-publishes the retained ap/ind/net_settings/ippt_config_sync mirror. Entries are upserted (keyed on profileId+vlanId+slot), not replaced wholesale, so a single-entry write does not clear the rest of the table. natEnabled is optional so NAT can be toggled without restating entries.",
   "type": "object",
   "properties": {
     "natEnabled": { "type": "boolean" },

@@ -17,6 +17,7 @@ from pathlib import Path
 
 from sml.common.mqtt_client import MqttClient
 from sml.common.config import ConfigError, load_config
+from sml.apss.net import NetSubsystem
 from sml.apss.power import PowerSubsystem
 from sml.apss.power.action_dispatcher import PowerActionDispatcher
 from sml.common import instrumentation as _instr
@@ -26,6 +27,7 @@ from sml.runtime.scenario_runner import ScenarioRunner
 
 
 _SHUTDOWN_GRACE_S = 2.0
+_TARGET_SLOT_ID = 1
 _SML_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -38,6 +40,12 @@ def _install_signal_handlers(shutdown: threading.Event) -> None:
 
     signal.signal(signal.SIGTERM, _handler)
     signal.signal(signal.SIGINT, _handler)
+
+
+def _register_default_net(client: MqttClient) -> NetSubsystem:
+    subsystem = NetSubsystem(slot_id=_TARGET_SLOT_ID)
+    client.register_subsystem(subsystem)
+    return subsystem
 
 
 def main() -> int:
@@ -67,6 +75,10 @@ def main() -> int:
     _install_signal_handlers(shutdown)
 
     client = MqttClient(cfg)
+    # The net domain is registered unconditionally (as mpss does for its own
+    # domains): the five families own AP-local state that exists whether or
+    # not a scenario is driving the timeline.
+    net_subsystem = _register_default_net(client)
 
     if cfg.scenario:
         scenario_path = _SML_ROOT / cfg.scenario
@@ -93,9 +105,11 @@ def main() -> int:
                 power_subsystem.add_machine({"machineName": machine_name})
 
         dispatcher.register_domain("power", PowerActionDispatcher(power_subsystem))
+        dispatcher.register_domain("net", net_subsystem)
         client.register_subsystem(power_subsystem)
         client.register_subsystem(runner)
-        log.info("power domain + scenario runner registered (apss.scenario=%s)", cfg.scenario)
+        log.info("power + net domains + scenario runner registered (apss.scenario=%s)",
+                 cfg.scenario)
     else:
         power_subsystem = PowerSubsystem()
         client.register_subsystem(power_subsystem)
@@ -117,3 +131,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

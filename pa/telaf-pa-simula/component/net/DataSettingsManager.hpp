@@ -171,6 +171,17 @@ private:
         telux::common::ServiceStatus::SERVICE_UNAVAILABLE
     };
 
+    // This one SDK manager is fronted by TWO simulator subsystems: net_settings
+    // on apss (AP-local settings) and net_modem on mpss (WWAN/DDS/band). Each
+    // publishes its own retained readiness indication, and the manager is only
+    // callable when both are AVAILABLE -- so the chart needs to remember which
+    // halves have reported in. Touched only on the AO thread (from the chart
+    // handlers), hence no mutex.
+    bool settings_half_ready_{ false };
+    bool modem_half_ready_{ false };
+
+    bool bothHalvesReady_() const { return settings_half_ready_ && modem_half_ready_; }
+
     // Mirrors for the synchronous APIs. Guarded by their own mutex because the
     // sync methods read them on the *caller's* thread, not the AO thread.
     std::mutex mirror_mutex_;
