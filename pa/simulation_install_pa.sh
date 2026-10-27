@@ -20,7 +20,8 @@ NO_STRIP=0
 declare -A SONAME_WINNER=()
 declare -A SONAME_LOSERS=()
 
-PA_ROOT_DIR=$(dirname "$(readlink -f "$0")")
+SCRIPT_PATH=$(readlink -f "$0")
+PA_ROOT_DIR=$(dirname "$SCRIPT_PATH")
 
 cd ${PA_ROOT_DIR}
 
@@ -28,11 +29,27 @@ OUTPUT="${LEGATO_ROOT}/build/${TARGET}"
 STAGE_DIR_COMBINED="${LEGATO_ROOT}/build/${TARGET}/staging_combined"
 RUNTIME_LOC="$STAGE_DIR_COMBINED/systems/current/lib"
 
+TARGET_BASIC_DIR=${LEGATO_ROOT}/build/${TARGET}/_staging_system.${TARGET}.update_ro
+INSTALL_STATE="${OUTPUT}/.simulation-pa-install"
+INSTALL_MANIFEST="${OUTPUT}/.simulation-pa-install.manifest"
+INSTALL_INPUTS=(
+    "$SCRIPT_PATH"
+    "${PA_ROOT_DIR}/common.sh"
+    "$TARGET_BASIC_DIR"
+    "${PA_ROOT_DIR}/telaf-pa-simula/staging"
+    "${PA_ROOT_DIR}/telaf-pa-target/staging"
+    "${PA_ROOT_DIR}/telaf-pa-default/staging"
+)
+
+if pa_signature_is_current "$INSTALL_STATE" "$INSTALL_MANIFEST" "${INSTALL_INPUTS[@]}"; then
+    info "[simulation]: PA installation inputs unchanged; skipping installation"
+    exit 0
+fi
+
 info "[simulation]: reseting installation dir ${STAGE_DIR_COMBINED}"
+rm -f "$INSTALL_STATE" "$INSTALL_MANIFEST"
 rm -rf ${STAGE_DIR_COMBINED}
 mkdir -p ${STAGE_DIR_COMBINED}
-
-TARGET_BASIC_DIR=${LEGATO_ROOT}/build/${TARGET}/_staging_system.${TARGET}.update_ro
 
 if [[ -d "$TARGET_BASIC_DIR" ]]; then
     info "Syncing base filesystem from $TARGET_BASIC_DIR"
@@ -67,22 +84,22 @@ install_libs_to_runtime()
             continue
         fi
 
+        run cp "${CP_FLAGS[@]}" "$so" "$target"
         if [[ ! -L "$so" ]]; then
             if [[ -n "$OBJCOPY" && -n "$OUTPUT" ]]; then
                 ensure_dir "$OUTPUT"
                 local dbgfile="$OUTPUT/${base}.debug"
                 info "[$module] keep debug: $dbgfile"
-                run "$OBJCOPY" --only-keep-debug "$so" "$dbgfile"
-                (( ! NO_STRIP )) && run "$STRIP" --strip-unneeded "$so"
-            else
-                (( ! NO_STRIP )) && run "$STRIP" --strip-unneeded "$so"
+                run "$OBJCOPY" --only-keep-debug "$target" "$dbgfile"
+            fi
+            if (( ! NO_STRIP )); then
+                run "$STRIP" --strip-unneeded "$target"
             fi
         fi
 
-        run cp "${CP_FLAGS[@]}" "$so" "$dst/"
         SONAME_WINNER["$base"]="$module"
-        ((count++))
-    done < <(find "$dir" -maxdepth 2 \( -type f -o -type l \) -name '*.so*' -print0) || true
+        ((++count))
+    done < <(find "$dir" -maxdepth 2 \( -type f -o -type l \) -name '*.so*' -print0)
 
     if (( count == 0 )); then
         info "[$module] no files: no matching files in $dir"
@@ -284,3 +301,8 @@ install_libs_to_runtime "DEFAULT_PA"  telaf-pa-default/staging
 
 verify_dt_needed
 verify_sublayer_wiring
+
+find "$STAGE_DIR_COMBINED" \( -type f -o -type l \) -printf '%p\n' \
+    | LC_ALL=C sort > "${INSTALL_MANIFEST}.tmp"
+mv -f "${INSTALL_MANIFEST}.tmp" "$INSTALL_MANIFEST"
+pa_save_signature "$INSTALL_STATE" "${INSTALL_INPUTS[@]}"

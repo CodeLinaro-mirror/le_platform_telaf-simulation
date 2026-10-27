@@ -14,6 +14,12 @@ apps:
     $TELAF_ROOT/apps/tafServices/tafPMSvc
     $TELAF_ROOT/apps/tafMngdServices/PM/tafMngdPMSvc
 
+    $TELAF_ROOT/apps/tafServices/tafDiagSvc
+    $TELAF_ROOT/apps/tafServices/tafDidStoreSvc
+
+    // from --> $TELAF_ROOT/apps/tafServices/tafUpdateSvc
+    $SIMULATION_ROOT/stub/taf_simula_update/tafUpdateSvc
+
 #if ${TELAF_SIMULATION_ENABLE_SOMEIP_GW} = y
     $TELAF_ROOT/apps/tafServices/tafSomeipGWSvc
 #endif
@@ -45,12 +51,6 @@ apps:
 
 #if ${TELAF_SIMULATION_ENABLE_MNGD_STRG} = y
     $TELAF_ROOT/apps/tafMngdServices/Storage/tafMngdStorageSvc
-#endif
-
-#if ${TELAF_SIMULATION_ENABLE_DIAG} = y
-    $TELAF_ROOT/apps/tafServices/tafDiagSvc
-    // from --> $TELAF_ROOT/apps/tafServices/tafUpdateSvc
-    $SIMULATION_ROOT/stub/taf_simula_update/tafUpdateSvc
 #endif
 
 #if ${TELAF_SIMULATION_ENABLE_ECALL} = y
@@ -89,8 +89,11 @@ apps:
     // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdStorageUnitTest/tafMngdSecSharedApp
     // $TELAF_ROOT/apps/sample/diagApp/tafDiagApp
     // $TELAF_ROOT/apps/sample/diagEventApp/tafDiagEventApp
-    // $TELAF_ROOT/apps/sample/diagCfg/tafDiagCfgSample
     // $TELAF_ROOT/apps/sample/diagCancelFileXfer/tafDiagCancelFileXfer
+    // $TELAF_ROOT/apps/sample/diagState/tafDiagState.adef
+    // $TELAF_ROOT/apps/sample/diagIDPSStatus/tafDiagIDPSStatus.adef
+    // $TELAF_ROOT/apps/sample/didStoreInitDB/tafDidStoreInitDB.adef
+    // $TELAF_ROOT/apps/test/tafDidStoreTest/tafDidStoreUnitTest
     // $TELAF_ROOT/apps/test/tafSomeipGWTest/multiRoutingManagersTest/multiRoutMgrsTestAppB
     // $TELAF_ROOT/apps/test/tafSomeipGWTest/multiRoutingManagersTest/multiRoutMgrsTestAppA
     // $TELAF_ROOT/apps/sample/eCallDemo/tafECallApp
@@ -101,6 +104,8 @@ apps:
     // $TELAF_ROOT/apps/test/tafPMTest/tafPMIntgTest/tafPMIntgTest
     // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdPMTest/tafMngdPMIntTest/tafMngdPMIntTest
     // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdPMTest/tafMngdPMUnitTest/tafMngdPMUnitTest
+    // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdPMTest/tafMngdPmTestDaemon/tafMngdPmTestDaemon.adef
+    // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdPMTest/tafMngdPmTestClient/tafMngdPmTestClient.adef
 }
 
 commands:
@@ -120,6 +125,7 @@ bindings:
     <root>.DeviceManagerTool -> <tafcore>.DeviceManagerTool
     <telaf>.DeviceManagerTool -> <tafcore>.DeviceManagerTool
     <telaf>.sdirTool -> <tafcore>.sdirTool
+    <telaf>.le_cfg -> <tafcore>.le_cfg
 }
 
 interfaceSearch:
@@ -131,7 +137,7 @@ interfaceSearch:
     $TELAF_ROOT/apps/tafMngdServices/interfaces
     $LEGATO_ROOT/apps/sample/helloIpc
     $TELAF_ROOT/apps/test/tafPMTest/tafPMIntgTest
-
+    $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdPMTest/tafMngdPmTestDaemon/tafMngdPmTestDaemonComp/
 
 #if ${TELAF_SIMULATION_ENABLE_RPC} = y
     $TELAF_ROOT/apps/rpc/rpcTest
