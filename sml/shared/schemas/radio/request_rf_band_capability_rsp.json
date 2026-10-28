@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_rf_band_capability.rsp",
+  "title": "Request RF Band Capability Response",
+  "description": "Which RFBand enumerators the device hardware supports, split by RAT family the same way request_rf_band_preferences/set_rf_band_preferences are -- band literals reuse the exact RFBand enumerator names from request_rf_band_info.rsp.",
+  "type": "object",
+  "required": ["gsmBands", "wcdmaBands", "lteBands", "nrBands"],
+  "properties": {
+    "gsmBands": { "type": "array", "items": { "type": "string" } },
+    "wcdmaBands": { "type": "array", "items": { "type": "string" } },
+    "lteBands": { "type": "array", "items": { "type": "string" } },
+    "nrBands": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

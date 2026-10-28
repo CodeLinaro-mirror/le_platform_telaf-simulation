@@ -205,3 +205,54 @@ def test_force_signal_strength_updates_and_publishes_indication():
     rsp = _req(ao, pub, topics_radio.request_signal_strength.req,
                topics_radio.request_signal_strength.rsp, {"slot": 1})
     assert rsp["data"]["lte"]["lteRsrp"] == -70
+
+
+def test_force_profile_5g_sa_clears_lte_signal():
+    pub = _MockPublish()
+    ao = _make_started_ao(pub)
+    ao.force_profile({"profile": "4g"})
+    _req(ao, pub, topics_radio.request_signal_strength.req,
+         topics_radio.request_signal_strength.rsp, {"slot": 1})
+
+    before = len(pub.calls)
+    ao.force_profile({"profile": "5g-sa"})
+    wait_until(lambda: any(c["topic"] == topics_radio.signal_strength.ind
+                          for c in pub.calls[before:]))
+
+    ind = next(c for c in pub.calls[before:] if c["topic"] == topics_radio.signal_strength.ind)
+    assert ind["payload"]["data"]["lte"]["lteRsrp"] == 2147483647
+    assert ind["payload"]["data"]["nr5g"]["rsrp"] == -88
+    assert ao.voice_radio_tech == "RADIO_TECH_NR5G"
+
+
+def test_all_requests_deferred_before_ready_are_answered():
+    pub = _MockPublish()
+    ao = RadioPhoneAO(slot=1, mpss_src="mpss-dev-1")
+    ao.start(pub, lambda t: None, lambda t: None)
+    for i in range(3):
+        ao.handle_message(topics_radio.request_operating_mode.req, json.dumps({
+            "v": 1, "corrId": f"{i:04x}", "ts": 1718000000000,
+            "src": "dcs-master-1234", "data": {"slot": 1}}).encode())
+    assert wait_until(lambda: sum(c["topic"] == topics_radio.request_operating_mode.rsp
+                                  for c in pub.calls) == 3)
+
+
+def test_force_profile_publishes_voice_service_state_and_clears_denial():
+    pub = _MockPublish()
+    ao = _make_started_ao(pub)
+    ao.force_voice_service_state({"voiceServiceState": "REG_DENIED", "denialCause": 17})
+    ao.force_profile({"profile": "recovery"})
+    assert wait_until(lambda: any(c["topic"] == topics_radio.voice_service_state.ind
+                                  and c["payload"]["data"]["voiceServiceState"] == "REG_HOME"
+                                  for c in pub.calls))
+    ind = [c for c in pub.calls if c["topic"] == topics_radio.voice_service_state.ind][-1]
+    assert ind["payload"]["data"]["denialCause"] == -1
+
+
+def test_radio_seed_lte_applies_to_operator_plmn():
+    seed = RadioSeed(mcc="460", mnc="00", rat="LTE", rsrp_dbm=-97, variance_db=3)
+    pub = _MockPublish()
+    ao = _make_started_ao(pub, radio_seed=seed)
+    rsp = _req(ao, pub, topics_radio.request_operator_info.req,
+               topics_radio.request_operator_info.rsp, {"slot": 1})
+    assert rsp["data"]["plmn"] == "46000"

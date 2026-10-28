@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.network_rejection.ind",
+  "title": "Network Rejection Indication",
+  "description": "Mirrors telux::tel::NetworkRejectInfo, backing IServingSystemListener::onNetworkRejection. Added for Events.json parity (tel_serv.networkRejectionUpdate); pure network-side push with no AP RPC to piggyback on, triggered by force_network_rejection. rat/domain enums reuse the same literal sets as radio.sys_info.ind's rat/domain fields.",
+  "type": "object",
+  "required": ["rat", "domain", "rejectCause", "mcc", "mnc"],
+  "properties": {
+    "rat": {
+      "type": "string",
+      "enum": [
+        "RADIO_TECH_UNKNOWN",
+        "RADIO_TECH_GPRS",
+        "RADIO_TECH_EDGE",
+        "RADIO_TECH_UMTS",
+        "RADIO_TECH_LTE",
+        "RADIO_TECH_GSM",
+        "RADIO_TECH_TD_SCDMA",
+        "RADIO_TECH_LTE_CA",
+        "RADIO_TECH_NR5G"
+      ]
+    },
+    "domain": {
+      "type": "string",
+      "enum": ["UNKNOWN", "NO_SRV", "CS_ONLY", "PS_ONLY", "CS_PS", "CAMPED"]
+    },
+    "rejectCause": { "type": "integer" },
+    "mcc": { "type": "string" },
+    "mnc": { "type": "string" }
+  },
+  "additionalProperties": false
+}

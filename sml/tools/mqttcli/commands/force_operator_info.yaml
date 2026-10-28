@@ -1,0 +1,13 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_operator_info.req before send.
+#
+# Drives IPhoneListener::onOperatorInfoChange.
+topic: ctrl/cmd/action/radio/force_operator_info
+data:
+  longName: "Operator2"
+  shortName: "Op2"
+  plmn: "31041"
+  isHome: false

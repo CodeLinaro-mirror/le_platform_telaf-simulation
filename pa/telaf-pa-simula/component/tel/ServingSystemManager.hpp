@@ -107,6 +107,9 @@ private:
     void handleDcStatusInd_(std::string_view topic, const common::simula::Envelope& env);
     void handleRatPrefInd_(std::string_view topic, const common::simula::Envelope& env);
     void handleLteCsCapabilityInd_(std::string_view topic, const common::simula::Envelope& env);
+    void handleNetworkTimeInd_(std::string_view topic, const common::simula::Envelope& env);
+    void handleRFBandInfoInd_(std::string_view topic, const common::simula::Envelope& env);
+    void handleNetworkRejectionInd_(std::string_view topic, const common::simula::Envelope& env);
     void broadcastToListeners_(
       std::function<void(const std::shared_ptr<telux::tel::IServingSystemListener>&)> invoke
     );

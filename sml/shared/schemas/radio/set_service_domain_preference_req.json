@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_service_domain_preference.req",
+  "title": "Set Service Domain Preference Request",
+  "description": "telux::tel::ServiceDomainPreference enumerator names verbatim (distinct from the broader ServiceDomain enum used by get_system_info -- this one has no NO_SRV/CAMPED).",
+  "type": "object",
+  "required": ["slot", "serviceDomain"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 },
+    "serviceDomain": { "type": "string", "enum": ["CS_ONLY", "PS_ONLY", "CS_PS"] }
+  },
+  "additionalProperties": false
+}

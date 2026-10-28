@@ -7,7 +7,7 @@
     sml alias                        # list available aliases
     sml alias <name> [extra_args...] # run the aliased command
 
-Each entry in aliases.yaml is exactly one of:
+Each entry in aliases.yaml or radio_aliases.yaml is exactly one of:
 
   <name>:                              # forwards to an sml/tools/<tool>
     tool: <tool-dir-name>               # package's main(argv), in-process
@@ -32,16 +32,24 @@ from pathlib import Path
 import yaml
 
 _TOOLS_DIR = Path(__file__).resolve().parent.parent
-_ALIASES_FILE = Path(__file__).resolve().parent / "aliases.yaml"
+_ALIAS_DIR = Path(__file__).resolve().parent
+_ALIAS_FILES = ("aliases.yaml", "radio_aliases.yaml")
 
 
 def load_aliases() -> dict:
-    with _ALIASES_FILE.open("r", encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
+    aliases = {}
+    for name in _ALIAS_FILES:
+        path = _ALIAS_DIR / name
+        if not path.exists():
+            continue
+        with path.open("r", encoding="utf-8") as fh:
+            loaded = yaml.safe_load(fh) or {}
+        aliases.update(loaded)
+    return aliases
 
 
 def _resolve_paths(args: list[str]) -> list[str]:
-    """Fixed `tool` args in aliases.yaml are file paths written relative
+    """Fixed `tool` args in alias YAML files are file paths written relative
     to sml/tools/ (e.g. mqttcli/commands/step.yaml) -- resolve them to
     absolute paths so aliases work regardless of the caller's cwd."""
     resolved = []

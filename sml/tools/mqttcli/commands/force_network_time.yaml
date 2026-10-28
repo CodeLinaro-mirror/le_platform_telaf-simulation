@@ -1,0 +1,19 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_network_time.req before send.
+#
+# Drives IServingSystemListener::onNetworkTimeChanged.
+topic: ctrl/cmd/action/radio/force_network_time
+data:
+  year: 2026
+  month: 8
+  day: 31
+  hour: 12
+  minute: 0
+  second: 0
+  dayOfWeek: 1
+  timeZone: 0
+  dstAdj: 0
+  nitzTime: "26/08/31,12:00:00+00,1"

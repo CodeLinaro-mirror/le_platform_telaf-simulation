@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_operator_info.req",
+  "title": "Force Operator Info",
+  "description": "Forces RadioPhoneAO's registered-operator world state, re-publishing mp/ind/radio/operator_info. Every field is optional and applied only if present, so a caller can change just isHome and leave the names/plmn untouched. Backs IPhoneListener::onOperatorInfoChange testing.",
+  "type": "object",
+  "properties": {
+    "longName": { "type": "string" },
+    "shortName": { "type": "string" },
+    "plmn": { "type": "string" },
+    "isHome": { "type": "boolean" },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's operator info to force."
+    }
+  },
+  "additionalProperties": false
+}

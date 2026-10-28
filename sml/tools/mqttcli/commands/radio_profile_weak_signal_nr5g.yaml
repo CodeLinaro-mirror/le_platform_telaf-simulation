@@ -1,0 +1,66 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Apply a weak NR5G SA fixture while keeping registration in service.
+# Usage: sml mqttcli pub sml/tools/mqttcli/commands/radio_profile_weak_signal_nr5g.yaml
+interval: 100ms
+messages:
+  - topic: ctrl/cmd/action/radio/force_signal_strength
+    data:
+      lte:
+        lteSignalStrength: 2147483647
+        lteRsrp: 2147483647
+        lteRsrq: 2147483647
+        lteRssnr: 2147483647
+      nr5g:
+        rsrp: -120
+        rsrq: -20
+        rssnr: -40
+  - topic: ctrl/cmd/action/radio/force_cell_info
+    data:
+      cells:
+        - cellType: NR5G
+          registered: true
+          nr5g:
+            mcc: "310"
+            mnc: "01"
+            ci: 2294161
+            pci: 18
+            tac: 702
+            arfcn: 642000
+            rsrp: -120
+            rsrq: -20
+            rssnr: -40
+  - topic: ctrl/cmd/action/radio/force_rf_band_info
+    data:
+      band: NR5G_BAND_78
+      channel: 642000
+      bandWidth: NR5G_BW_NRB_100
+  - topic: ctrl/cmd/action/radio/force_voice_service_state
+    data:
+      voiceServiceState: REG_HOME
+      denialCause: -1
+      radioTech: RADIO_TECH_NR5G
+  - topic: ctrl/cmd/action/radio/force_sys_info
+    data:
+      rat: RADIO_TECH_NR5G
+      domain: CS_PS
+      state: IN_SERVICE
+  - topic: ctrl/cmd/action/data/force_serv_state
+    data:
+      serviceState: IN_SERVICE
+      networkRat: NR5G
+      drbStatus: DORMANT
+  - topic: ctrl/cmd/action/data/force_nr_icon_type
+    data:
+      iconType: UWB
+  - topic: ctrl/cmd/action/radio/force_ims_registration_info
+    data:
+      imsRegStatus: REGISTERED
+      rat: RADIO_TECH_NR5G
+      errorCode: 0
+      errorString: ""
+  - topic: ctrl/cmd/action/radio/force_ims_service_info
+    data:
+      sms: FULL_SERVICE
+      voice: FULL_SERVICE

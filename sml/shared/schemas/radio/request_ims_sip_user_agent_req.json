@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_ims_sip_user_agent.req",
+  "title": "Request IMS SIP User Agent Request",
+  "description": "Backs taf_radio_GetImsUserAgent via IImsSettingsManager::requestSipUserAgent.",
+  "type": "object",
+  "required": ["slot"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_rf_band_capability.req",
+  "title": "Request RF Band Capability Request",
+  "description": "Backs taf_radio_GetBandCapabilities/GetLteBandCapabilities via IServingSystemManager::requestRFBandCapability.",
+  "type": "object",
+  "required": ["slot"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

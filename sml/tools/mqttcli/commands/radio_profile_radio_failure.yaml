@@ -1,0 +1,51 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Apply a radio-failure fixture: offline operating mode plus no service.
+# Usage: sml mqttcli pub sml/tools/mqttcli/commands/radio_profile_radio_failure.yaml
+interval: 100ms
+messages:
+  - topic: ctrl/cmd/action/radio/force_profile
+    data:
+      profile: radio-failure
+  - topic: ctrl/cmd/action/radio/force_signal_strength
+    data:
+      lte:
+        lteSignalStrength: 2147483647
+        lteRsrp: 2147483647
+        lteRsrq: 2147483647
+        lteRssnr: 2147483647
+      nr5g:
+        rsrp: 2147483647
+        rsrq: 2147483647
+        rssnr: 2147483647
+  - topic: ctrl/cmd/action/radio/force_cell_info
+    data:
+      cells: []
+  - topic: ctrl/cmd/action/radio/force_voice_service_state
+    data:
+      voiceServiceState: NOT_REG_AND_NOT_SEARCHING
+      denialCause: -1
+      radioTech: RADIO_TECH_UNKNOWN
+  - topic: ctrl/cmd/action/radio/force_sys_info
+    data:
+      rat: RADIO_TECH_UNKNOWN
+      domain: NO_SRV
+      state: NO_SERVICE
+  - topic: ctrl/cmd/action/data/force_serv_state
+    data:
+      serviceState: OUT_OF_SERVICE
+      drbStatus: DORMANT
+  - topic: ctrl/cmd/action/data/force_nr_icon_type
+    data:
+      iconType: NONE
+  - topic: ctrl/cmd/action/radio/force_ims_registration_info
+    data:
+      imsRegStatus: NOT_REGISTERED
+      rat: RADIO_TECH_UNKNOWN
+      errorCode: 0
+      errorString: radio offline
+  - topic: ctrl/cmd/action/radio/force_ims_service_info
+    data:
+      sms: NO_SERVICE
+      voice: NO_SERVICE

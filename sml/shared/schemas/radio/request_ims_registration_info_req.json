@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_ims_registration_info.req",
+  "title": "Request IMS Registration Info Request",
+  "description": "Backs taf_radio_GetImsRegStatus via IImsServingSystemManager::requestRegistrationInfo.",
+  "type": "object",
+  "required": ["slot"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

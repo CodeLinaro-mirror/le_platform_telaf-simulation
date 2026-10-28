@@ -1,0 +1,25 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_cell_info.req before send.
+#
+# Drives taf_radio_AddCellInfoChangeHandler.
+topic: ctrl/cmd/action/radio/force_cell_info
+data:
+  cells:
+    - cellType: LTE
+      registered: true
+      lte:
+        mcc: "310"
+        mnc: "01"
+        ci: 78850
+        pci: 412
+        tac: 702
+        earfcn: 400
+        signalStrength: 31
+        rsrp: -80
+        rsrq: -9
+        rssnr: 30
+        cqi: 2147483647
+        timingAdvance: 1

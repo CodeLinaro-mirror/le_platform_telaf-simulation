@@ -15,16 +15,21 @@
 # print a callback if a state change actually happens during the window,
 # and these actions are how that change is triggered.
 #
-# NOT wired yet: cell_info. RadioPhoneAO answers the request_cell_info RPC
-# but has no force_cell_info mutator and never publishes
-# mp/ind/radio/cell_info, so taf_radio_AddCellInfoChangeHandler cannot fire
-# today -- adding it needs a new AO mutator + publish helper, not just a
-# registry entry (its payload is a per-cellType tagged-union array).
 
 kind: action
 domain: radio
 
 actions:
+  - method: force_profile
+    req_topic: "ctrl/cmd/action/radio/force_profile"
+    req_payload: schemas/action_radio/force_profile_req.json
+    qos: 1
+    description: >-
+      Apply one reusable radio world-state profile (4g, 5g-nsa, 5g-sa,
+      out-of-service, weak-signal, radio-failure, recovery). This is the
+      CLI-friendly wrapper around the lower-level force_sys_info,
+      force_dc_status, and force_signal_strength actions.
+
   - method: force_lte_cs_capability
     req_topic: "ctrl/cmd/action/radio/force_lte_cs_capability"
     req_payload: schemas/action_radio/force_lte_cs_capability_req.json
@@ -67,3 +72,90 @@ actions:
       a partial patch (only the fields present are applied), so a test can
       move a single metric like lteRsrp. Drives
       taf_radio_AddSignalStrengthChangeHandler.
+
+
+  - method: force_cell_info
+    req_topic: "ctrl/cmd/action/radio/force_cell_info"
+    req_payload: schemas/action_radio/force_cell_info_req.json
+    qos: 1
+    description: >-
+      Force the serving/neighbour cell list world state, re-publishing
+      mp/ind/radio/cell_info. PA-side (PhoneManager.cpp) has always
+      subscribed to this topic and dispatched to onCellInfoListChanged --
+      RadioPhoneAO simply never published it before this action existed.
+      Drives taf_radio_AddCellInfoChangeHandler.
+
+  - method: force_operator_info
+    req_topic: "ctrl/cmd/action/radio/force_operator_info"
+    req_payload: schemas/action_radio/force_operator_info_req.json
+    qos: 1
+    description: >-
+      Force the registered-operator world state, re-publishing
+      mp/ind/radio/operator_info. Simulates a network-side operator change
+      (PLMN reselection) the AP did not request. Drives
+      IPhoneListener::onOperatorInfoChange.
+
+  - method: force_voice_service_state
+    req_topic: "ctrl/cmd/action/radio/force_voice_service_state"
+    req_payload: schemas/action_radio/force_voice_service_state_req.json
+    qos: 1
+    description: >-
+      Force the voice registration state world state, re-publishing
+      mp/ind/radio/voice_service_state. Drives
+      IPhoneListener::onVoiceServiceStateChanged.
+
+  - method: force_network_time
+    req_topic: "ctrl/cmd/action/radio/force_network_time"
+    req_payload: schemas/action_radio/force_network_time_req.json
+    qos: 1
+    description: >-
+      Force a NITZ network-time update, re-publishing
+      mp/ind/radio/network_time. Drives
+      IServingSystemListener::onNetworkTimeChanged.
+
+  - method: force_rf_band_info
+    req_topic: "ctrl/cmd/action/radio/force_rf_band_info"
+    req_payload: schemas/action_radio/force_rf_band_info_req.json
+    qos: 1
+    description: >-
+      Force the serving RF band/channel/bandwidth world state,
+      re-publishing mp/ind/radio/rf_band_info. Distinct from
+      set_rf_band_preferences (device preference, an AP RPC) -- this is the
+      network-side push of which band is actually active. Drives
+      IServingSystemListener::onRFBandInfoChanged.
+
+  - method: force_network_rejection
+    req_topic: "ctrl/cmd/action/radio/force_network_rejection"
+    req_payload: schemas/action_radio/force_network_rejection_req.json
+    qos: 1
+    description: >-
+      Force a network registration rejection event, re-publishing
+      mp/ind/radio/network_rejection. Drives
+      IServingSystemListener::onNetworkRejection.
+
+  - method: force_ims_registration_info
+    req_topic: "ctrl/cmd/action/radio/force_ims_registration_info"
+    req_payload: schemas/action_radio/force_ims_registration_info_req.json
+    qos: 1
+    description: >-
+      Force the IMS registration-info world state, re-publishing
+      mp/ind/radio/ims_registration_info. Drives
+      IImsServingSystemListener::onImsRegStatusChange.
+
+  - method: force_ims_service_info
+    req_topic: "ctrl/cmd/action/radio/force_ims_service_info"
+    req_payload: schemas/action_radio/force_ims_service_info_req.json
+    qos: 1
+    description: >-
+      Force the IMS per-service (sms/voice) availability world state,
+      re-publishing mp/ind/radio/ims_service_info. Drives
+      IImsServingSystemListener::onImsServiceInfoChange.
+
+  - method: force_ims_pdp_status
+    req_topic: "ctrl/cmd/action/radio/force_ims_pdp_status"
+    req_payload: schemas/action_radio/force_ims_pdp_status_req.json
+    qos: 1
+    description: >-
+      Force the IMS PDP context status world state, re-publishing
+      mp/ind/radio/ims_pdp_status. Drives
+      IImsServingSystemListener::onImsPdpStatusInfoChange.

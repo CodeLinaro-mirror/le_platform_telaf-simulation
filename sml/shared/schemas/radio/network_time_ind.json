@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.network_time.ind",
+  "title": "Network Time (NITZ) Change Indication",
+  "description": "Mirrors telux::tel::NetworkTimeInfo, backing IServingSystemListener::onNetworkTimeChanged. Added for Events.json parity (tel_serv.networkTimeUpdate); there is no AP \"set network time\" RPC, so this is a pure network-side push, triggered by force_network_time.",
+  "type": "object",
+  "required": ["year", "month", "day", "hour", "minute", "second", "dayOfWeek", "timeZone", "dstAdj", "nitzTime"],
+  "properties": {
+    "year": { "type": "integer" },
+    "month": { "type": "integer" },
+    "day": { "type": "integer" },
+    "hour": { "type": "integer" },
+    "minute": { "type": "integer" },
+    "second": { "type": "integer" },
+    "dayOfWeek": { "type": "integer" },
+    "timeZone": { "type": "integer" },
+    "dstAdj": { "type": "integer" },
+    "nitzTime": { "type": "string" }
+  },
+  "additionalProperties": false
+}

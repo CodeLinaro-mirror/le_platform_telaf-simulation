@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_service_domain_preference.rsp",
+  "title": "Request Service Domain Preference Response",
+  "type": "object",
+  "required": ["serviceDomain"],
+  "properties": {
+    "serviceDomain": { "type": "string", "enum": ["CS_ONLY", "PS_ONLY", "CS_PS", "UNKNOWN"] }
+  },
+  "additionalProperties": false
+}

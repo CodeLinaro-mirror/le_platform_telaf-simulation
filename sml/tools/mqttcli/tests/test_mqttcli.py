@@ -51,6 +51,55 @@ def test_pubfile_list_sequence(tmp_path):
     assert result.interval_ms == 500.0
 
 
+def test_pubfile_multi_topic_messages_sequence(tmp_path):
+    path = _write_yaml(tmp_path, {
+        "interval": "250ms",
+        "messages": [
+            {
+                "topic": "ctrl/cmd/action/radio/force_sys_info",
+                "data": {"rat": "RADIO_TECH_LTE", "domain": "CS_PS", "state": "IN_SERVICE"},
+            },
+            {
+                "topic": "ctrl/cmd/action/data/force_serv_state",
+                "data": {"serviceState": "IN_SERVICE", "networkRat": "LTE"},
+            },
+        ],
+    })
+
+    result = load_pubfile(path)
+
+    assert [spec.topic for spec in result.specs] == [
+        "ctrl/cmd/action/radio/force_sys_info",
+        "ctrl/cmd/action/data/force_serv_state",
+    ]
+    assert result.specs[0].payload["rat"] == "RADIO_TECH_LTE"
+    assert result.specs[1].payload["networkRat"] == "LTE"
+    assert result.interval_ms == 250.0
+
+
+def test_pubfile_multi_topic_message_can_override_envelope(tmp_path):
+    path = _write_yaml(tmp_path, {
+        "envelope": False,
+        "messages": [
+            {
+                "topic": "mp/req/data/start_data_call",
+                "envelope": True,
+                "data": {"profileId": 1, "ipFamily": "IPV4V6", "opType": "DATA_LOCAL", "slot": 0},
+            },
+            {
+                "topic": "totally/unknown/topic",
+                "data": {"anything": "goes"},
+            },
+        ],
+    })
+
+    result = load_pubfile(path, src="cli-test")
+
+    assert result.specs[0].payload["src"] == "cli-test"
+    assert result.specs[0].payload["data"]["profileId"] == 1
+    assert result.specs[1].payload == {"anything": "goes"}
+
+
 def test_pubfile_missing_topic_raises(tmp_path):
     path = _write_yaml(tmp_path, {"data": {"a": 1}})
     with pytest.raises(PubFileError, match="topic"):
@@ -64,6 +113,38 @@ def test_pubfile_bad_interval_raises(tmp_path):
         "data": [{"serviceState": "IN_SERVICE"}, {"serviceState": "OUT_OF_SERVICE"}],
     })
     with pytest.raises(PubFileError, match="interval"):
+        load_pubfile(path)
+
+
+def test_pubfile_messages_reject_top_level_topic_data_mix(tmp_path):
+    path = _write_yaml(tmp_path, {
+        "topic": "ctrl/cmd/action/data/force_serv_state",
+        "data": {"serviceState": "IN_SERVICE"},
+        "messages": [
+            {
+                "topic": "ctrl/cmd/action/radio/force_sys_info",
+                "data": {"rat": "RADIO_TECH_LTE"},
+            },
+        ],
+    })
+    with pytest.raises(PubFileError, match="either 'messages'"):
+        load_pubfile(path)
+
+
+def test_pubfile_messages_validate_every_payload_before_send(tmp_path):
+    path = _write_yaml(tmp_path, {
+        "messages": [
+            {
+                "topic": "ctrl/cmd/action/radio/force_sys_info",
+                "data": {"rat": "RADIO_TECH_LTE"},
+            },
+            {
+                "topic": "ctrl/cmd/action/data/force_serv_state",
+                "data": {"serviceState": "NOT_A_REAL_STATE"},
+            },
+        ],
+    })
+    with pytest.raises(PubFileError, match="failed validation"):
         load_pubfile(path)
 
 

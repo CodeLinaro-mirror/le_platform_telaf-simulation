@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_ims_registration_info.rsp",
+  "title": "Request IMS Registration Info Response",
+  "description": "Mirrors telux::tel::ImsRegistrationInfo verbatim (RegistrationStatus imsRegStatus, RadioTechnology rat, int errorCode, string errorString) -- IImsServingSystemManager::requestRegistrationInfo's actual callback payload.",
+  "type": "object",
+  "required": ["imsRegStatus", "rat", "errorCode", "errorString"],
+  "properties": {
+    "imsRegStatus": {
+      "type": "string",
+      "enum": ["UNKOWN_STATE", "NOT_REGISTERED", "REGISTERING", "REGISTERED", "LIMITED_REGISTERED"]
+    },
+    "rat": {
+      "type": "string",
+      "enum": ["RADIO_TECH_UNKNOWN", "RADIO_TECH_GPRS", "RADIO_TECH_EDGE", "RADIO_TECH_UMTS",
+               "RADIO_TECH_LTE", "RADIO_TECH_GSM", "RADIO_TECH_TD_SCDMA", "RADIO_TECH_LTE_CA",
+               "RADIO_TECH_NR5G"]
+    },
+    "errorCode": { "type": "integer" },
+    "errorString": { "type": "string" }
+  },
+  "additionalProperties": false
+}

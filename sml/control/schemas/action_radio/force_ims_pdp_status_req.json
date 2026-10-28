@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_ims_pdp_status.req",
+  "title": "Force IMS PDP Status",
+  "description": "Forces RadioImsAO's IMS PDP context status world state, re-publishing mp/ind/radio/ims_pdp_status. Every field is optional and applied only if present. Backs IImsServingSystemListener::onImsPdpStatusInfoChange testing.",
+  "type": "object",
+  "properties": {
+    "isPdpConnected": { "type": "boolean" },
+    "failureCode": {
+      "type": "string",
+      "enum": ["OTHER_FAILURE", "OPTION_UNSUBSCRIBED", "UNKNOWN_PDP", "REASON_NOT_SPECIFIED",
+               "CONNECTION_BRINGUP_FAILURE", "CONNECTION_IKE_AUTH_FAILURE", "USER_AUTH_FAILED"]
+    },
+    "failureReasonType": {
+      "type": "string",
+      "enum": ["CE_UNKNOWN", "CE_MOBILE_IP", "CE_INTERNAL", "CE_CALL_MANAGER_DEFINED",
+               "CE_3GPP_SPEC_DEFINED", "CE_PPP", "CE_EHRPD", "CE_IPV6", "CE_HANDOFF"]
+    },
+    "failureReasonCode": { "type": "integer" },
+    "apnName": { "type": "string" },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's IMS PDP status to force."
+    }
+  },
+  "additionalProperties": false
+}

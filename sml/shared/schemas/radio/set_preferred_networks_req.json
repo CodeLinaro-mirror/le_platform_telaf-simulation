@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_preferred_networks.req",
+  "title": "Set Preferred Networks Request",
+  "description": "Backs taf_radio_AddPreferredOperator (client appends to its own last-fetched copy of the list before calling this) and taf_radio_RemovePreferredOperator (client fetches via request_preferred_networks, filters locally, then calls this with the result) via INetworkSelectionManager::setPreferredNetworks. Always carries the full replacement list -- there is no discrete add/remove RPC, mirroring the SDK's own setPreferredNetworks(full list) semantics.",
+  "type": "object",
+  "required": ["slot", "networks"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 },
+    "networks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["mcc", "mnc"],
+        "properties": {
+          "mcc": { "type": "string" },
+          "mnc": { "type": "string" },
+          "ratMask": { "type": "integer", "minimum": 0, "maximum": 65535 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

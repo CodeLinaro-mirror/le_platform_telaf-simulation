@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_preferred_networks.rsp",
+  "title": "Set Preferred Networks Response",
+  "description": "Empty ack, matching the SDK's ResponseCallback (error-code only, no data).",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

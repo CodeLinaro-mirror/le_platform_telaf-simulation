@@ -63,9 +63,8 @@ class RadioSubsystem(ActiveObject):
         self._role = role or _read_whoami()
         # From the active scenario's initial_state.radio block (see
         # sml/runtime/loader.py's resolve_radio_seed()); None boots
-        # RadioPhoneAO/RadioServingSystemAO with their own built-in
-        # defaults. RadioNetworkSelectionAO has no cell/signal state, so it
-        # doesn't need this.
+        # RadioPhoneAO/RadioServingSystemAO/RadioNetworkSelectionAO with
+        # their own built-in defaults.
         self._radio_seed = radio_seed
 
         self._pending_start_args: Optional[tuple] = None
@@ -77,8 +76,15 @@ class RadioSubsystem(ActiveObject):
         self._phone_ao = None
         self._serving_system_ao = None
         self._network_selection_ao = None
+        self._ims_ao = None
         self._action_dispatcher = None
 
+        _log.info(
+            "RadioSubsystem created (slot=%d, role=%s, radio_seed=%s)",
+            self._slot_id,
+            self._role,
+            "present" if self._radio_seed is not None else "default",
+        )
         self.start_at(smfn_off)
         _instr.apply_mode(self, _instr.current_mode())
 
@@ -93,10 +99,12 @@ class RadioSubsystem(ActiveObject):
         unsubscribe_fn: Callable,
         direct_publish_fn: Optional[Callable] = None,
     ) -> None:
+        _log.info("RadioSubsystem start requested (slot=%d)", self._slot_id)
         self._pending_start_args = (publish_fn, subscribe_fn, unsubscribe_fn, direct_publish_fn)
         self.post_fifo(Event(signal=signals.Start))
 
     def stop(self) -> None:
+        _log.info("RadioSubsystem stop requested (slot=%d)", self._slot_id)
         self.post_fifo(Event(signal=signals.Stop))
 
     def resubscribe(self) -> None:
@@ -108,6 +116,7 @@ class RadioSubsystem(ActiveObject):
         lifetime is the process lifetime, because ``stop()`` joins its dispatch
         thread and a joined AO cannot be revived.
         """
+        _log.info("RadioSubsystem resubscribe requested (slot=%d)", self._slot_id)
         self.post_fifo(Event(signal=signals.Resubscribe))
 
     def handle_message(self, topic: str, payload: bytes) -> None:
@@ -116,6 +125,11 @@ class RadioSubsystem(ActiveObject):
         Fire-and-forget: posts a ``MessageReceived`` event into this AO's
         fifo and returns immediately -- mirrors DataSubsystem.handle_message.
         """
+        _log.debug(
+            "RadioSubsystem inbound radio message queued topic=%s bytes=%d",
+            topic,
+            len(payload) if payload is not None else 0,
+        )
         self.post_fifo(Event(signal=signals.MessageReceived,
                              payload=(topic, payload)))
 
@@ -124,7 +138,7 @@ class RadioSubsystem(ActiveObject):
         lock-free -- only frozen sets are read) by MqttClient before it
         posts a message."""
         for ao in (self._phone_ao, self._serving_system_ao, self._network_selection_ao,
-                   self._action_dispatcher):
+                   self._ims_ao, self._action_dispatcher):
             if ao is not None and ao.owns_topic(topic):
                 return True
         return False
@@ -150,6 +164,7 @@ class RadioSubsystem(ActiveObject):
         from sml.mpss.radio.phone import RadioPhoneAO
         from sml.mpss.radio.serving_system import RadioServingSystemAO
         from sml.mpss.radio.network_selection import RadioNetworkSelectionAO
+        from sml.mpss.radio.ims import RadioImsAO
         from sml.mpss.radio.action_dispatcher import RadioActionDispatcher
 
         publish_fn, subscribe_fn, unsubscribe_fn, direct_publish_fn = self._pending_start_args
@@ -160,20 +175,25 @@ class RadioSubsystem(ActiveObject):
         self._direct_publish_fn = direct_publish_fn or publish_fn
 
         mpss_src = f"mpss-{self._role}-{os.getpid()}"
+        _log.info("RadioSubsystem starting radio AOs (slot=%d, src=%s)", self._slot_id, mpss_src)
 
         self._phone_ao = RadioPhoneAO(slot=self._slot_id, mpss_src=mpss_src,
                                        radio_seed=self._radio_seed)
         self._serving_system_ao = RadioServingSystemAO(slot=self._slot_id, mpss_src=mpss_src,
                                                          radio_seed=self._radio_seed)
-        self._network_selection_ao = RadioNetworkSelectionAO(slot=self._slot_id, mpss_src=mpss_src)
+        self._network_selection_ao = RadioNetworkSelectionAO(slot=self._slot_id, mpss_src=mpss_src,
+                                                             radio_seed=self._radio_seed)
+        self._ims_ao = RadioImsAO(slot=self._slot_id, mpss_src=mpss_src)
 
         self._phone_ao.start(publish_fn, subscribe_fn, unsubscribe_fn)
         self._serving_system_ao.start(publish_fn, subscribe_fn, unsubscribe_fn)
         self._network_selection_ao.start(publish_fn, subscribe_fn, unsubscribe_fn)
+        self._ims_ao.start(publish_fn, subscribe_fn, unsubscribe_fn)
 
         self._action_dispatcher = RadioActionDispatcher(
             serving_system_ao=self._serving_system_ao,
             phone_ao=self._phone_ao,
+            ims_ao=self._ims_ao,
         )
         self._action_dispatcher.start(subscribe_fn, unsubscribe_fn)
 
@@ -181,12 +201,14 @@ class RadioSubsystem(ActiveObject):
 
     def _fanout_message(self, topic: str, payload: bytes) -> None:
         for ao in (self._phone_ao, self._serving_system_ao, self._network_selection_ao,
-                   self._action_dispatcher):
+                   self._ims_ao, self._action_dispatcher):
             if ao is not None and ao.owns_topic(topic):
+                ao_name = type(ao).__name__
+                _log.debug("RadioSubsystem routing topic=%s to %s", topic, ao_name)
                 try:
                     ao.handle_message(topic, payload)
                 except Exception as exc:  # noqa: BLE001
-                    _log.error("sub-AO handler raised on %s: %s", topic, exc)
+                    _log.error("RadioSubsystem sub-AO %s handler raised on %s: %s", ao_name, topic, exc)
                 return
         _log.debug("RadioSubsystem: no sub-AO owns %s", topic)
 
@@ -197,10 +219,12 @@ class RadioSubsystem(ActiveObject):
         dispatcher, a plain class, runs inline), so this returns without
         blocking on any of them.
         """
+        _log.info("RadioSubsystem re-subscribing radio sub-AOs (slot=%d)", self._slot_id)
         for ao in (self._phone_ao, self._serving_system_ao,
-                   self._network_selection_ao, self._action_dispatcher):
+                   self._network_selection_ao, self._ims_ao, self._action_dispatcher):
             if ao is None:
                 continue
+            _log.debug("RadioSubsystem resubscribe fanout to %s", type(ao).__name__)
             fn = getattr(ao, "resubscribe", None)
             if fn is None:
                 _log.warning("sub-AO %s has no resubscribe(); its subscriptions "
@@ -212,26 +236,16 @@ class RadioSubsystem(ActiveObject):
                 _log.error("sub-AO resubscribe failed: %s", exc)
 
     def _do_stop(self) -> None:
-        # Switch every sub-AO to direct (synchronous) publish before
-        # stopping it, so its own Ready-exit hook's subsys_ready(ready=False)
-        # (see phone.py/serving_system.py/network_selection.py's
-        # _do_exit_ready) reaches the broker before the MQTT client
-        # disconnects -- mirrors DataSubsystem._do_stop's rationale. Each of
-        # the three radio sub-AOs publishes its own retained subsys_ready
-        # topic (radio.yaml: "each manager maps to an independently-booting
-        # subsystem... rather than collapsing into one domain-wide signal"),
-        # so all three need the swap, not just one. Without this, the async
-        # event-queue path is processed after the AO has already left
-        # Operational, leaving a stale retained ready=true in the broker's
-        # cache after a restart -- any tooling querying readiness while MPSS
-        # is actually down gets a false "available".
+        _log.info("RadioSubsystem stopping radio sub-AOs (slot=%d)", self._slot_id)
         if self._direct_publish_fn:
-            for ao in (self._phone_ao, self._serving_system_ao, self._network_selection_ao):
+            for ao in (self._phone_ao, self._serving_system_ao, self._network_selection_ao,
+                       self._ims_ao):
                 if ao is not None:
                     ao._publish_fn = self._direct_publish_fn
         for ao in (self._action_dispatcher, self._network_selection_ao,
-                   self._serving_system_ao, self._phone_ao):
+                   self._serving_system_ao, self._phone_ao, self._ims_ao):
             if ao is not None:
+                _log.debug("RadioSubsystem stopping %s", type(ao).__name__)
                 try:
                     ao.stop()
                 except Exception as exc:  # noqa: BLE001
@@ -309,7 +323,8 @@ def smfn_ready(chart, e):
     """Fans out inbound messages to whichever sub-AO owns the topic."""
     status = return_status.UNHANDLED
     if e.signal == signals.ENTRY_SIGNAL:
-        chart.recall()
+        while chart.recall() is not None:  # recall() replays only one deferred event per call
+            pass
         status = return_status.HANDLED
     elif e.signal == signals.EXIT_SIGNAL:
         status = return_status.HANDLED

@@ -96,10 +96,16 @@ class RadioPhoneAO(ActiveObject):
             },
         }]
 
+        # PLMN matches the serving cell's mcc+mnc below (310/01).
+        self.long_name = "Operator1"
+        self.short_name = "Operator1"
+        self.plmn = "31001"
+        self.is_home = True
+
         # Overrides the LTE cell/signal defaults above with the active
         # scenario's initial_state.radio block (mcc/mnc split from the
         # serving cell's PLMN, rsrp from its default_rsrp_dbm) -- drives
-        # request_cell_info and request_signal_strength. Only LTE has a
+        # request_cell_info, request_signal_strength and request_operator_info. Only LTE has a
         # matching cells[]/lte_signal shape to seed into today; any other
         # radio_seed.rat is logged and left at the defaults above rather
         # than guessed at. radio_seed.variance_db is intentionally not
@@ -112,17 +118,13 @@ class RadioPhoneAO(ActiveObject):
                 self.cells[0]["lte"]["mnc"] = radio_seed.mnc
                 self.cells[0]["lte"]["rsrp"] = radio_seed.rsrp_dbm
                 self.lte_signal["lteRsrp"] = radio_seed.rsrp_dbm
+                self.plmn = radio_seed.mcc + radio_seed.mnc
             else:
                 _log.warning(
                     "RadioPhoneAO: scenario radio_seed.rat=%r has no seedable "
                     "cell/signal shape yet (only LTE supported); cell/signal "
                     "state left at built-in defaults", radio_seed.rat,
                 )
-
-        self.long_name = "Operator1"
-        self.short_name = "Operator1"
-        self.plmn = "plmn1"
-        self.is_home = True
 
         self.start_at(smfn_off)
         _instr.apply_mode(self, _instr.current_mode())
@@ -219,6 +221,13 @@ class RadioPhoneAO(ActiveObject):
                 _log.warning("resubscribe %s failed: %s", topic, exc)
         self._do_enter_ready()
         _log.info("radio phone AO resubscribed (slot=%d)", self._slot)
+
+    def _run_force(self, apply_fn: Callable, data: dict) -> None:
+        # Runs on the AO thread, where an uncaught exception kills the thread for good.
+        try:
+            apply_fn(data)
+        except Exception as exc:  # noqa: BLE001
+            _log.error("%s failed: %s", apply_fn.__name__, exc)
 
     def _signal_strength_payload(self) -> dict:
         return {
@@ -337,6 +346,52 @@ class RadioPhoneAO(ActiveObject):
     # see RadioActionDispatcher).
     # ------------------------------------------------------------------
 
+    def force_profile(self, data: dict) -> None:
+        self.post_fifo(Event(signal=signals.ForceProfile, payload=data))
+
+    def _apply_force_profile(self, data: dict) -> None:
+        profile = data.get("profile")
+        if profile in ("4g", "recovery"):
+            self.operating_mode = "ONLINE"
+            self.voice_service_state = "REG_HOME"
+            self.voice_radio_tech = "RADIO_TECH_LTE"
+            self.lte_signal.update({"lteSignalStrength": 31, "lteRsrp": -83, "lteRsrq": -10, "lteRssnr": 29})
+            self.nr5g_signal.update({"rsrp": 2147483647, "rsrq": 2147483647, "rssnr": 2147483647})
+        elif profile == "5g-nsa":
+            self.operating_mode = "ONLINE"
+            self.voice_service_state = "REG_HOME"
+            self.voice_radio_tech = "RADIO_TECH_LTE"
+            self.lte_signal.update({"lteSignalStrength": 30, "lteRsrp": -86, "lteRsrq": -10, "lteRssnr": 80})
+            self.nr5g_signal.update({"rsrp": -90, "rsrq": -11, "rssnr": 100})
+        elif profile == "5g-sa":
+            self.operating_mode = "ONLINE"
+            self.voice_service_state = "REG_HOME"
+            self.voice_radio_tech = "RADIO_TECH_NR5G"
+            # No LTE anchor in standalone 5G -- clear it so SA isn't
+            # indistinguishable from NSA (which legitimately keeps both).
+            self.lte_signal.update({"lteSignalStrength": 2147483647, "lteRsrp": 2147483647,
+                                   "lteRsrq": 2147483647, "lteRssnr": 2147483647})
+            self.nr5g_signal.update({"rsrp": -88, "rsrq": -10, "rssnr": 120})
+        elif profile == "weak-signal":
+            self.lte_signal.update({"lteSignalStrength": 5, "lteRsrp": -118, "lteRsrq": -18, "lteRssnr": -30})
+            self.nr5g_signal.update({"rsrp": -120, "rsrq": -20, "rssnr": -40})
+        elif profile in ("out-of-service", "radio-failure"):
+            self.operating_mode = "OFFLINE" if profile == "radio-failure" else "ONLINE"
+            self.voice_service_state = "NOT_REG_AND_NOT_SEARCHING"
+            self.voice_radio_tech = "RADIO_TECH_UNKNOWN"
+        else:
+            return
+        _log.info("RadioPhoneAO force_profile applied: %s", profile)
+        self._pub_ind(topics_radio.op_mode.ind, "radio.op_mode.ind", {"mode": self.operating_mode})
+        self._pub_ind(topics_radio.signal_strength.ind, "radio.signal_strength.ind",
+                      self._signal_strength_payload())
+        if profile != "weak-signal":  # every other profile rewrites voice registration
+            self.voice_service_denial_cause = -1
+            self._pub_ind(topics_radio.voice_service_state.ind, "radio.voice_service_state.ind",
+                          {"voiceServiceState": self.voice_service_state,
+                           "denialCause": self.voice_service_denial_cause,
+                           "radioTech": self.voice_radio_tech})
+
     def force_signal_strength(self, data: dict) -> None:
         """Directly mutate the signal-strength snapshot and re-publish it as
         an indication -- mirrors DataServingSystemAO.force_serv_state's
@@ -360,6 +415,66 @@ class RadioPhoneAO(ActiveObject):
         _log.info("RadioPhoneAO force_signal_strength applied: rats=%s", rats)
         self._pub_ind(topics_radio.signal_strength.ind, "radio.signal_strength.ind",
                       self._signal_strength_payload())
+
+    def force_cell_info(self, data: dict) -> None:
+        """Replace the serving/neighbour cell list and re-publish it as an
+        indication. Full replacement, not a patch (see
+        action.radio.force_cell_info.req) -- mirrors radio.cell_info.ind's
+        own full-list semantics. PA-side (PhoneManager.cpp) already
+        dispatches this topic to onCellInfoListChanged; drives
+        taf_radio_AddCellInfoChangeHandler."""
+        self.post_fifo(Event(signal=signals.ForceCellInfo, payload=data))
+
+    def _apply_force_cell_info(self, data: dict) -> None:
+        if self._publish_fn is None:
+            return
+        self.cells = [dict(c) for c in data.get("cells", [])]
+        _log.info("RadioPhoneAO force_cell_info applied: %d cell(s)", len(self.cells))
+        self._pub_ind(topics_radio.cell_info.ind, "radio.cell_info.ind",
+                      {"cells": [dict(c) for c in self.cells]})
+
+    def force_operator_info(self, data: dict) -> None:
+        """Patch the registered-operator snapshot and re-publish it as an
+        indication. Drives IPhoneListener::onOperatorInfoChange -- there is
+        no AP RPC that changes the registered operator, so this is the only
+        way to exercise that handler in the simulator."""
+        self.post_fifo(Event(signal=signals.ForceOperatorInfo, payload=data))
+
+    def _apply_force_operator_info(self, data: dict) -> None:
+        if self._publish_fn is None:
+            return
+        if "longName" in data:
+            self.long_name = data["longName"]
+        if "shortName" in data:
+            self.short_name = data["shortName"]
+        if "plmn" in data:
+            self.plmn = data["plmn"]
+        if "isHome" in data:
+            self.is_home = data["isHome"]
+        _log.info("RadioPhoneAO force_operator_info applied: %s", data)
+        self._pub_ind(topics_radio.operator_info.ind, "radio.operator_info.ind",
+                      {"longName": self.long_name, "shortName": self.short_name,
+                       "plmn": self.plmn, "isHome": self.is_home})
+
+    def force_voice_service_state(self, data: dict) -> None:
+        """Patch the voice registration snapshot and re-publish it as an
+        indication. Drives IPhoneListener::onVoiceServiceStateChanged."""
+        self.post_fifo(Event(signal=signals.ForceVoiceServiceState, payload=data))
+
+    def _apply_force_voice_service_state(self, data: dict) -> None:
+        if self._publish_fn is None:
+            return
+        if "voiceServiceState" in data:
+            self.voice_service_state = data["voiceServiceState"]
+        if "denialCause" in data:
+            self.voice_service_denial_cause = data["denialCause"]
+        if "radioTech" in data:
+            self.voice_radio_tech = data["radioTech"]
+        _log.info("RadioPhoneAO force_voice_service_state applied: %s", data)
+        self._pub_ind(topics_radio.voice_service_state.ind, "radio.voice_service_state.ind",
+                      {"voiceServiceState": self.voice_service_state,
+                       "denialCause": self.voice_service_denial_cause,
+                       "radioTech": self.voice_radio_tech})
 
 
 # ---------------------------------------------------------------------------
@@ -395,7 +510,11 @@ def smfn_operating(chart, e):
     elif e.signal == signals.MessageReceived:
         chart.defer(e)
         status = return_status.HANDLED
-    elif e.signal == signals.ForceSignalStrength:
+    elif e.signal in (signals.ForceProfile, signals.ForceSignalStrength):
+        _log.debug("radio phone AO: %s dropped -- not Ready", e.signal_name)
+        status = return_status.HANDLED
+    elif e.signal in (signals.ForceCellInfo, signals.ForceOperatorInfo,
+                       signals.ForceVoiceServiceState):
         _log.debug("radio phone AO: %s dropped -- not Ready", e.signal_name)
         status = return_status.HANDLED
     elif e.signal == signals.Resubscribe:
@@ -431,7 +550,8 @@ def smfn_ready(chart, e):
     status = return_status.UNHANDLED
     if e.signal == signals.ENTRY_SIGNAL:
         chart._do_enter_ready()
-        chart.recall()
+        while chart.recall() is not None:  # recall() replays only one deferred event per call
+            pass
         status = return_status.HANDLED
     elif e.signal == signals.EXIT_SIGNAL:
         chart._do_exit_ready()
@@ -440,8 +560,20 @@ def smfn_ready(chart, e):
         topic, payload = e.payload
         chart._dispatch_message(topic, payload)
         status = return_status.HANDLED
+    elif e.signal == signals.ForceProfile:
+        chart._run_force(chart._apply_force_profile, e.payload)
+        status = return_status.HANDLED
     elif e.signal == signals.ForceSignalStrength:
-        chart._apply_force_signal_strength(e.payload)
+        chart._run_force(chart._apply_force_signal_strength, e.payload)
+        status = return_status.HANDLED
+    elif e.signal == signals.ForceCellInfo:
+        chart._run_force(chart._apply_force_cell_info, e.payload)
+        status = return_status.HANDLED
+    elif e.signal == signals.ForceOperatorInfo:
+        chart._run_force(chart._apply_force_operator_info, e.payload)
+        status = return_status.HANDLED
+    elif e.signal == signals.ForceVoiceServiceState:
+        chart._run_force(chart._apply_force_voice_service_state, e.payload)
         status = return_status.HANDLED
     elif e.signal == signals.Resubscribe:
         chart._do_resubscribe()

@@ -1,0 +1,14 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_ims_pdp_status.req before send.
+#
+# Drives IImsServingSystemListener::onImsPdpStatusInfoChange.
+topic: ctrl/cmd/action/radio/force_ims_pdp_status
+data:
+  isPdpConnected: false
+  failureCode: CONNECTION_BRINGUP_FAILURE
+  failureReasonType: CE_3GPP_SPEC_DEFINED
+  failureReasonCode: 26
+  apnName: "ims"

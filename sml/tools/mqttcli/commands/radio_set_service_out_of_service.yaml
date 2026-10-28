@@ -1,0 +1,10 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Force radio service out of service.
+# Usage: sml mqttcli pub sml/tools/mqttcli/commands/radio_set_service_out_of_service.yaml
+topic: ctrl/cmd/action/radio/force_sys_info
+data:
+  rat: RADIO_TECH_UNKNOWN
+  domain: NO_SRV
+  state: NO_SERVICE

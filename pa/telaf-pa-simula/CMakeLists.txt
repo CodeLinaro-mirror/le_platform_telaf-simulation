@@ -105,6 +105,7 @@ set(CODEGEN_CONSUMERS
     telux_tel      # component/sim/*.cpp (compiled into it)   -> topics.h
     telux_power    # component/power/*.cpp            -> topics.h
     taf_prop_pms  # component/telaf-np/component/taf_prop_pms/ -> topics.h
+    taf_prop_radio   # component/telaf-np/component/taf_prop_radio/ -> topics.h
 )
 foreach(consumer ${CODEGEN_CONSUMERS})
     if(NOT TARGET ${consumer})

@@ -1,0 +1,75 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Simulate LTE roaming with matching operator, voice, and data roaming state.
+# Usage: sml mqttcli pub sml/tools/mqttcli/commands/radio_scenario_roaming_lte.yaml
+interval: 100ms
+messages:
+  - topic: ctrl/cmd/action/radio/force_signal_strength
+    data:
+      lte:
+        lteSignalStrength: 28
+        lteRsrp: -88
+        lteRsrq: -10
+        lteRssnr: 18
+  - topic: ctrl/cmd/action/radio/force_cell_info
+    data:
+      cells:
+        - cellType: LTE
+          registered: true
+          lte:
+            mcc: "234"
+            mnc: "15"
+            ci: 441200
+            pci: 220
+            tac: 119
+            earfcn: 1575
+            signalStrength: 28
+            rsrp: -88
+            rsrq: -10
+            rssnr: 18
+            cqi: 2147483647
+            timingAdvance: 1
+  - topic: ctrl/cmd/action/radio/force_rf_band_info
+    data:
+      band: E_UTRA_OPERATING_BAND_3
+      channel: 1575
+      bandWidth: LTE_BW_NRB_50
+  - topic: ctrl/cmd/action/radio/force_operator_info
+    data:
+      longName: RoamTel
+      shortName: RoamTel
+      plmn: "23415"
+      isHome: false
+  - topic: ctrl/cmd/action/radio/force_voice_service_state
+    data:
+      voiceServiceState: REG_ROAMING
+      denialCause: -1
+      radioTech: RADIO_TECH_LTE
+  - topic: ctrl/cmd/action/radio/force_sys_info
+    data:
+      rat: RADIO_TECH_LTE
+      domain: CS_PS
+      state: IN_SERVICE
+  - topic: ctrl/cmd/action/data/force_serv_state
+    data:
+      serviceState: IN_SERVICE
+      networkRat: LTE
+      drbStatus: ACTIVE
+  - topic: ctrl/cmd/action/data/force_roaming
+    data:
+      isRoaming: true
+      roamingType: INTERNATIONAL
+  - topic: ctrl/cmd/action/data/force_nr_icon_type
+    data:
+      iconType: NONE
+  - topic: ctrl/cmd/action/radio/force_ims_registration_info
+    data:
+      imsRegStatus: REGISTERED
+      rat: RADIO_TECH_LTE
+      errorCode: 0
+      errorString: ""
+  - topic: ctrl/cmd/action/radio/force_ims_service_info
+    data:
+      sms: FULL_SERVICE
+      voice: FULL_SERVICE

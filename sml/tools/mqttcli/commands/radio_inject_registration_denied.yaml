@@ -1,0 +1,83 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Simulate a registration-denied attach: limited service, voice denied,
+# network rejection, packet service unavailable, and IMS down.
+# Usage: sml mqttcli pub sml/tools/mqttcli/commands/radio_inject_registration_denied.yaml
+interval: 100ms
+messages:
+  - topic: ctrl/cmd/action/radio/force_signal_strength
+    data:
+      lte:
+        lteSignalStrength: 18
+        lteRsrp: -101
+        lteRsrq: -14
+        lteRssnr: 2
+  - topic: ctrl/cmd/action/radio/force_cell_info
+    data:
+      cells:
+        - cellType: LTE
+          registered: false
+          lte:
+            mcc: "310"
+            mnc: "410"
+            ci: 900120
+            pci: 52
+            tac: 2194
+            earfcn: 1575
+            signalStrength: 18
+            rsrp: -101
+            rsrq: -14
+            rssnr: 2
+            cqi: 2147483647
+            timingAdvance: 1
+  - topic: ctrl/cmd/action/radio/force_operator_info
+    data:
+      longName: DeniedNet
+      shortName: Denied
+      plmn: "310410"
+      isHome: false
+  - topic: ctrl/cmd/action/radio/force_sys_info
+    data:
+      rat: RADIO_TECH_LTE
+      domain: CS_PS
+      state: LIMITED_SERVICE
+  - topic: ctrl/cmd/action/radio/force_voice_service_state
+    data:
+      voiceServiceState: REG_DENIED
+      denialCause: 17
+      radioTech: RADIO_TECH_LTE
+  - topic: ctrl/cmd/action/radio/force_network_rejection
+    data:
+      rat: RADIO_TECH_LTE
+      domain: CS_PS
+      rejectCause: 17
+      mcc: "310"
+      mnc: "410"
+  - topic: ctrl/cmd/action/data/force_serv_state
+    data:
+      serviceState: OUT_OF_SERVICE
+      drbStatus: DORMANT
+  - topic: ctrl/cmd/action/data/force_roaming
+    data:
+      isRoaming: false
+      roamingType: DOMESTIC
+  - topic: ctrl/cmd/action/data/force_nr_icon_type
+    data:
+      iconType: NONE
+  - topic: ctrl/cmd/action/radio/force_ims_registration_info
+    data:
+      imsRegStatus: NOT_REGISTERED
+      rat: RADIO_TECH_LTE
+      errorCode: 17
+      errorString: network registration denied
+  - topic: ctrl/cmd/action/radio/force_ims_service_info
+    data:
+      sms: NO_SERVICE
+      voice: NO_SERVICE
+  - topic: ctrl/cmd/action/radio/force_ims_pdp_status
+    data:
+      isPdpConnected: false
+      failureCode: OPTION_UNSUBSCRIBED
+      failureReasonType: CE_3GPP_SPEC_DEFINED
+      failureReasonCode: 17

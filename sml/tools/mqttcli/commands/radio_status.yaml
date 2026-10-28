@@ -1,0 +1,10 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Query serving radio status. Watch the response with:
+#   sml mqttcli sub 'mp/rsp/radio/get_system_info' -v
+# Then publish:
+#   sml mqttcli pub sml/tools/mqttcli/commands/radio_status.yaml
+topic: mp/req/radio/get_system_info
+data:
+  slot: 1

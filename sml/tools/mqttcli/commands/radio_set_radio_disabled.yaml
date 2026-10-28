@@ -1,0 +1,9 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Set modem operating mode to AIRPLANE (radio disabled).
+# Usage: sml mqttcli pub sml/tools/mqttcli/commands/radio_set_radio_disabled.yaml
+topic: mp/req/radio/set_operating_mode
+data:
+  slot: 1
+  mode: AIRPLANE

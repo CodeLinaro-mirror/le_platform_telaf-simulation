@@ -38,14 +38,18 @@ _TOPIC_TO_ACTION = {
 class RadioActionDispatcher:
     """Routes `ctrl/cmd/action/radio/**` messages to World State mutators."""
 
-    def __init__(self, serving_system_ao, phone_ao) -> None:
+    def __init__(self, serving_system_ao, phone_ao, ims_ao=None) -> None:
         self._serving_system_ao = serving_system_ao
         self._phone_ao = phone_ao
+        self._ims_ao = ims_ao
         self._owned_topics = set(_TOPIC_TO_ACTION.keys())
         self._subscribe_fn: Callable | None = None
         self._unsubscribe_fn: Callable | None = None
 
         self._dispatch = {
+            "radio.force_profile":
+                lambda p: (self._serving_system_ao.force_profile(p),
+                           self._phone_ao.force_profile(p)),
             "radio.force_lte_cs_capability":
                 lambda p: self._serving_system_ao.force_lte_cs_capability(p),
             "radio.force_sys_info":
@@ -54,6 +58,25 @@ class RadioActionDispatcher:
                 lambda p: self._serving_system_ao.force_dc_status(p),
             "radio.force_signal_strength":
                 lambda p: self._phone_ao.force_signal_strength(p),
+            # Events.json parity round (see action_radio.yaml's header).
+            "radio.force_cell_info":
+                lambda p: self._phone_ao.force_cell_info(p),
+            "radio.force_operator_info":
+                lambda p: self._phone_ao.force_operator_info(p),
+            "radio.force_voice_service_state":
+                lambda p: self._phone_ao.force_voice_service_state(p),
+            "radio.force_network_time":
+                lambda p: self._serving_system_ao.force_network_time(p),
+            "radio.force_rf_band_info":
+                lambda p: self._serving_system_ao.force_rf_band_info(p),
+            "radio.force_network_rejection":
+                lambda p: self._serving_system_ao.force_network_rejection(p),
+            "radio.force_ims_registration_info":
+                lambda p: self._ims_ao.force_ims_registration_info(p),
+            "radio.force_ims_service_info":
+                lambda p: self._ims_ao.force_ims_service_info(p),
+            "radio.force_ims_pdp_status":
+                lambda p: self._ims_ao.force_ims_pdp_status(p),
         }
 
     def start(self, subscribe_fn: Callable, unsubscribe_fn: Callable | None = None) -> None:
@@ -123,7 +146,8 @@ class RadioActionDispatcher:
         except Exception as exc:  # noqa: BLE001
             _log.error("action dispatcher: %s handler raised: %s", canonical_name, exc)
         else:
-            _log.info("action dispatcher: %s applied", canonical_name)
+            # Handlers only post to the AO's fifo; the AO logs "applied" (or drops it if not Ready).
+            _log.info("action dispatcher: %s queued", canonical_name)
         return True
 
 

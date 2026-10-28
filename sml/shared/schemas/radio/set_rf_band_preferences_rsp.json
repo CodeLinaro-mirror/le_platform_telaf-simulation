@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_rf_band_preferences.rsp",
+  "title": "Set RF Band Preferences Response",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

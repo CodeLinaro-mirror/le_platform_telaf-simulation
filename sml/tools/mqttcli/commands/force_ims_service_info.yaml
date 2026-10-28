@@ -1,0 +1,11 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_ims_service_info.req before send.
+#
+# Drives IImsServingSystemListener::onImsServiceInfoChange.
+topic: ctrl/cmd/action/radio/force_ims_service_info
+data:
+  sms: FULL_SERVICE
+  voice: FULL_SERVICE

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_ims_pdp_status.req",
+  "title": "Request IMS PDP Status Request",
+  "description": "Backs taf_radio_GetImsPdpError via IImsServingSystemManager::requestPdpStatus.",
+  "type": "object",
+  "required": ["slot"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

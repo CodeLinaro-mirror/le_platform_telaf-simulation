@@ -100,6 +100,7 @@ apps:
     // $TELAF_ROOT/apps/test/tafECallTest/tafECallUnitTest/tafECallUnitTest
     // $TELAF_ROOT/apps/test/tafDevInfoTest/tafDevInfoIntTest
     // $TELAF_ROOT/apps/test/tafRadioTest/tafRadioIntTest
+    // $TELAF_ROOT/apps/test/tafRadioTest/tafRadioUnitTest
     // $TELAF_ROOT/apps/test/tafPMTest/tafPMUnitTest/tafPMUnitTest
     // $TELAF_ROOT/apps/test/tafPMTest/tafPMIntgTest/tafPMIntgTest
     // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdPMTest/tafMngdPMIntTest/tafMngdPMIntTest

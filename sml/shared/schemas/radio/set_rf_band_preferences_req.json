@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_rf_band_preferences.req",
+  "title": "Set RF Band Preferences Request",
+  "description": "Backs taf_radio_SetBandPreferences/SetLteBandPreferences via IServingSystemManager::setRFBandPreferences (built client-side through RFBandListBuilder). Same split-by-RAT-family shape as request_rf_band_capability.rsp.",
+  "type": "object",
+  "required": ["slot"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 },
+    "gsmBands": { "type": "array", "items": { "type": "string" } },
+    "wcdmaBands": { "type": "array", "items": { "type": "string" } },
+    "lteBands": { "type": "array", "items": { "type": "string" } },
+    "nrBands": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

@@ -96,6 +96,31 @@ def test_request_rat_preference_defaults():
     assert rsp["data"]["ratPrefs"] == ["CDMA_EVDO", "GSM", "WCDMA"]
 
 
+def test_request_service_domain_preference_defaults():
+    pub = _MockPublish()
+    ao = _make_started_ao(pub)
+    rsp = _req(ao, pub, topics_radio.request_service_domain_preference.req,
+               topics_radio.request_service_domain_preference.rsp, {"slot": 1})
+    assert rsp["data"]["serviceDomain"] == "PS_ONLY"
+
+
+def test_set_service_domain_preference_updates_state_and_fires_rat_pref_indication():
+    pub = _MockPublish()
+    ao = _make_started_ao(pub)
+    before = len(pub.calls)
+    rsp = _req(ao, pub, topics_radio.set_service_domain_preference.req,
+               topics_radio.set_service_domain_preference.rsp,
+               {"slot": 1, "serviceDomain": "CS_PS"})
+    assert "error" not in rsp
+    ind_calls = [c for c in pub.calls[before:] if c["topic"] == topics_radio.rat_pref.ind]
+    assert ind_calls
+    assert ind_calls[0]["payload"]["data"]["serviceDomainPref"] == "CS_PS"
+
+    rsp2 = _req(ao, pub, topics_radio.request_service_domain_preference.req,
+                topics_radio.request_service_domain_preference.rsp, {"slot": 1})
+    assert rsp2["data"]["serviceDomain"] == "CS_PS"
+
+
 def test_set_rat_preference_updates_state_and_fires_indication():
     pub = _MockPublish()
     ao = _make_started_ao(pub)
@@ -124,9 +149,6 @@ def test_get_system_info_defaults():
 
 
 def test_radio_seed_lte_applies_to_system_info():
-    # Mirrors a scenario's initial_state.radio block resolved via
-    # resolve_radio_seed() -- see the bug this closes: sml/runtime/loader.py
-    # used to validate serving_cell/signal_model ids and then discard them.
     seed = RadioSeed(mcc="460", mnc="00", rat="LTE", rsrp_dbm=-97, variance_db=3)
     pub = _MockPublish()
     ao = _make_started_ao(pub, radio_seed=seed)
@@ -136,9 +158,6 @@ def test_radio_seed_lte_applies_to_system_info():
 
 
 def test_radio_seed_unrecognized_rat_leaves_rat_default():
-    # Only LTE has a wire mapping today (see RadioServingSystemAO's
-    # radio_seed handling) -- an unsupported rat must not crash the AO,
-    # just leave the built-in default in place.
     seed = RadioSeed(mcc="999", mnc="99", rat="NR5G", rsrp_dbm=-60, variance_db=0)
     pub = _MockPublish()
     ao = _make_started_ao(pub, radio_seed=seed)
@@ -158,8 +177,6 @@ def test_get_dc_status_defaults():
 
 
 def test_request_rf_band_info_defaults():
-    # E-UTRA Band 1 / channel 400 matches RadioPhoneAO.cells' seeded LTE
-    # cell (earfcn=400) -- see serving_system.py's rf_band world-state comment.
     pub = _MockPublish()
     ao = _make_started_ao(pub)
     rsp = _req(ao, pub, topics_radio.request_rf_band_info.req,
@@ -201,3 +218,50 @@ def test_force_lte_cs_capability_updates_and_publishes_indication():
     assert ind["payload"]["data"]["lteCsCapability"] == "BARRED"
     assert ao.lte_cs_capability == "BARRED"
 
+
+def test_request_rf_band_capability_defaults():
+    pub = _MockPublish()
+    ao = _make_started_ao(pub)
+    rsp = _req(ao, pub, topics_radio.request_rf_band_capability.req,
+               topics_radio.request_rf_band_capability.rsp, {"slot": 1})
+    data = rsp["data"]
+    assert data["lteBands"] == ["E_UTRA_BAND_1", "E_UTRA_BAND_3"]
+    assert data["nrBands"] == ["NR5G_BAND_1", "NR5G_BAND_78"]
+
+
+def test_request_rf_band_preferences_defaults_to_full_capability():
+    pub = _MockPublish()
+    ao = _make_started_ao(pub)
+    rsp = _req(ao, pub, topics_radio.request_rf_band_preferences.req,
+               topics_radio.request_rf_band_preferences.rsp, {"slot": 1})
+    assert rsp["data"]["lteBands"] == ["E_UTRA_BAND_1", "E_UTRA_BAND_3"]
+
+
+def test_set_rf_band_preferences_updates_state():
+    pub = _MockPublish()
+    ao = _make_started_ao(pub)
+    rsp = _req(ao, pub, topics_radio.set_rf_band_preferences.req,
+               topics_radio.set_rf_band_preferences.rsp,
+               {"slot": 1, "lteBands": ["E_UTRA_BAND_3"]})
+    assert "error" not in rsp
+
+    rsp2 = _req(ao, pub, topics_radio.request_rf_band_preferences.req,
+                topics_radio.request_rf_band_preferences.rsp, {"slot": 1})
+    assert rsp2["data"]["lteBands"] == ["E_UTRA_BAND_3"]
+    # Untouched families stay at their prior value.
+    assert rsp2["data"]["nrBands"] == ["NR5G_BAND_1", "NR5G_BAND_78"]
+
+
+
+def test_force_handler_exception_does_not_kill_ao():
+    pub = _MockPublish()
+    ao = _make_started_ao(pub)
+    original = ao._publish_sys_info
+
+    def boom():
+        raise ValueError("simulated failure")
+    ao._publish_sys_info = boom
+    ao.force_sys_info({"rat": "RADIO_TECH_LTE"})
+    rsp = _req(ao, pub, topics_radio.get_dc_status.req, topics_radio.get_dc_status.rsp, {"slot": 1})
+    ao._publish_sys_info = original
+    assert rsp["data"]["endcAvailability"]

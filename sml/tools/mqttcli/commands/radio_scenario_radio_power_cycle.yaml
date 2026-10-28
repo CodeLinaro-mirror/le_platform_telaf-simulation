@@ -1,0 +1,86 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Simulate a radio power cycle: airplane mode, no service, then online recovery.
+# Usage: sml mqttcli pub sml/tools/mqttcli/commands/radio_scenario_radio_power_cycle.yaml
+interval: 500ms
+messages:
+  - topic: mp/req/radio/set_operating_mode
+    data:
+      slot: 1
+      mode: AIRPLANE
+  - topic: ctrl/cmd/action/radio/force_sys_info
+    data:
+      rat: RADIO_TECH_UNKNOWN
+      domain: NO_SRV
+      state: NO_SERVICE
+  - topic: ctrl/cmd/action/radio/force_voice_service_state
+    data:
+      voiceServiceState: NOT_REG_AND_NOT_SEARCHING
+      denialCause: -1
+      radioTech: RADIO_TECH_UNKNOWN
+  - topic: ctrl/cmd/action/data/force_serv_state
+    data:
+      serviceState: OUT_OF_SERVICE
+      drbStatus: DORMANT
+  - topic: ctrl/cmd/action/radio/force_ims_registration_info
+    data:
+      imsRegStatus: NOT_REGISTERED
+      rat: RADIO_TECH_UNKNOWN
+      errorCode: 0
+      errorString: radio offline
+  - topic: ctrl/cmd/action/radio/force_ims_service_info
+    data:
+      sms: NO_SERVICE
+      voice: NO_SERVICE
+  - topic: mp/req/radio/set_operating_mode
+    data:
+      slot: 1
+      mode: ONLINE
+  - topic: ctrl/cmd/action/radio/force_profile
+    data:
+      profile: recovery
+  - topic: ctrl/cmd/action/radio/force_signal_strength
+    data:
+      lte:
+        lteSignalStrength: 31
+        lteRsrp: -83
+        lteRsrq: -10
+        lteRssnr: 29
+      nr5g:
+        rsrp: 2147483647
+        rsrq: 2147483647
+        rssnr: 2147483647
+  - topic: ctrl/cmd/action/radio/force_cell_info
+    data:
+      cells:
+        - cellType: LTE
+          registered: true
+          lte:
+            mcc: "310"
+            mnc: "01"
+            ci: 78849
+            pci: 411
+            tac: 702
+            earfcn: 400
+            signalStrength: 31
+            rsrp: -83
+            rsrq: -10
+            rssnr: 29
+            cqi: 2147483647
+            timingAdvance: 1
+  - topic: ctrl/cmd/action/data/force_serv_state
+    data:
+      serviceState: IN_SERVICE
+      networkRat: LTE
+      drbStatus: DORMANT
+  - topic: ctrl/cmd/action/radio/force_ims_registration_info
+    data:
+      imsRegStatus: REGISTERED
+      rat: RADIO_TECH_LTE
+      errorCode: 0
+      errorString: ""
+  - topic: ctrl/cmd/action/radio/force_ims_service_info
+    data:
+      sms: FULL_SERVICE
+      voice: FULL_SERVICE

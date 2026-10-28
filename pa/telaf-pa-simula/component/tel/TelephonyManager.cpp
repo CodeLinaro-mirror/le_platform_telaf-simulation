@@ -11,6 +11,8 @@
 #include "PhoneManager.hpp"
 #include "ServingSystemManager.hpp"
 #include "CallManager.hpp"
+#include "ImsServingSystemManager.hpp"
+#include "ImsSettingsManager.hpp"
 
 #include "../common/ListenerDispatchAO.hpp"
 #include "../common/Log.hpp"
@@ -37,21 +39,26 @@ public:
     PhoneFactoryStub()
         : bridge_(common::simula::ModemBridge::instance())
     {
+        LOG_INFO("[RadioSvc] PhoneFactoryStub initializing radio PA bridge");
         bridge_.start();
         common::simula::ListenerDispatchAO::instance().start();
+        LOG_INFO("[RadioSvc] PhoneFactoryStub initialized radio PA bridge and listener dispatcher");
     }
 
     std::shared_ptr<IPhoneManager> getPhoneManager(telux::common::InitResponseCb callback) override
     {
+        LOG_INFO("[RadioSvc] getPhoneManager requested hasInitCb=%d", callback ? 1 : 0);
         std::shared_ptr<simula::SimulaPhoneManager> mgr;
         {
             std::lock_guard<std::mutex> lk(managers_mutex_);
             if (phone_manager_)
             {
+                LOG_DEBUG("[RadioSvc] getPhoneManager returning cached manager");
                 if (callback)
                     phone_manager_->setInitCallback(std::move(callback));
                 return phone_manager_;
             }
+            LOG_INFO("[RadioSvc] creating SimulaPhoneManager");
             phone_manager_ = std::make_shared<simula::SimulaPhoneManager>(bridge_, nullptr);
             phone_manager_->start();
             mgr = phone_manager_;
@@ -114,15 +121,22 @@ public:
     std::shared_ptr<IServingSystemManager>
     getServingSystemManager(int slotId, telux::common::InitResponseCb callback) override
     {
+        LOG_INFO(
+          "[RadioSvc] getServingSystemManager requested slot=%d hasInitCb=%d",
+          slotId,
+          callback ? 1 : 0
+        );
         std::lock_guard<std::mutex> lk(managers_mutex_);
         auto it = serving_systems_.find(slotId);
         if (it != serving_systems_.end())
         {
+            LOG_DEBUG("[RadioSvc] getServingSystemManager returning cached manager slot=%d", slotId);
             // See getPhoneManager(): never drop the caller's InitResponseCb.
             if (callback)
                 it->second->setInitCallback(std::move(callback));
             return it->second;
         }
+        LOG_INFO("[RadioSvc] creating SimulaTelServingSystemManager slot=%d", slotId);
         auto mgr = std::make_shared<simula::SimulaTelServingSystemManager>(
           slotId, bridge_, std::move(callback)
         );
@@ -133,15 +147,22 @@ public:
     std::shared_ptr<INetworkSelectionManager>
     getNetworkSelectionManager(int slotId, telux::common::InitResponseCb callback) override
     {
+        LOG_INFO(
+          "[RadioSvc] getNetworkSelectionManager requested slot=%d hasInitCb=%d",
+          slotId,
+          callback ? 1 : 0
+        );
         std::lock_guard<std::mutex> lk(managers_mutex_);
         auto it = network_selections_.find(slotId);
         if (it != network_selections_.end())
         {
+            LOG_DEBUG("[RadioSvc] getNetworkSelectionManager returning cached manager slot=%d", slotId);
             // See getPhoneManager(): never drop the caller's InitResponseCb.
             if (callback)
                 it->second->setInitCallback(std::move(callback));
             return it->second;
         }
+        LOG_INFO("[RadioSvc] creating SimulaNetworkSelectionManager slot=%d", slotId);
         auto mgr = std::make_shared<simula::SimulaNetworkSelectionManager>(
           slotId, bridge_, std::move(callback)
         );
@@ -167,10 +188,21 @@ public:
     {
         return nullptr;
     }
-    std::shared_ptr<IImsSettingsManager> getImsSettingsManager(telux::common::InitResponseCb
+    std::shared_ptr<IImsSettingsManager> getImsSettingsManager(telux::common::InitResponseCb callback
     ) override
     {
-        return nullptr;
+        std::lock_guard<std::mutex> lk(managers_mutex_);
+        if (ims_settings_manager_)
+        {
+            // See getPhoneManager(): never drop the caller's InitResponseCb.
+            if (callback)
+                ims_settings_manager_->setInitCallback(std::move(callback));
+            return ims_settings_manager_;
+        }
+        ims_settings_manager_ =
+          std::make_shared<simula::SimulaImsSettingsManager>(bridge_, std::move(callback));
+        ims_settings_manager_->start();
+        return ims_settings_manager_;
     }
     std::shared_ptr<IEcallManager> getEcallManager(telux::common::InitResponseCb) override
     {
@@ -182,9 +214,24 @@ public:
         return nullptr;
     }
     std::shared_ptr<IImsServingSystemManager>
-    getImsServingSystemManager(SlotId, telux::common::InitResponseCb) override
+    getImsServingSystemManager(SlotId slotId, telux::common::InitResponseCb callback) override
     {
-        return nullptr;
+        std::lock_guard<std::mutex> lk(managers_mutex_);
+        int slot = static_cast<int>(slotId);
+        auto it = ims_serving_systems_.find(slot);
+        if (it != ims_serving_systems_.end())
+        {
+            // See getPhoneManager(): never drop the caller's InitResponseCb.
+            if (callback)
+                it->second->setInitCallback(std::move(callback));
+            return it->second;
+        }
+        auto mgr = std::make_shared<simula::SimulaImsServingSystemManager>(
+          slot, bridge_, std::move(callback)
+        );
+        ims_serving_systems_.emplace(slot, mgr);
+        mgr->start();
+        return mgr;
     }
     std::shared_ptr<ISuppServicesManager>
     getSuppServicesManager(SlotId, telux::common::InitResponseCb) override
@@ -206,6 +253,8 @@ private:
     std::map<int, std::shared_ptr<simula::SimulaTelServingSystemManager>> serving_systems_;
     std::map<int, std::shared_ptr<simula::SimulaNetworkSelectionManager>> network_selections_;
     std::shared_ptr<simula::SimulaCallManager> call_manager_;
+    std::map<int, std::shared_ptr<simula::SimulaImsServingSystemManager>> ims_serving_systems_;
+    std::shared_ptr<simula::SimulaImsSettingsManager> ims_settings_manager_;
 };
 
 PhoneFactory::PhoneFactory() = default;
@@ -214,6 +263,7 @@ PhoneFactory::~PhoneFactory() = default;
 PhoneFactory&
 PhoneFactory::getInstance()
 {
+    LOG_DEBUG("[RadioSvc] PhoneFactory::getInstance()");
     static PhoneFactoryStub instance;
     return instance;
 }

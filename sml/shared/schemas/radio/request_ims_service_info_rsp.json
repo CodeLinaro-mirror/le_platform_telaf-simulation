@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_ims_service_info.rsp",
+  "title": "Request IMS Service Info Response",
+  "description": "Mirrors telux::tel::ImsServiceInfo verbatim -- it carries only sms/voice CellularServiceStatus fields, no video/ut (those don't exist on this SDK version's struct).",
+  "type": "object",
+  "required": ["sms", "voice"],
+  "properties": {
+    "sms": { "type": "string", "enum": ["UNKNOWN", "NO_SERVICE", "LIMITED_SERVICE", "FULL_SERVICE"] },
+    "voice": { "type": "string", "enum": ["UNKNOWN", "NO_SERVICE", "LIMITED_SERVICE", "FULL_SERVICE"] }
+  },
+  "additionalProperties": false
+}

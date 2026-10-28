@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_ims_service_config.rsp",
+  "title": "Set IMS Service Config Response",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.perform_network_scan.req",
+  "title": "Perform Network Scan Request",
+  "description": "Backs taf_radio_PerformCellularNetworkScan/Async via INetworkSelectionManager::performNetworkScan. scanType distinguishes the sync (NetworkScanCallback) vs info-driven (NetworkScanInfo + ResponseCallback) SDK overloads; the server answers both identically with one immediate scan result.",
+  "type": "object",
+  "required": ["slot"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 },
+    "scanType": { "type": "string", "enum": ["SYNC", "ASYNC"], "default": "SYNC" }
+  },
+  "additionalProperties": false
+}

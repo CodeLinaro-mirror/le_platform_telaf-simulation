@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_rf_band_info.req",
+  "title": "Force RF Band Info",
+  "description": "Forces RadioServingSystemAO's serving RF band/channel/bandwidth world state, re-publishing mp/ind/radio/rf_band_info. Every field is optional and applied only if present. Backs IServingSystemListener::onRFBandInfoChanged testing. Distinct from set_rf_band_preferences (device capability preference, an AP RPC): this forces the currently *active* band, not the preference list.",
+  "type": "object",
+  "properties": {
+    "band": { "type": "string" },
+    "channel": { "type": "integer" },
+    "bandWidth": { "type": "string" },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's RF band info to force."
+    }
+  },
+  "additionalProperties": false
+}

@@ -9,9 +9,11 @@
 #include "Signals.hpp"
 #include "generated/cpp/topics.h"
 
+#include <algorithm>
 #include <chart/event.hpp>
 #include <chart/hsm.hpp>
 #include <chart/spy.hpp>
+#include <cstdlib>
 #include <nlohmann/json.hpp>
 
 namespace telux::tel::simula {
@@ -41,6 +43,68 @@ networkSelectionModeToWire(telux::tel::NetworkSelectionMode mode)
         case telux::tel::NetworkSelectionMode::MANUAL:    return "MANUAL";
         default:                                            return "UNKNOWN";
     }
+}
+
+telux::tel::RadioTechnology
+wireToRadioTechnology(const std::string& s)
+{
+    if (s == "RADIO_TECH_GPRS")     return telux::tel::RadioTechnology::RADIO_TECH_GPRS;
+    if (s == "RADIO_TECH_EDGE")     return telux::tel::RadioTechnology::RADIO_TECH_EDGE;
+    if (s == "RADIO_TECH_UMTS")     return telux::tel::RadioTechnology::RADIO_TECH_UMTS;
+    if (s == "RADIO_TECH_LTE")      return telux::tel::RadioTechnology::RADIO_TECH_LTE;
+    if (s == "RADIO_TECH_GSM")      return telux::tel::RadioTechnology::RADIO_TECH_GSM;
+    if (s == "RADIO_TECH_TD_SCDMA") return telux::tel::RadioTechnology::RADIO_TECH_TD_SCDMA;
+    if (s == "RADIO_TECH_LTE_CA")   return telux::tel::RadioTechnology::RADIO_TECH_LTE_CA;
+    if (s == "RADIO_TECH_NR5G")     return telux::tel::RadioTechnology::RADIO_TECH_NR5G;
+    return telux::tel::RadioTechnology::RADIO_TECH_UNKNOWN;
+}
+
+telux::tel::OperatorInfo
+wireToOperatorInfo(const nlohmann::json& n)
+{
+    telux::tel::OperatorStatus status;
+    bool isInUse = n.value("isInUse", false);
+    bool isAvailable = n.value("isAvailable", false);
+    status.inUse = isInUse ? telux::tel::InUseStatus::CURRENT_SERVING
+                 : isAvailable ? telux::tel::InUseStatus::AVAILABLE
+                 : telux::tel::InUseStatus::UNKNOWN;
+    status.roaming = n.value("isHome", false) ? telux::tel::RoamingStatus::HOME
+                                               : telux::tel::RoamingStatus::ROAM;
+    status.forbidden = n.value("isForbidden", false) ? telux::tel::ForbiddenStatus::FORBIDDEN
+                                                       : telux::tel::ForbiddenStatus::NOT_FORBIDDEN;
+    status.preferred = telux::tel::PreferredStatus::UNKNOWN;
+    return telux::tel::OperatorInfo(
+      n.value("name", std::string()), n.value("mcc", std::string()), n.value("mnc", std::string()),
+      wireToRadioTechnology(n.value("rat", std::string())), status
+    );
+}
+
+telux::tel::PreferredNetworkInfo
+wireToPreferredNetworkInfo(const nlohmann::json& n)
+{
+    telux::tel::PreferredNetworkInfo info{};
+    info.mcc = static_cast<uint16_t>(std::strtoul(n.value("mcc", std::string()).c_str(), nullptr, 10));
+    info.mnc = static_cast<uint16_t>(std::strtoul(n.value("mnc", std::string()).c_str(), nullptr, 10));
+    info.ratMask = telux::tel::RatMask(n.value("ratMask", 0UL));
+    return info;
+}
+
+std::string
+plmnDigitsToWire(uint16_t value, int width)
+{
+    auto s = std::to_string(value);
+    return s.size() >= static_cast<size_t>(width) ? s
+                                                  : std::string(width - s.size(), '0') + s;
+}
+
+nlohmann::json
+preferredNetworkInfoToWire(const telux::tel::PreferredNetworkInfo& info)
+{
+    nlohmann::json n = nlohmann::json::object();
+    n["mcc"] = plmnDigitsToWire(info.mcc, 3);
+    n["mnc"] = plmnDigitsToWire(info.mnc, 2);
+    n["ratMask"] = info.ratMask.to_ulong();
+    return n;
 }
 
 constexpr auto kRpcTimeout = std::chrono::seconds(30);
@@ -73,6 +137,26 @@ struct SetInitCbPld
     telux::common::InitResponseCb cb;
 };
 
+struct PerformNetworkScanPld
+{
+    telux::tel::NetworkScanCallback deprecatedCb;
+    telux::common::ResponseCallback ackCb;
+};
+
+struct SetPreferredNetworksPld
+{
+    std::vector<telux::tel::PreferredNetworkInfo> networks;
+    telux::common::ResponseCallback cb;
+};
+
+struct RequestPreferredNetworksPld
+{
+    telux::tel::PreferredNetworksCallback cb;
+};
+
+std::mutex g_fanoutMutex;
+std::vector<SimulaNetworkSelectionManager*> g_fanoutInstances;
+
 }  // namespace
 
 chart::Status
@@ -95,10 +179,6 @@ SimulaNetworkSelectionManager::SimulaNetworkSelectionManager(
 
 SimulaNetworkSelectionManager::~SimulaNetworkSelectionManager()
 {
-    // Withdraw from the bridge before anything else: the callbacks below
-    // capture raw `this` and the bridge holds its own copies. unsubscribe_*
-    // is only a queued removal, so the drain() fence inside is what actually
-    // makes "no callback can reach us" true.
     unsubscribeFromBridge_();
     stop();
 }
@@ -106,7 +186,20 @@ SimulaNetworkSelectionManager::~SimulaNetworkSelectionManager()
 void
 SimulaNetworkSelectionManager::unsubscribeFromBridge_()
 {
-    bridge_.unsubscribe_event(topics::radio::subsys_ready_netsel::ind);
+    bool lastInstance;
+    {
+        std::lock_guard<std::mutex> lk(g_fanoutMutex);
+        g_fanoutInstances.erase(
+          std::remove(g_fanoutInstances.begin(), g_fanoutInstances.end(), this),
+          g_fanoutInstances.end()
+        );
+        lastInstance = g_fanoutInstances.empty();
+    }
+    if (lastInstance)
+    {
+        bridge_.unsubscribe_event(topics::radio::subsys_ready_netsel::ind);
+        bridge_.unsubscribe_event(topics::radio::selection_mode::ind);
+    }
     bridge_.unsubscribe_connectivity(conn_token_);
     conn_token_ = 0;
     bridge_.drain();
@@ -121,11 +214,33 @@ SimulaNetworkSelectionManager::start()
     set_instrument(std::make_unique<chart::SpyInstrument>(name()));
     start_at(NetSelNotReady_St);
 
-    bridge_.subscribe_event(
-      topics::radio::subsys_ready_netsel::ind,
-      "radio.subsys_ready_netsel.ind",
-      [this](std::string_view topic, const Envelope& env) { handleReadinessInd_(topic, env); }
-    );
+    bool firstInstance;
+    {
+        std::lock_guard<std::mutex> lk(g_fanoutMutex);
+        firstInstance = g_fanoutInstances.empty();
+        g_fanoutInstances.push_back(this);
+    }
+    if (firstInstance)
+    {
+        bridge_.subscribe_event(
+          topics::radio::subsys_ready_netsel::ind,
+          "radio.subsys_ready_netsel.ind",
+          [](std::string_view topic, const Envelope& env) {
+              std::lock_guard<std::mutex> lk(g_fanoutMutex);
+              for (auto* inst : g_fanoutInstances)
+                  inst->handleReadinessInd_(topic, env);
+          }
+        );
+        bridge_.subscribe_event(
+          topics::radio::selection_mode::ind,
+          "radio.selection_mode.ind",
+          [](std::string_view topic, const Envelope& env) {
+              std::lock_guard<std::mutex> lk(g_fanoutMutex);
+              for (auto* inst : g_fanoutInstances)
+                  inst->handleSelectionModeInd_(topic, env);
+          }
+        );
+    }
     conn_token_ = bridge_.subscribe_connectivity([this](bool operational) {
         auto pld = std::make_shared<bool>(operational);
         post_fifo({ BridgeConnectivityChanged_Signal, pld });
@@ -138,15 +253,11 @@ SimulaNetworkSelectionManager::setInitCallback(telux::common::InitResponseCb cb)
     LOG_DEBUG("[NetworkSelectionManager] setInitCallback slot=%d hasCb=%d", slotId_, cb ? 1 : 0);
     if (!cb)
         return;
-    // Already Ready: NetSelReady_St's Entry has fired and will not fire again
-    // for this caller, so queuing into init_cbs_ would strand it.
     if (isReadyDerived_())
     {
         cb(telux::common::ServiceStatus::SERVICE_AVAILABLE);
         return;
     }
-    // Not Ready -- hand off through the AO; init_cbs_ is appended to and read
-    // only on the worker thread.
     auto pld = std::make_shared<SetInitCbPld>();
     pld->cb = std::move(cb);
     post_fifo({ SetInitCb_Signal, pld });
@@ -160,6 +271,15 @@ SimulaNetworkSelectionManager::handleReadinessInd_(std::string_view /*topic*/, c
     auto pld = std::make_shared<StateIndPld>();
     pld->env = env;
     post_fifo({ ReadinessEvt_Signal, pld });
+}
+
+void
+SimulaNetworkSelectionManager::handleSelectionModeInd_(std::string_view /*topic*/, const Envelope& env)
+{
+    LOG_DEBUG("[NetworkSelectionManager] handleSelectionModeInd_ fired corrId=%s", env.corrId.c_str());
+    auto pld = std::make_shared<StateIndPld>();
+    pld->env = env;
+    post_fifo({ SelectionModeEvt_Signal, pld });
 }
 
 void
@@ -278,47 +398,60 @@ SimulaNetworkSelectionManager::setNetworkSelectionMode(
 telux::common::Status
 SimulaNetworkSelectionManager::requestPreferredNetworks(telux::tel::PreferredNetworksCallback callback)
 {
-    // Preferred-network list is out of scope for the requested radio API
-    // list (see registry/radio.yaml scope note) -- no wire RPC exists.
-    LOG_DEBUG("[NetworkSelectionManager] requestPreferredNetworks slot=%d -- NOT_SUPPORTED", slotId_);
-    if (callback)
-        callback({}, {}, telux::common::ErrorCode::NOT_SUPPORTED);
-    return telux::common::Status::NOTSUPPORTED;
+    LOG_DEBUG("[NetworkSelectionManager] requestPreferredNetworks slot=%d", slotId_);
+    if (!isReadyDerived_())
+        return telux::common::Status::NOTREADY;
+    auto pld = std::make_shared<RequestPreferredNetworksPld>();
+    pld->cb = std::move(callback);
+    post_fifo({ RequestPreferredNetworks_Signal, pld });
+    return telux::common::Status::SUCCESS;
 }
 
 telux::common::Status
 SimulaNetworkSelectionManager::setPreferredNetworks(
-  std::vector<telux::tel::PreferredNetworkInfo>,
-  bool,
+  std::vector<telux::tel::PreferredNetworkInfo> preferredNetworksInfo,
+  bool /*clearPrevious*/,
   telux::common::ResponseCallback callback
 )
 {
-    LOG_DEBUG("[NetworkSelectionManager] setPreferredNetworks slot=%d -- NOT_SUPPORTED", slotId_);
-    if (callback)
-        callback(telux::common::ErrorCode::NOT_SUPPORTED);
-    return telux::common::Status::NOTSUPPORTED;
+    LOG_DEBUG(
+      "[NetworkSelectionManager] setPreferredNetworks slot=%d count=%zu",
+      slotId_, preferredNetworksInfo.size()
+    );
+    if (!isReadyDerived_())
+        return telux::common::Status::NOTREADY;
+    auto pld = std::make_shared<SetPreferredNetworksPld>();
+    pld->networks = std::move(preferredNetworksInfo);
+    pld->cb = std::move(callback);
+    post_fifo({ SetPreferredNetworks_Signal, pld });
+    return telux::common::Status::SUCCESS;
 }
 
 telux::common::Status
 SimulaNetworkSelectionManager::performNetworkScan(telux::tel::NetworkScanCallback callback)
 {
-    // PLMN scan is out of scope for the requested radio API list.
-    LOG_DEBUG("[NetworkSelectionManager] performNetworkScan slot=%d -- NOT_SUPPORTED", slotId_);
-    if (callback)
-        callback({}, telux::common::ErrorCode::NOT_SUPPORTED);
-    return telux::common::Status::NOTSUPPORTED;
+    LOG_DEBUG("[NetworkSelectionManager] performNetworkScan(deprecated) slot=%d", slotId_);
+    if (!isReadyDerived_())
+        return telux::common::Status::NOTREADY;
+    auto pld = std::make_shared<PerformNetworkScanPld>();
+    pld->deprecatedCb = std::move(callback);
+    post_fifo({ PerformNetworkScan_Signal, pld });
+    return telux::common::Status::SUCCESS;
 }
 
 telux::common::Status
 SimulaNetworkSelectionManager::performNetworkScan(
-  telux::tel::NetworkScanInfo,
+  telux::tel::NetworkScanInfo /*info*/,
   telux::common::ResponseCallback callback
 )
 {
-    LOG_DEBUG("[NetworkSelectionManager] performNetworkScan(info) slot=%d -- NOT_SUPPORTED", slotId_);
-    if (callback)
-        callback(telux::common::ErrorCode::NOT_SUPPORTED);
-    return telux::common::Status::NOTSUPPORTED;
+    LOG_DEBUG("[NetworkSelectionManager] performNetworkScan(info) slot=%d", slotId_);
+    if (!isReadyDerived_())
+        return telux::common::Status::NOTREADY;
+    auto pld = std::make_shared<PerformNetworkScanPld>();
+    pld->ackCb = std::move(callback);
+    post_fifo({ PerformNetworkScan_Signal, pld });
+    return telux::common::Status::SUCCESS;
 }
 
 telux::common::ErrorCode
@@ -402,11 +535,8 @@ NetSelNotReady_St(chart::Hsm* h, chart::Event const* e)
             return chart::Status::HANDLED;
         }
         case BridgeConnectivityChanged_Signal:
+        case SelectionModeEvt_Signal:
             return chart::Status::HANDLED;
-        // Arm the callback so the transition into Ready fires it. Every
-        // caller's callback is queued -- see init_cbs_'s header comment --
-        // so a repeat cache-hit caller from the factory never strands an
-        // earlier one still waiting on its own callback.
         case SetInitCb_Signal:
         {
             auto pld = event_cast<SetInitCbPld>(*e);
@@ -454,6 +584,32 @@ NetSelNotReady_St(chart::Hsm* h, chart::Event const* e)
                 );
             return chart::Status::HANDLED;
         }
+        case PerformNetworkScan_Signal:
+        {
+            auto pld = event_cast<PerformNetworkScanPld>(*e);
+            LOG_WARN("[NetworkSelectionManager] stale PerformNetworkScan_Signal -- NotReady before response");
+            if (pld->deprecatedCb)
+                pld->deprecatedCb({}, telux::common::ErrorCode::SUBSYSTEM_UNAVAILABLE);
+            if (pld->ackCb)
+                pld->ackCb(telux::common::ErrorCode::SUBSYSTEM_UNAVAILABLE);
+            return chart::Status::HANDLED;
+        }
+        case SetPreferredNetworks_Signal:
+        {
+            auto pld = event_cast<SetPreferredNetworksPld>(*e);
+            LOG_WARN("[NetworkSelectionManager] stale SetPreferredNetworks_Signal -- NotReady before response");
+            if (pld->cb)
+                pld->cb(telux::common::ErrorCode::SUBSYSTEM_UNAVAILABLE);
+            return chart::Status::HANDLED;
+        }
+        case RequestPreferredNetworks_Signal:
+        {
+            auto pld = event_cast<RequestPreferredNetworksPld>(*e);
+            LOG_WARN("[NetworkSelectionManager] stale RequestPreferredNetworks_Signal -- NotReady before response");
+            if (pld->cb)
+                pld->cb({}, {}, telux::common::ErrorCode::SUBSYSTEM_UNAVAILABLE);
+            return chart::Status::HANDLED;
+        }
         default:
             return self->super(&chart::Hsm::top);
     }
@@ -486,8 +642,6 @@ NetSelReady_St(chart::Hsm* h, chart::Event const* e)
         }
         case chart::Exit_Signal:
             LOG_INFO("[NetworkSelectionManager] -> NotReady");
-            // Fail queued init callbacks instead of stranding them -- see
-            // PhoneMgrReady_St's Exit.
             if (!self->init_cbs_.empty())
             {
                 LOG_WARN(
@@ -545,6 +699,29 @@ NetSelReady_St(chart::Hsm* h, chart::Event const* e)
                 self->publishStatus_(telux::common::ServiceStatus::SERVICE_UNAVAILABLE);
                 return self->to(NetSelNotReady_St);
             }
+            return chart::Status::HANDLED;
+        }
+
+        case SelectionModeEvt_Signal:
+        {
+            auto pld = event_cast<StateIndPld>(*e);
+            if (!pld->env.data)
+                return chart::Status::HANDLED;
+            telux::tel::NetworkModeInfo info{};
+            info.mode = wireToNetworkSelectionMode(pld->env.data->value("mode", std::string()));
+            info.mcc = pld->env.data->value("mcc", std::string());
+            info.mnc = pld->env.data->value("mnc", std::string());
+            LOG_DEBUG(
+              "[NetworkSelectionManager] SelectionModeEvt_Signal mode=%d mcc=%s mnc=%s",
+              static_cast<int>(info.mode),
+              info.mcc.c_str(),
+              info.mnc.c_str()
+            );
+            self->broadcastToListeners_(
+              [info](const std::shared_ptr<telux::tel::INetworkSelectionListener>& l) {
+                  l->onSelectionModeChanged(info);
+              }
+            );
             return chart::Status::HANDLED;
         }
 
@@ -688,6 +865,156 @@ NetSelReady_St(chart::Hsm* h, chart::Event const* e)
             return chart::Status::HANDLED;
         }
 
+        case PerformNetworkScan_Signal:
+        {
+            auto pld = event_cast<PerformNetworkScanPld>(*e);
+            nlohmann::json data = nlohmann::json::object();
+            data["slot"] = self->slotId_;
+            data["scanType"] = pld->deprecatedCb ? "SYNC" : "ASYNC";
+            auto req = common::simula::makeRequestEnvelope(self->bridge_.currentPaId(), std::move(data));
+            auto deprecatedCb = pld->deprecatedCb;
+            auto ackCb = pld->ackCb;
+            LOG_DEBUG(
+              "[NetworkSelectionManager] PerformNetworkScan_Signal send_request slot=%d corrId=%s scanType=%s",
+              self->slotId_,
+              req.corrId.c_str(),
+              pld->deprecatedCb ? "SYNC" : "ASYNC" // data was already moved into req above
+            );
+            self->bridge_.send_request(
+              topics::radio::perform_network_scan::req,
+              "radio.perform_network_scan.rsp",
+              req,
+              [weak = self->weak_from_this(), deprecatedCb, ackCb, corrId = req.corrId](
+                std::optional<Envelope> rsp
+              ) {
+                  if (!rsp || rsp->error || !rsp->data)
+                  {
+                      LOG_WARN(
+                        "[NetworkSelectionManager] perform_network_scan failed corrId=%s -- timeout/error",
+                        corrId.c_str()
+                      );
+                      if (deprecatedCb)
+                          deprecatedCb({}, telux::common::ErrorCode::OPERATION_TIMEOUT);
+                      if (ackCb)
+                          ackCb(telux::common::ErrorCode::OPERATION_TIMEOUT);
+                      return;
+                  }
+                  std::vector<telux::tel::OperatorInfo> operators;
+                  for (const auto& n : rsp->data->value("networks", nlohmann::json::array()))
+                      operators.push_back(wireToOperatorInfo(n));
+                  LOG_DEBUG(
+                    "[NetworkSelectionManager] perform_network_scan success corrId=%s networkCount=%zu",
+                    corrId.c_str(),
+                    operators.size()
+                  );
+                  if (deprecatedCb)
+                  {
+                      deprecatedCb(operators, telux::common::ErrorCode::SUCCESS);
+                      return;
+                  }
+                  if (ackCb)
+                      ackCb(telux::common::ErrorCode::SUCCESS);
+                  auto self = weak.lock();
+                  if (!self)
+                      return;
+                  self->broadcastToListeners_(
+                    [operators](const std::shared_ptr<telux::tel::INetworkSelectionListener>& l) {
+                        l->onNetworkScanResults(telux::tel::NetworkScanStatus::COMPLETE, operators);
+                    }
+                  );
+              },
+              kRpcTimeout
+            );
+            return chart::Status::HANDLED;
+        }
+
+        case SetPreferredNetworks_Signal:
+        {
+            auto pld = event_cast<SetPreferredNetworksPld>(*e);
+            nlohmann::json networks = nlohmann::json::array();
+            for (const auto& n : pld->networks)
+                networks.push_back(preferredNetworkInfoToWire(n));
+            nlohmann::json data = nlohmann::json::object();
+            data["slot"] = self->slotId_;
+            data["networks"] = std::move(networks);
+            auto req = common::simula::makeRequestEnvelope(self->bridge_.currentPaId(), std::move(data));
+            auto cb = pld->cb;
+            LOG_DEBUG(
+              "[NetworkSelectionManager] SetPreferredNetworks_Signal send_request slot=%d corrId=%s count=%zu",
+              self->slotId_,
+              req.corrId.c_str(),
+              pld->networks.size()
+            );
+            self->bridge_.send_request(
+              topics::radio::set_preferred_networks::req,
+              "radio.set_preferred_networks.rsp",
+              req,
+              [cb, corrId = req.corrId](std::optional<Envelope> rsp) {
+                  if (!cb)
+                      return;
+                  if (!rsp || rsp->error)
+                  {
+                      LOG_WARN(
+                        "[NetworkSelectionManager] set_preferred_networks failed corrId=%s -- timeout/error",
+                        corrId.c_str()
+                      );
+                      cb(telux::common::ErrorCode::OPERATION_TIMEOUT);
+                      return;
+                  }
+                  LOG_DEBUG(
+                    "[NetworkSelectionManager] set_preferred_networks success corrId=%s",
+                    corrId.c_str()
+                  );
+                  cb(telux::common::ErrorCode::SUCCESS);
+              },
+              kRpcTimeout
+            );
+            return chart::Status::HANDLED;
+        }
+
+        case RequestPreferredNetworks_Signal:
+        {
+            auto pld = event_cast<RequestPreferredNetworksPld>(*e);
+            nlohmann::json data = nlohmann::json::object();
+            data["slot"] = self->slotId_;
+            auto req = common::simula::makeRequestEnvelope(self->bridge_.currentPaId(), std::move(data));
+            auto cb = pld->cb;
+            LOG_DEBUG(
+              "[NetworkSelectionManager] RequestPreferredNetworks_Signal send_request slot=%d corrId=%s",
+              self->slotId_,
+              req.corrId.c_str()
+            );
+            self->bridge_.send_request(
+              topics::radio::request_preferred_networks::req,
+              "radio.request_preferred_networks.rsp",
+              req,
+              [cb, corrId = req.corrId](std::optional<Envelope> rsp) {
+                  if (!cb)
+                      return;
+                  if (!rsp || rsp->error || !rsp->data)
+                  {
+                      LOG_WARN(
+                        "[NetworkSelectionManager] request_preferred_networks failed corrId=%s -- timeout/error",
+                        corrId.c_str()
+                      );
+                      cb({}, {}, telux::common::ErrorCode::OPERATION_TIMEOUT);
+                      return;
+                  }
+                  std::vector<telux::tel::PreferredNetworkInfo> networks;
+                  for (const auto& n : rsp->data->value("networks", nlohmann::json::array()))
+                      networks.push_back(wireToPreferredNetworkInfo(n));
+                  LOG_DEBUG(
+                    "[NetworkSelectionManager] request_preferred_networks success corrId=%s count=%zu",
+                    corrId.c_str(),
+                    networks.size()
+                  );
+                  cb(networks, networks, telux::common::ErrorCode::SUCCESS);
+              },
+              kRpcTimeout
+            );
+            return chart::Status::HANDLED;
+        }
+
         default:
             return self->super(&chart::Hsm::top);
     }
@@ -697,3 +1024,61 @@ CHART_NAMED_STATE(NetSelNotReady_St, "NetworkSelectionManager::NotReady");
 CHART_NAMED_STATE(NetSelReady_St,    "NetworkSelectionManager::Ready");
 
 }  // namespace telux::tel::simula
+
+
+namespace telux::tel {
+
+OperatorInfo::OperatorInfo(
+  std::string networkName, std::string mcc, std::string mnc, OperatorStatus operatorStatus
+)
+    : networkName_(networkName)
+    , mcc_(mcc)
+    , mnc_(mnc)
+    , rat_(RadioTechnology::RADIO_TECH_UNKNOWN)
+    , operatorStatus_(operatorStatus)
+{
+}
+
+OperatorInfo::OperatorInfo(
+  std::string networkName, std::string mcc, std::string mnc, RadioTechnology rat,
+  OperatorStatus operatorStatus
+)
+    : networkName_(networkName)
+    , mcc_(mcc)
+    , mnc_(mnc)
+    , rat_(rat)
+    , operatorStatus_(operatorStatus)
+{
+}
+
+std::string
+OperatorInfo::getName()
+{
+    return networkName_;
+}
+
+std::string
+OperatorInfo::getMcc()
+{
+    return mcc_;
+}
+
+std::string
+OperatorInfo::getMnc()
+{
+    return mnc_;
+}
+
+OperatorStatus
+OperatorInfo::getStatus()
+{
+    return operatorStatus_;
+}
+
+RadioTechnology
+OperatorInfo::getRat()
+{
+    return rat_;
+}
+
+}  // namespace telux::tel

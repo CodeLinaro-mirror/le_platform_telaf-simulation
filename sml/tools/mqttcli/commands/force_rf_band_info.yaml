@@ -1,0 +1,12 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_rf_band_info.req before send.
+#
+# Drives IServingSystemListener::onRFBandInfoChanged.
+topic: ctrl/cmd/action/radio/force_rf_band_info
+data:
+  band: E_UTRA_OPERATING_BAND_3
+  channel: 1575
+  bandWidth: LTE_BW_NRB_50

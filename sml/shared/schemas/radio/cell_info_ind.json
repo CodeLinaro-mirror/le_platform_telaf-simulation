@@ -25,6 +25,10 @@
               "mnc": { "type": "string" },
               "lac": { "type": "integer" },
               "cid": { "type": "integer" },
+              "rac": {
+                "type": "integer", "minimum": 0, "maximum": 255,
+                "description": "Routing Area Code, read by taf_prop_radio_GetServingCellRac. A value in its own right, NOT a slice of `lac` -- the target PA reads a dedicated per-RAT RAC field. Optional: a cell that does not model one makes GetServingCellRac report TAF_PROP_UNAVAILABLE."
+              },
               "arfcn": { "type": "integer" },
               "bsic": { "type": "integer" },
               "signalStrength": { "type": "integer" },
@@ -40,6 +44,10 @@
               "mnc": { "type": "string" },
               "lac": { "type": "integer" },
               "cid": { "type": "integer" },
+              "rac": {
+                "type": "integer", "minimum": 0, "maximum": 255,
+                "description": "Routing Area Code, read by taf_prop_radio_GetServingCellRac. A value in its own right, NOT a slice of `lac` -- the target PA reads a dedicated per-RAT RAC field. Optional: a cell that does not model one makes GetServingCellRac report TAF_PROP_UNAVAILABLE."
+              },
               "psc": { "type": "integer" },
               "uarfcn": { "type": "integer" },
               "signalStrength": { "type": "integer" },

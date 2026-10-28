@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_ims_service_config.req",
+  "title": "Set IMS Service Config Request",
+  "description": "Backs taf_radio_SetImsSvcCfg(imsRef, ImsSvcType service, bool enable) -- taf_radio.api's ImsSvcType enum values (IMS_SVC_TYPE_IMS_REG/SMS/VOIP/RTT/VONR) map 1:1 to IImsSettingsManager: IMS_REG/SMS/VOIP/RTT each set one bit of ImsServiceConfig (imsServiceEnabled/smsEnabled/voImsEnabled/rttEnabled) via setServiceConfig's configValidityMask; VONR instead calls the dedicated toggleVonr, per the SDK exposing VoNR as its own API distinct from the generic service-config bitset.",
+  "type": "object",
+  "required": ["slot", "service", "enable"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 },
+    "service": { "type": "string", "enum": ["IMS_REG", "SMS", "VOIP", "RTT", "VONR"] },
+    "enable": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

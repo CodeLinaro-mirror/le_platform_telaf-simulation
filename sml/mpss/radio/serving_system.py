@@ -92,13 +92,28 @@ class RadioServingSystemAO(ActiveObject):
 
         self.lte_cs_capability = "FULL_SERVICE"
 
-        # RF band info: single active-RAT value (band/channel/bandwidth),
-        # not a per-RAT list -- see request_rf_band_info.rsp's description.
-        # E-UTRA Band 1 / channel 400 matches RadioPhoneAO.cells' seeded LTE
-        # cell (earfcn=400), keeping the simulated cell internally consistent.
         self.rf_band = "E_UTRA_OPERATING_BAND_1"
         self.rf_channel = 400
         self.rf_bandwidth = "LTE_BW_NRB_100"
+
+        self.gsm_band_capability = ["GSM_900_PRIMARY", "GSM_1800"]
+        self.wcdma_band_capability = ["WCDMA_2100", "WCDMA_850"]
+        self.lte_band_capability = ["E_UTRA_BAND_1", "E_UTRA_BAND_3"]
+        self.nr_band_capability = ["NR5G_BAND_1", "NR5G_BAND_78"]
+
+        self.gsm_band_prefs = list(self.gsm_band_capability)
+        self.wcdma_band_prefs = list(self.wcdma_band_capability)
+        self.lte_band_prefs = list(self.lte_band_capability)
+        self.nr_band_prefs = list(self.nr_band_capability)
+
+        self.network_time = {
+            "year": 0, "month": 0, "day": 0, "hour": 0, "minute": 0, "second": 0,
+            "dayOfWeek": 0, "timeZone": 0, "dstAdj": 0, "nitzTime": "",
+        }
+        self.network_rejection = {
+            "rat": "RADIO_TECH_UNKNOWN", "domain": "UNKNOWN", "rejectCause": 0,
+            "mcc": "", "mnc": "",
+        }
 
         self.start_at(smfn_off)
         _instr.apply_mode(self, _instr.current_mode())
@@ -144,9 +159,14 @@ class RadioServingSystemAO(ActiveObject):
         mapping = {
             topics_radio.set_rat_preference.req:     self._handle_set_rat_preference,
             topics_radio.request_rat_preference.req: self._handle_request_rat_preference,
+            topics_radio.set_service_domain_preference.req:     self._handle_set_service_domain_preference,
+            topics_radio.request_service_domain_preference.req: self._handle_request_service_domain_preference,
             topics_radio.get_system_info.req:        self._handle_get_system_info,
             topics_radio.get_dc_status.req:          self._handle_get_dc_status,
             topics_radio.request_rf_band_info.req:   self._handle_request_rf_band_info,
+            topics_radio.request_rf_band_capability.req:  self._handle_request_rf_band_capability,
+            topics_radio.set_rf_band_preferences.req:      self._handle_set_rf_band_preferences,
+            topics_radio.request_rf_band_preferences.req: self._handle_request_rf_band_preferences,
         }
         self._handlers = mapping
         self._owned_topics = frozenset(mapping.keys())
@@ -180,13 +200,6 @@ class RadioServingSystemAO(ActiveObject):
         dispatch_inbound(topic, payload, self._handlers, _log, "radio serving-system AO")
 
     def _do_resubscribe(self) -> None:
-        """Re-issue every owned subscription, then re-publish Ready state.
-
-        Re-running ``_do_enter_ready`` is deliberate: it is exactly the set of
-        publishes a fresh subscriber needs, and the retained ``ready=true`` has
-        to be re-sent in case the broker restarted rather than merely dropping
-        our session.
-        """
         if self._subscribe_fn is None:
             return
         for topic in self._owned_topics:
@@ -196,6 +209,13 @@ class RadioServingSystemAO(ActiveObject):
                 _log.warning("resubscribe %s failed: %s", topic, exc)
         self._do_enter_ready()
         _log.info("radio serving-system AO resubscribed (slot=%d)", self._slot)
+
+    def _run_force(self, apply_fn: Callable, data: dict) -> None:
+        # Runs on the AO thread, where an uncaught exception kills the thread for good.
+        try:
+            apply_fn(data)
+        except Exception as exc:  # noqa: BLE001
+            _log.error("%s failed: %s", apply_fn.__name__, exc)
 
     # ------------------------------------------------------------------
     # Publish helpers
@@ -218,11 +238,6 @@ class RadioServingSystemAO(ActiveObject):
         _log.debug("radio serv subsystem ready=%s published (slot=%d)", ready, self._slot)
 
     def _publish_sys_info(self) -> None:
-        # retain=True so the PA's SimulaTelServingSystemManager receives the
-        # current rat/domain/state immediately on subscribe, regardless of
-        # whether it connected before or after MPSS published this at
-        # Ready-entry. Without retain the PA misses the boot-time publish
-        # and last_sys_info_ stays as default {} -> RAT: Unknown / No Service.
         self._pub_ind(topics_radio.sys_info.ind, "radio.sys_info.ind",
                       {"rat": self.rat, "domain": self.domain, "state": self.reg_state},
                       retain=True)
@@ -264,6 +279,25 @@ class RadioServingSystemAO(ActiveObject):
         self._pub_rsp(topics_radio.request_rat_preference.rsp,
                       "radio.request_rat_preference.rsp", env)
 
+    def _handle_set_service_domain_preference(self, msg: dict) -> None:
+        data = msg.get("data") or {}
+        self.service_domain_pref = data.get("serviceDomain", self.service_domain_pref)
+        _log.info("RadioServingSystemAO set_service_domain_preference applied: %s",
+                  self.service_domain_pref)
+        env = build_success_envelope(self._mpss_src, msg["corrId"], msg["src"], {})
+        self._pub_rsp(topics_radio.set_service_domain_preference.rsp,
+                      "radio.set_service_domain_preference.rsp", env)
+        self._pub_ind(topics_radio.rat_pref.ind, "radio.rat_pref.ind",
+                      {"ratPrefs": list(self.rat_prefs), "serviceDomainPref": self.service_domain_pref})
+
+    def _handle_request_service_domain_preference(self, msg: dict) -> None:
+        _log.debug("RadioServingSystemAO request_service_domain_preference -> %s",
+                  self.service_domain_pref)
+        env = build_success_envelope(self._mpss_src, msg["corrId"], msg["src"],
+                                     {"serviceDomain": self.service_domain_pref})
+        self._pub_rsp(topics_radio.request_service_domain_preference.rsp,
+                      "radio.request_service_domain_preference.rsp", env)
+
     def _handle_get_system_info(self, msg: dict) -> None:
         data = {"rat": self.rat, "domain": self.domain, "state": self.reg_state}
         _log.debug("RadioServingSystemAO get_system_info requested -> %s", data)
@@ -282,12 +316,78 @@ class RadioServingSystemAO(ActiveObject):
         env = build_success_envelope(self._mpss_src, msg["corrId"], msg["src"], data)
         self._pub_rsp(topics_radio.request_rf_band_info.rsp, "radio.request_rf_band_info.rsp", env)
 
-    # ------------------------------------------------------------------
-    # Force-* actions (test/control-plane hook points). All three are wired
-    # to ctrl/cmd/action/radio/** via action_radio.yaml and reachable from
-    # the CLI (sml mqttcli pub) -- see RadioActionDispatcher. force_sys_info
-    # in particular is what drives taf_radio_AddRatChangeHandler tests.
-    # ------------------------------------------------------------------
+    def _handle_request_rf_band_capability(self, msg: dict) -> None:
+        data = {
+            "gsmBands": list(self.gsm_band_capability),
+            "wcdmaBands": list(self.wcdma_band_capability),
+            "lteBands": list(self.lte_band_capability),
+            "nrBands": list(self.nr_band_capability),
+        }
+        _log.debug("RadioServingSystemAO request_rf_band_capability -> %s", data)
+        env = build_success_envelope(self._mpss_src, msg["corrId"], msg["src"], data)
+        self._pub_rsp(topics_radio.request_rf_band_capability.rsp,
+                      "radio.request_rf_band_capability.rsp", env)
+
+    def _handle_set_rf_band_preferences(self, msg: dict) -> None:
+        data = msg.get("data") or {}
+        if "gsmBands" in data:
+            self.gsm_band_prefs = list(data["gsmBands"])
+        if "wcdmaBands" in data:
+            self.wcdma_band_prefs = list(data["wcdmaBands"])
+        if "lteBands" in data:
+            self.lte_band_prefs = list(data["lteBands"])
+        if "nrBands" in data:
+            self.nr_band_prefs = list(data["nrBands"])
+        _log.info("RadioServingSystemAO set_rf_band_preferences applied: gsm=%s wcdma=%s lte=%s nr=%s",
+                  self.gsm_band_prefs, self.wcdma_band_prefs, self.lte_band_prefs, self.nr_band_prefs)
+        env = build_success_envelope(self._mpss_src, msg["corrId"], msg["src"], {})
+        self._pub_rsp(topics_radio.set_rf_band_preferences.rsp,
+                      "radio.set_rf_band_preferences.rsp", env)
+
+    def _handle_request_rf_band_preferences(self, msg: dict) -> None:
+        data = {
+            "gsmBands": list(self.gsm_band_prefs),
+            "wcdmaBands": list(self.wcdma_band_prefs),
+            "lteBands": list(self.lte_band_prefs),
+            "nrBands": list(self.nr_band_prefs),
+        }
+        _log.debug("RadioServingSystemAO request_rf_band_preferences -> %s", data)
+        env = build_success_envelope(self._mpss_src, msg["corrId"], msg["src"], data)
+        self._pub_rsp(topics_radio.request_rf_band_preferences.rsp,
+                      "radio.request_rf_band_preferences.rsp", env)
+
+
+    def force_profile(self, data: dict) -> None:
+        self.post_fifo(Event(signal=signals.ForceProfile, payload=data))
+
+    def _apply_force_profile(self, data: dict) -> None:
+        profile = data.get("profile")
+        profiles = {
+            "4g": {"rat": "RADIO_TECH_LTE", "domain": "CS_PS", "state": "IN_SERVICE",
+                   "endcAvailability": "UNAVAILABLE", "dcnrRestriction": "RESTRICTED"},
+            "5g-nsa": {"rat": "RADIO_TECH_LTE", "domain": "CS_PS", "state": "IN_SERVICE",
+                       "endcAvailability": "AVAILABLE", "dcnrRestriction": "UNRESTRICTED"},
+            "5g-sa": {"rat": "RADIO_TECH_NR5G", "domain": "CS_PS", "state": "IN_SERVICE",
+                      "endcAvailability": "UNAVAILABLE", "dcnrRestriction": "UNRESTRICTED"},
+            "out-of-service": {"rat": "RADIO_TECH_UNKNOWN", "domain": "NO_SRV", "state": "NO_SERVICE",
+                               "endcAvailability": "UNAVAILABLE", "dcnrRestriction": "RESTRICTED"},
+            "radio-failure": {"rat": "RADIO_TECH_UNKNOWN", "domain": "NO_SRV", "state": "NO_SERVICE",
+                              "endcAvailability": "UNAVAILABLE", "dcnrRestriction": "RESTRICTED"},
+            "recovery": {"rat": "RADIO_TECH_LTE", "domain": "CS_PS", "state": "IN_SERVICE",
+                         "endcAvailability": "UNAVAILABLE", "dcnrRestriction": "RESTRICTED"},
+            "weak-signal": {},
+        }
+        update = profiles.get(profile, {})
+        if not update:
+            return
+        self.rat = update["rat"]
+        self.domain = update["domain"]
+        self.reg_state = update["state"]
+        self.endc_availability = update["endcAvailability"]
+        self.dcnr_restriction = update["dcnrRestriction"]
+        _log.info("RadioServingSystemAO force_profile applied: %s", profile)
+        self._publish_sys_info()
+        self._publish_dc_status()
 
     def force_sys_info(self, data: dict) -> None:
         self.post_fifo(Event(signal=signals.ForceSysInfo, payload=data))
@@ -328,6 +428,63 @@ class RadioServingSystemAO(ActiveObject):
         _log.info("RadioServingSystemAO force_lte_cs_capability applied: %s", data)
         self._publish_lte_cs_capability()
 
+    def force_network_time(self, data: dict) -> None:
+        """Publish a NITZ network-time indication. Drives
+        IServingSystemListener::onNetworkTimeChanged -- there is no AP "set
+        network time" RPC, so this is the only way to exercise that
+        handler in the simulator."""
+        self.post_fifo(Event(signal=signals.ForceNetworkTime, payload=data))
+
+    def _apply_force_network_time(self, data: dict) -> None:
+        if self._publish_fn is None:
+            return
+        fields = ("year", "month", "day", "hour", "minute", "second",
+                  "dayOfWeek", "timeZone", "dstAdj", "nitzTime")
+        for f in fields:
+            if f in data:
+                self.network_time[f] = data[f]
+        _log.info("RadioServingSystemAO force_network_time applied: %s", data)
+        self._pub_ind(topics_radio.network_time.ind, "radio.network_time.ind",
+                      dict(self.network_time))
+
+    def force_rf_band_info(self, data: dict) -> None:
+        """Force the currently-active serving RF band/channel/bandwidth and
+        re-publish mp/ind/radio/rf_band_info. Distinct from
+        set_rf_band_preferences (device preference, an AP RPC): this is the
+        network-side push of which band is actually active. Drives
+        IServingSystemListener::onRFBandInfoChanged."""
+        self.post_fifo(Event(signal=signals.ForceRfBandInfo, payload=data))
+
+    def _apply_force_rf_band_info(self, data: dict) -> None:
+        if self._publish_fn is None:
+            return
+        if "band" in data:
+            self.rf_band = data["band"]
+        if "channel" in data:
+            self.rf_channel = data["channel"]
+        if "bandWidth" in data:
+            self.rf_bandwidth = data["bandWidth"]
+        _log.info("RadioServingSystemAO force_rf_band_info applied: %s", data)
+        self._pub_ind(topics_radio.rf_band_info.ind, "radio.rf_band_info.ind",
+                      {"band": self.rf_band, "channel": self.rf_channel,
+                       "bandWidth": self.rf_bandwidth})
+
+    def force_network_rejection(self, data: dict) -> None:
+        """Publish a network-rejection indication. Drives
+        IServingSystemListener::onNetworkRejection -- pure network-side
+        push, no AP RPC to piggyback on."""
+        self.post_fifo(Event(signal=signals.ForceNetworkRejection, payload=data))
+
+    def _apply_force_network_rejection(self, data: dict) -> None:
+        if self._publish_fn is None:
+            return
+        for f in ("rat", "domain", "rejectCause", "mcc", "mnc"):
+            if f in data:
+                self.network_rejection[f] = data[f]
+        _log.info("RadioServingSystemAO force_network_rejection applied: %s", data)
+        self._pub_ind(topics_radio.network_rejection.ind, "radio.network_rejection.ind",
+                      dict(self.network_rejection))
+
 
 # ---------------------------------------------------------------------------
 # HSM state handlers.
@@ -362,7 +519,11 @@ def smfn_operating(chart, e):
     elif e.signal == signals.MessageReceived:
         chart.defer(e)
         status = return_status.HANDLED
-    elif e.signal in (signals.ForceSysInfo, signals.ForceDcStatus, signals.ForceLteCsCapability):
+    elif e.signal in (signals.ForceProfile, signals.ForceSysInfo, signals.ForceDcStatus, signals.ForceLteCsCapability):
+        _log.debug("radio serving-system AO: %s dropped -- not Ready", e.signal_name)
+        status = return_status.HANDLED
+    elif e.signal in (signals.ForceNetworkTime, signals.ForceRfBandInfo,
+                       signals.ForceNetworkRejection):
         _log.debug("radio serving-system AO: %s dropped -- not Ready", e.signal_name)
         status = return_status.HANDLED
     elif e.signal == signals.Resubscribe:
@@ -398,7 +559,8 @@ def smfn_ready(chart, e):
     status = return_status.UNHANDLED
     if e.signal == signals.ENTRY_SIGNAL:
         chart._do_enter_ready()
-        chart.recall()
+        while chart.recall() is not None:  # recall() replays only one deferred event per call
+            pass
         status = return_status.HANDLED
     elif e.signal == signals.EXIT_SIGNAL:
         chart._do_exit_ready()
@@ -407,14 +569,26 @@ def smfn_ready(chart, e):
         topic, payload = e.payload
         chart._dispatch_message(topic, payload)
         status = return_status.HANDLED
+    elif e.signal == signals.ForceProfile:
+        chart._run_force(chart._apply_force_profile, e.payload)
+        status = return_status.HANDLED
     elif e.signal == signals.ForceSysInfo:
-        chart._apply_force_sys_info(e.payload)
+        chart._run_force(chart._apply_force_sys_info, e.payload)
         status = return_status.HANDLED
     elif e.signal == signals.ForceDcStatus:
-        chart._apply_force_dc_status(e.payload)
+        chart._run_force(chart._apply_force_dc_status, e.payload)
         status = return_status.HANDLED
     elif e.signal == signals.ForceLteCsCapability:
-        chart._apply_force_lte_cs_capability(e.payload)
+        chart._run_force(chart._apply_force_lte_cs_capability, e.payload)
+        status = return_status.HANDLED
+    elif e.signal == signals.ForceNetworkTime:
+        chart._run_force(chart._apply_force_network_time, e.payload)
+        status = return_status.HANDLED
+    elif e.signal == signals.ForceRfBandInfo:
+        chart._run_force(chart._apply_force_rf_band_info, e.payload)
+        status = return_status.HANDLED
+    elif e.signal == signals.ForceNetworkRejection:
+        chart._run_force(chart._apply_force_network_rejection, e.payload)
         status = return_status.HANDLED
     elif e.signal == signals.Resubscribe:
         chart._do_resubscribe()

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.operator_info.ind",
+  "title": "Operator Info Change Indication",
+  "description": "Same shape as radio.request_operator_info.rsp -- the indication carries the whole refreshed operator record, mirroring IPhoneListener::onOperatorInfoChange(int, PlmnInfo). Added for Events.json parity (tel_phone.operatorInfoUpdate); triggered by force_operator_info since there is no AP RPC that changes the registered operator.",
+  "type": "object",
+  "required": ["longName", "shortName", "plmn", "isHome"],
+  "properties": {
+    "longName": { "type": "string" },
+    "shortName": { "type": "string" },
+    "plmn": { "type": "string" },
+    "isHome": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

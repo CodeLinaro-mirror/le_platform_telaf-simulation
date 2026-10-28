@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_ims_service_config.req",
+  "title": "Request IMS Service Config Request",
+  "description": "Backs taf_radio_GetImsSvcCfg(imsRef, ImsSvcType service, bool *enable) -- same service enum as set_ims_service_config.req.",
+  "type": "object",
+  "required": ["slot", "service"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 },
+    "service": { "type": "string", "enum": ["IMS_REG", "SMS", "VOIP", "RTT", "VONR"] }
+  },
+  "additionalProperties": false
+}

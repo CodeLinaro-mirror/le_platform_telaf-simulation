@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_ims_service_info.req",
+  "title": "Force IMS Service Info",
+  "description": "Forces RadioImsAO's IMS per-service (sms/voice) availability world state, re-publishing mp/ind/radio/ims_service_info. Every field is optional and applied only if present. Backs IImsServingSystemListener::onImsServiceInfoChange testing.",
+  "type": "object",
+  "properties": {
+    "sms": { "type": "string", "enum": ["UNKNOWN", "NO_SERVICE", "LIMITED_SERVICE", "FULL_SERVICE"] },
+    "voice": { "type": "string", "enum": ["UNKNOWN", "NO_SERVICE", "LIMITED_SERVICE", "FULL_SERVICE"] },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's IMS service info to force."
+    }
+  },
+  "additionalProperties": false
+}

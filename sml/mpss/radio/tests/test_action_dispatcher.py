@@ -29,6 +29,7 @@ def dispatcher(serving_system_ao, phone_ao):
 
 
 def test_owns_registered_topics(dispatcher):
+    assert dispatcher.owns_topic(action_topics.radio.force_profile.req)
     assert dispatcher.owns_topic(action_topics.radio.force_lte_cs_capability.req)
     assert dispatcher.owns_topic(action_topics.radio.force_sys_info.req)
     assert dispatcher.owns_topic(action_topics.radio.force_dc_status.req)
@@ -41,6 +42,13 @@ def test_start_subscribes_all_owned_topics(dispatcher):
     dispatcher.start(sub_mock, MagicMock())
     subscribed = {c.args[0] for c in sub_mock.call_args_list}
     assert subscribed == dispatcher._owned_topics
+
+
+def test_force_profile_dispatches_to_both_aos(dispatcher, serving_system_ao, phone_ao):
+    payload = json.dumps({"profile": "5g-nsa"}).encode()
+    dispatcher.handle_message(action_topics.radio.force_profile.req, payload)
+    serving_system_ao.force_profile.assert_called_once_with({"profile": "5g-nsa"})
+    phone_ao.force_profile.assert_called_once_with({"profile": "5g-nsa"})
 
 
 def test_force_lte_cs_capability_dispatches_to_serv_ao(dispatcher, serving_system_ao):

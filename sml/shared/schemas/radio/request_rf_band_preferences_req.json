@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_rf_band_preferences.req",
+  "title": "Request RF Band Preferences Request",
+  "description": "Backs taf_radio_GetBandPreferences/GetLteBandPreferences via IServingSystemManager::requestRFBandPreferences.",
+  "type": "object",
+  "required": ["slot"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

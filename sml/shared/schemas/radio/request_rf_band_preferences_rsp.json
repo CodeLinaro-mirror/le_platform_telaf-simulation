@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_rf_band_preferences.rsp",
+  "title": "Request RF Band Preferences Response",
+  "type": "object",
+  "required": ["gsmBands", "wcdmaBands", "lteBands", "nrBands"],
+  "properties": {
+    "gsmBands": { "type": "array", "items": { "type": "string" } },
+    "wcdmaBands": { "type": "array", "items": { "type": "string" } },
+    "lteBands": { "type": "array", "items": { "type": "string" } },
+    "nrBands": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

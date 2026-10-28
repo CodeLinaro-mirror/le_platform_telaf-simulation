@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_preferred_networks.rsp",
+  "title": "Request Preferred Networks Response",
+  "type": "object",
+  "required": ["networks"],
+  "properties": {
+    "networks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["mcc", "mnc"],
+        "properties": {
+          "mcc": { "type": "string" },
+          "mnc": { "type": "string" },
+          "ratMask": { "type": "integer", "minimum": 0, "maximum": 65535 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

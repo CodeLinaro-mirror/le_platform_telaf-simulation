@@ -3,13 +3,15 @@
 
 """`sml.tools.mqttcli pub` YAML command loader.
 
-One file = one command: {topic, qos?, retain?, envelope?, interval?, data}.
-`data` may be a single object (one publish) or a list (a sequence, fired in
-order with optional `interval` delay between sends). Envelope wrapping
-follows the prefix rule (mp/req/* wraps, ctrl/cmd/* raw, unknown wraps)
-unless the file's `envelope:` key overrides it. Known topics are validated
-against the generated JSON Schemas before anything is sent -- a bad payload
-must never partially publish a sequence.
+One file = one command. The compact form is
+{topic, qos?, retain?, envelope?, interval?, data}. `data` may be a single
+object (one publish) or a list (a same-topic sequence). The expanded form is
+{qos?, retain?, envelope?, interval?, messages}, where each message has
+{topic, data, qos?, retain?, envelope?}. Envelope wrapping follows the prefix
+rule (mp/req/* wraps, ctrl/cmd/* raw, unknown wraps) unless `envelope:`
+overrides it. Known topics are validated against the generated JSON Schemas
+before anything is sent -- a bad payload must never partially publish a
+sequence.
 """
 from __future__ import annotations
 
@@ -96,6 +98,29 @@ def _validate(topic: str, data: dict) -> None:
         ) from exc
 
 
+def _build_spec(
+    path: Path,
+    context: str,
+    topic: Any,
+    data: Any,
+    qos: int,
+    retain: bool,
+    envelope_override: Optional[bool],
+    src: str,
+) -> PublishSpec:
+    if not isinstance(topic, str) or not topic:
+        raise PubFileError(f"{path}: {context}: 'topic' is required and must be a non-empty string")
+    if data is None:
+        raise PubFileError(f"{path}: {context}: 'data' is required")
+    if not isinstance(data, dict):
+        raise PubFileError(f"{path}: {context}: 'data' must be a mapping, got {data!r}")
+
+    _validate(topic, data)
+    wrap = _should_envelope(topic, envelope_override)
+    payload = _wrap_envelope(src, data) if wrap else data
+    return PublishSpec(topic=topic, payload=payload, qos=qos, retain=retain)
+
+
 @dataclass(frozen=True)
 class PubFile:
     specs: list[PublishSpec]
@@ -113,31 +138,40 @@ def load_pubfile(path: Path, src: str = "cli") -> PubFile:
     if not isinstance(raw, dict):
         raise PubFileError(f"{path}: top-level YAML must be a mapping")
 
-    topic = raw.get("topic")
-    if not isinstance(topic, str) or not topic:
-        raise PubFileError(f"{path}: 'topic' is required and must be a non-empty string")
-
     qos = raw.get("qos", 1)
     retain = raw.get("retain", False)
     envelope_override = raw.get("envelope")
-    data = raw.get("data")
-
-    if data is None:
-        raise PubFileError(f"{path}: 'data' is required")
-
-    items: list[Any] = data if isinstance(data, list) else [data]
-    for item in items:
-        if not isinstance(item, dict):
-            raise PubFileError(f"{path}: each 'data' entry must be a mapping, got {item!r}")
-
     interval_ms = parse_interval_ms(raw["interval"]) if "interval" in raw else None
 
-    wrap = _should_envelope(topic, envelope_override)
+    if "messages" in raw:
+        if "topic" in raw or "data" in raw:
+            raise PubFileError(f"{path}: use either 'messages' or top-level 'topic'/'data', not both")
+        messages = raw["messages"]
+        if not isinstance(messages, list) or not messages:
+            raise PubFileError(f"{path}: 'messages' must be a non-empty list")
+        specs = []
+        for idx, message in enumerate(messages):
+            context = f"messages[{idx}]"
+            if not isinstance(message, dict):
+                raise PubFileError(f"{path}: {context} must be a mapping, got {message!r}")
+            specs.append(_build_spec(
+                path,
+                context,
+                message.get("topic"),
+                message.get("data"),
+                message.get("qos", qos),
+                message.get("retain", retain),
+                message.get("envelope", envelope_override),
+                src,
+            ))
+        return PubFile(specs=specs, interval_ms=interval_ms)
+
+    topic = raw.get("topic")
+    data = raw.get("data")
+    items: list[Any] = data if isinstance(data, list) else [data]
     specs = []
-    for item in items:
-        _validate(topic, item)
-        payload = _wrap_envelope(src, item) if wrap else item
-        specs.append(PublishSpec(topic=topic, payload=payload, qos=qos, retain=retain))
+    for idx, item in enumerate(items):
+        specs.append(_build_spec(path, f"data[{idx}]", topic, item, qos, retain, envelope_override, src))
     return PubFile(specs=specs, interval_ms=interval_ms)
 
 

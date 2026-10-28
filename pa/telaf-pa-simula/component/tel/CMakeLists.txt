@@ -64,6 +64,8 @@ add_library(telux_tel SHARED
     CellInfo.cpp           # taf_radio_GetServingCellId / GetCurrentNetworkMccMnc
     Call.cpp                # ICall -- eCall session value object
     CallManager.cpp          # ICallManager -- eCall RPC surface (taf_ecall_*)
+    ImsServingSystemManager.cpp  # IImsServingSystemManager -- taf_radio_GetImsRegStatus/SvcStatus/PdpError
+    ImsSettingsManager.cpp       # IImsSettingsManager -- taf_radio_SetImsSvcCfg/GetImsSvcCfg/*ImsUserAgent
 )
 set_target_properties(telux_tel PROPERTIES
     VERSION ${LIBRARY_VERSION}

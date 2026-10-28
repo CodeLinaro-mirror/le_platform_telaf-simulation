@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.set_ims_sip_user_agent.rsp",
+  "title": "Set IMS SIP User Agent Response",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

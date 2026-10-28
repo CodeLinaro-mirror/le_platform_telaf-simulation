@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_ims_registration_info.req",
+  "title": "Force IMS Registration Info",
+  "description": "Forces RadioImsAO's IMS registration-info world state, re-publishing mp/ind/radio/ims_registration_info. Every field is optional and applied only if present. Backs IImsServingSystemListener::onImsRegStatusChange testing.",
+  "type": "object",
+  "properties": {
+    "imsRegStatus": {
+      "type": "string",
+      "enum": ["UNKOWN_STATE", "NOT_REGISTERED", "REGISTERING", "REGISTERED", "LIMITED_REGISTERED"]
+    },
+    "rat": {
+      "type": "string",
+      "enum": [
+        "RADIO_TECH_UNKNOWN", "RADIO_TECH_GPRS", "RADIO_TECH_EDGE", "RADIO_TECH_UMTS",
+        "RADIO_TECH_LTE", "RADIO_TECH_GSM", "RADIO_TECH_TD_SCDMA", "RADIO_TECH_LTE_CA",
+        "RADIO_TECH_NR5G"
+      ]
+    },
+    "errorCode": { "type": "integer" },
+    "errorString": { "type": "string" },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's IMS registration info to force."
+    }
+  },
+  "additionalProperties": false
+}

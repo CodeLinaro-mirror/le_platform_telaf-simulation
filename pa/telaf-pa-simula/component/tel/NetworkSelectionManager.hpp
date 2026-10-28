@@ -20,6 +20,7 @@ namespace telux::tel::simula {
 class SimulaNetworkSelectionManager final
     : public telux::tel::INetworkSelectionManager
     , private chart::ActiveObject
+    , public std::enable_shared_from_this<SimulaNetworkSelectionManager>
 {
 public:
     SimulaNetworkSelectionManager(
@@ -87,6 +88,7 @@ private:
     friend chart::Status NetSelReady_St(chart::Hsm*, chart::Event const*);
 
     void handleReadinessInd_(std::string_view topic, const common::simula::Envelope& env);
+    void handleSelectionModeInd_(std::string_view topic, const common::simula::Envelope& env);
     void broadcastToListeners_(
       std::function<void(const std::shared_ptr<telux::tel::INetworkSelectionListener>&)> invoke
     );

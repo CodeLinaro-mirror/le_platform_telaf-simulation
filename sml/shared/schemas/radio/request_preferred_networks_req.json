@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_preferred_networks.req",
+  "title": "Request Preferred Networks Request",
+  "description": "Backs taf_radio_GetPreferredOperatorsList and the read half of taf_radio_RemovePreferredOperator's read-modify-write via INetworkSelectionManager::requestPreferredNetworks.",
+  "type": "object",
+  "required": ["slot"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

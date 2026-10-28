@@ -44,6 +44,7 @@ endif()
 set(TELAF_NP_MODULE_LIST
     component/taf_prop_common
     component/taf_prop_pms
+    component/taf_prop_radio
 )
 
 foreach(mod ${TELAF_NP_MODULE_LIST})

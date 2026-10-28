@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_network_time.req",
+  "title": "Force Network Time (NITZ)",
+  "description": "Forces RadioServingSystemAO's NITZ network-time world state, re-publishing mp/ind/radio/network_time. Every field is optional and applied only if present. Backs IServingSystemListener::onNetworkTimeChanged testing.",
+  "type": "object",
+  "properties": {
+    "year": { "type": "integer" },
+    "month": { "type": "integer" },
+    "day": { "type": "integer" },
+    "hour": { "type": "integer" },
+    "minute": { "type": "integer" },
+    "second": { "type": "integer" },
+    "dayOfWeek": { "type": "integer" },
+    "timeZone": { "type": "integer" },
+    "dstAdj": { "type": "integer" },
+    "nitzTime": { "type": "string" },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's network time to force."
+    }
+  },
+  "additionalProperties": false
+}

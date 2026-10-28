@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_cell_info.req",
+  "title": "Force Cell Info List",
+  "description": "Forces RadioPhoneAO's serving/neighbour cell list, re-publishing mp/ind/radio/cell_info with the full replacement list -- same full-object-replace semantics as radio.cell_info.ind itself (a listener gets the whole list, not a patch), so this schema mirrors it exactly. Backs taf_radio_AddCellInfoChangeHandler testing; PA-side already dispatches this indication to onCellInfoListChanged.",
+  "type": "object",
+  "required": ["cells"],
+  "properties": {
+    "cells": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["cellType", "registered"],
+        "properties": {
+          "cellType": {
+            "type": "string",
+            "enum": ["GSM", "CDMA", "WCDMA", "LTE", "TDSCDMA", "NR5G"]
+          },
+          "registered": { "type": "boolean" },
+          "gsm": {
+            "type": "object",
+            "required": ["mcc", "mnc", "lac", "cid", "arfcn", "bsic", "signalStrength", "bitErrorRate"],
+            "properties": {
+              "mcc": { "type": "string" },
+              "mnc": { "type": "string" },
+              "lac": { "type": "integer" },
+              "cid": { "type": "integer" },
+              "rac": {
+                "type": "integer", "minimum": 0, "maximum": 255,
+                "description": "Routing Area Code, read by taf_prop_radio_GetServingCellRac. A value in its own right, NOT a slice of `lac` -- the target PA reads a dedicated per-RAT RAC field. Optional: a cell that does not model one makes GetServingCellRac report TAF_PROP_UNAVAILABLE."
+              },
+              "arfcn": { "type": "integer" },
+              "bsic": { "type": "integer" },
+              "signalStrength": { "type": "integer" },
+              "bitErrorRate": { "type": "integer" }
+            },
+            "additionalProperties": false
+          },
+          "wcdma": {
+            "type": "object",
+            "required": ["mcc", "mnc", "lac", "cid", "psc", "uarfcn", "signalStrength", "bitErrorRate", "ecio", "rscp"],
+            "properties": {
+              "mcc": { "type": "string" },
+              "mnc": { "type": "string" },
+              "lac": { "type": "integer" },
+              "cid": { "type": "integer" },
+              "rac": {
+                "type": "integer", "minimum": 0, "maximum": 255,
+                "description": "Routing Area Code, read by taf_prop_radio_GetServingCellRac. A value in its own right, NOT a slice of `lac` -- the target PA reads a dedicated per-RAT RAC field. Optional: a cell that does not model one makes GetServingCellRac report TAF_PROP_UNAVAILABLE."
+              },
+              "psc": { "type": "integer" },
+              "uarfcn": { "type": "integer" },
+              "signalStrength": { "type": "integer" },
+              "bitErrorRate": { "type": "integer" },
+              "ecio": { "type": "integer" },
+              "rscp": { "type": "integer" }
+            },
+            "additionalProperties": false
+          },
+          "lte": {
+            "type": "object",
+            "required": ["mcc", "mnc", "ci", "pci", "tac", "earfcn", "signalStrength", "rsrp", "rsrq", "rssnr", "cqi", "timingAdvance"],
+            "properties": {
+              "mcc": { "type": "string" },
+              "mnc": { "type": "string" },
+              "ci": { "type": "integer" },
+              "pci": { "type": "integer" },
+              "tac": { "type": "integer" },
+              "earfcn": { "type": "integer" },
+              "signalStrength": { "type": "integer" },
+              "rsrp": { "type": "integer" },
+              "rsrq": { "type": "integer" },
+              "rssnr": { "type": "integer" },
+              "cqi": { "type": "integer" },
+              "timingAdvance": { "type": "integer" }
+            },
+            "additionalProperties": false
+          },
+          "nr5g": {
+            "type": "object",
+            "required": ["mcc", "mnc", "ci", "pci", "tac", "arfcn", "rsrp", "rsrq", "rssnr"],
+            "properties": {
+              "mcc": { "type": "string" },
+              "mnc": { "type": "string" },
+              "ci": { "type": "integer" },
+              "pci": { "type": "integer" },
+              "tac": { "type": "integer" },
+              "arfcn": { "type": "integer" },
+              "rsrp": { "type": "integer" },
+              "rsrq": { "type": "integer" },
+              "rssnr": { "type": "integer" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1,
+      "description": "Which SIM slot's cell info to force."
+    }
+  },
+  "additionalProperties": false
+}

@@ -165,6 +165,28 @@ rpcs:
       Query the RAT mode preference list. Backs taf_radio_GetRatPreferences.
       Mirrors ServingManagerServerImpl::RequestRATPreference.
 
+  - method: set_service_domain_preference
+    req_topic: "mp/req/radio/set_service_domain_preference"
+    rsp_topic: "mp/rsp/radio/set_service_domain_preference"
+    req_payload: schemas/radio/set_service_domain_preference_req.json
+    rsp_payload: schemas/radio/set_service_domain_preference_rsp.json
+    qos: 1
+    description: >-
+      Set the service domain preference (CS/PS/CS+PS). Backs
+      taf_radio_SetServiceDomainPreferences via
+      IServingSystemManager::setServiceDomainPreference.
+
+  - method: request_service_domain_preference
+    req_topic: "mp/req/radio/request_service_domain_preference"
+    rsp_topic: "mp/rsp/radio/request_service_domain_preference"
+    req_payload: schemas/radio/request_service_domain_preference_req.json
+    rsp_payload: schemas/radio/request_service_domain_preference_rsp.json
+    qos: 1
+    description: >-
+      Query the service domain preference. Backs
+      taf_radio_GetServiceDomainPreferences via
+      IServingSystemManager::requestServiceDomainPreference.
+
   - method: get_system_info
     req_topic: "mp/req/radio/get_system_info"
     rsp_topic: "mp/rsp/radio/get_system_info"
@@ -231,6 +253,157 @@ rpcs:
       Backs taf_radio_GetRegisterMode. Mirrors
       NetworkSelectionManagerServerImpl::RequestNetworkSelectionMode.
 
+  - method: perform_network_scan
+    req_topic: "mp/req/radio/perform_network_scan"
+    rsp_topic: "mp/rsp/radio/perform_network_scan"
+    req_payload: schemas/radio/perform_network_scan_req.json
+    rsp_payload: schemas/radio/perform_network_scan_rsp.json
+    qos: 1
+    description: >-
+      Perform a PLMN network scan and return every visible network. Backs
+      taf_radio_PerformCellularNetworkScan/Async via
+      INetworkSelectionManager::performNetworkScan. Previously out of scope
+      for the radio migration; added on explicit instruction that any
+      TELAF API with a real SDK mapping is in scope regardless of prior
+      scoping notes. Synchronous request/response (the old gRPC server
+      always answered a scan with one immediate result list, never a
+      streamed callback), so both the sync and async telux overloads share
+      this one RPC.
+
+  - method: set_preferred_networks
+    req_topic: "mp/req/radio/set_preferred_networks"
+    rsp_topic: "mp/rsp/radio/set_preferred_networks"
+    req_payload: schemas/radio/set_preferred_networks_req.json
+    rsp_payload: schemas/radio/set_preferred_networks_rsp.json
+    qos: 1
+    description: >-
+      Replace the preferred-network list. Backs taf_radio_AddPreferredOperator
+      (append) and taf_radio_RemovePreferredOperator (client reads the
+      current list via request_preferred_networks, filters locally, then
+      writes the result back here) via
+      INetworkSelectionManager::setPreferredNetworks. No SDK-level "remove"
+      call exists to preserve beyond this composition.
+
+  - method: request_preferred_networks
+    req_topic: "mp/req/radio/request_preferred_networks"
+    rsp_topic: "mp/rsp/radio/request_preferred_networks"
+    req_payload: schemas/radio/request_preferred_networks_req.json
+    rsp_payload: schemas/radio/request_preferred_networks_rsp.json
+    qos: 1
+    description: >-
+      Query the current preferred-network list. Backs
+      taf_radio_GetPreferredOperatorsList via
+      INetworkSelectionManager::requestPreferredNetworks.
+
+
+  - method: request_rf_band_capability
+    req_topic: "mp/req/radio/request_rf_band_capability"
+    rsp_topic: "mp/rsp/radio/request_rf_band_capability"
+    req_payload: schemas/radio/request_rf_band_capability_req.json
+    rsp_payload: schemas/radio/request_rf_band_capability_rsp.json
+    qos: 1
+    description: >-
+      Query the device's RF band capability (which bands the hardware
+      supports per RAT). Backs taf_radio_GetBandCapabilities and
+      taf_radio_GetLteBandCapabilities via
+      IServingSystemManager::requestRFBandCapability.
+
+  - method: set_rf_band_preferences
+    req_topic: "mp/req/radio/set_rf_band_preferences"
+    rsp_topic: "mp/rsp/radio/set_rf_band_preferences"
+    req_payload: schemas/radio/set_rf_band_preferences_req.json
+    rsp_payload: schemas/radio/set_rf_band_preferences_rsp.json
+    qos: 1
+    description: >-
+      Set the RF band preference list. Backs taf_radio_SetBandPreferences
+      and taf_radio_SetLteBandPreferences via
+      IServingSystemManager::setRFBandPreferences.
+
+  - method: request_rf_band_preferences
+    req_topic: "mp/req/radio/request_rf_band_preferences"
+    rsp_topic: "mp/rsp/radio/request_rf_band_preferences"
+    req_payload: schemas/radio/request_rf_band_preferences_req.json
+    rsp_payload: schemas/radio/request_rf_band_preferences_rsp.json
+    qos: 1
+    description: >-
+      Query the current RF band preference list. Backs
+      taf_radio_GetBandPreferences and taf_radio_GetLteBandPreferences via
+      IServingSystemManager::requestRFBandPreferences.
+
+
+  - method: request_ims_registration_info
+    req_topic: "mp/req/radio/request_ims_registration_info"
+    rsp_topic: "mp/rsp/radio/request_ims_registration_info"
+    req_payload: schemas/radio/request_ims_registration_info_req.json
+    rsp_payload: schemas/radio/request_ims_registration_info_rsp.json
+    qos: 1
+    description: >-
+      Query IMS registration status. Backs taf_radio_GetImsRegStatus via
+      IImsServingSystemManager::requestRegistrationInfo.
+
+  - method: request_ims_service_info
+    req_topic: "mp/req/radio/request_ims_service_info"
+    rsp_topic: "mp/rsp/radio/request_ims_service_info"
+    req_payload: schemas/radio/request_ims_service_info_req.json
+    rsp_payload: schemas/radio/request_ims_service_info_rsp.json
+    qos: 1
+    description: >-
+      Query per-service (voice/video/sms/ut) IMS availability. Backs
+      taf_radio_GetImsSvcStatus via
+      IImsServingSystemManager::requestServiceInfo.
+
+  - method: request_ims_pdp_status
+    req_topic: "mp/req/radio/request_ims_pdp_status"
+    rsp_topic: "mp/rsp/radio/request_ims_pdp_status"
+    req_payload: schemas/radio/request_ims_pdp_status_req.json
+    rsp_payload: schemas/radio/request_ims_pdp_status_rsp.json
+    qos: 1
+    description: >-
+      Query the IMS PDP (packet data protocol) context error code. Backs
+      taf_radio_GetImsPdpError via
+      IImsServingSystemManager::requestPdpStatus.
+
+  - method: set_ims_service_config
+    req_topic: "mp/req/radio/set_ims_service_config"
+    rsp_topic: "mp/rsp/radio/set_ims_service_config"
+    req_payload: schemas/radio/set_ims_service_config_req.json
+    rsp_payload: schemas/radio/set_ims_service_config_rsp.json
+    qos: 1
+    description: >-
+      Set the IMS service config (VoNR enable/disable plus generic service
+      config fields). Backs taf_radio_SetImsSvcCfg via
+      IImsSettingsManager::toggleVonr/setServiceConfig.
+
+  - method: request_ims_service_config
+    req_topic: "mp/req/radio/request_ims_service_config"
+    rsp_topic: "mp/rsp/radio/request_ims_service_config"
+    req_payload: schemas/radio/request_ims_service_config_req.json
+    rsp_payload: schemas/radio/request_ims_service_config_rsp.json
+    qos: 1
+    description: >-
+      Query the current IMS service config. Backs taf_radio_GetImsSvcCfg
+      via IImsSettingsManager::requestVonrStatus/requestServiceConfig.
+
+  - method: set_ims_sip_user_agent
+    req_topic: "mp/req/radio/set_ims_sip_user_agent"
+    rsp_topic: "mp/rsp/radio/set_ims_sip_user_agent"
+    req_payload: schemas/radio/set_ims_sip_user_agent_req.json
+    rsp_payload: schemas/radio/set_ims_sip_user_agent_rsp.json
+    qos: 1
+    description: >-
+      Set the SIP user-agent string used for IMS registration. Backs
+      taf_radio_SetImsUserAgent via IImsSettingsManager::setSipUserAgent.
+
+  - method: request_ims_sip_user_agent
+    req_topic: "mp/req/radio/request_ims_sip_user_agent"
+    rsp_topic: "mp/rsp/radio/request_ims_sip_user_agent"
+    req_payload: schemas/radio/request_ims_sip_user_agent_req.json
+    rsp_payload: schemas/radio/request_ims_sip_user_agent_rsp.json
+    qos: 1
+    description: >-
+      Query the SIP user-agent string. Backs taf_radio_GetImsUserAgent via
+      IImsSettingsManager::requestSipUserAgent.
+
 indications:
   # --- radio.phone.* -------------------------------------------------------
 
@@ -262,7 +435,34 @@ indications:
     retain: false
     description: >-
       Serving/neighbour cell list change. Backs
-      taf_radio_AddCellInfoChangeHandler.
+      taf_radio_AddCellInfoChangeHandler. PA-side (PhoneManager.cpp) has
+      always subscribed to and dispatched this to onCellInfoListChanged --
+      RadioPhoneAO never published it until force_cell_info was added
+      (Events.json parity round), which is the only missing piece.
+
+  - event: operator_info
+    ind_topic: "mp/ind/radio/operator_info"
+    payload: schemas/radio/operator_info_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      Registered-operator change (long/short name, PLMN, home flag). Backs
+      IPhoneListener::onOperatorInfoChange. Added for Events.json parity
+      (tel_phone.operatorInfoUpdate) -- request_operator_info answers the
+      pull side; this is the network-side push, triggered by
+      force_operator_info since there is no AP "set operator" RPC.
+
+  - event: voice_service_state
+    ind_topic: "mp/ind/radio/voice_service_state"
+    payload: schemas/radio/voice_service_state_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      Voice registration state/denial-cause/RAT change. Backs
+      IPhoneListener::onVoiceServiceStateChanged. Added for Events.json
+      parity (tel_phone.voiceServiceStateUpdate) -- request_voice_service_state
+      answers the pull side; this is the push, triggered by
+      force_voice_service_state.
 
   # --- radio.sys.* ---------------------------------------------------------
 
@@ -325,6 +525,125 @@ indications:
       report UNKNOWN until the first change. Also drives
       IServingSystemListener::onLteCsCapabilityChanged.
 
+  - event: network_time
+    ind_topic: "mp/ind/radio/network_time"
+    payload: schemas/radio/network_time_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      NITZ network-time update. Backs
+      IServingSystemListener::onNetworkTimeChanged. Added for Events.json
+      parity (tel_serv.networkTimeUpdate) -- there is no AP "set network
+      time" RPC, so this is a pure network-side push, triggered by
+      force_network_time.
+
+  - event: rf_band_info
+    ind_topic: "mp/ind/radio/rf_band_info"
+    payload: schemas/radio/rf_band_info_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      Serving RF band/channel/bandwidth change. Backs
+      IServingSystemListener::onRFBandInfoChanged -- distinct from
+      request_rf_band_info's pull (same payload shape, reused here) and from
+      set/request_rf_band_preferences (device capability/preference, not the
+      currently active band). Added for Events.json parity
+      (tel_serv.rFBandInfoUpdate); no AP "set active band" RPC exists, so
+      this is a pure network-side push, triggered by force_rf_band_info.
+
+  - event: network_rejection
+    ind_topic: "mp/ind/radio/network_rejection"
+    payload: schemas/radio/network_rejection_ind.json
+    qos: 1
+    retain: false
+    description: >-
+      Network registration rejection. Backs
+      IServingSystemListener::onNetworkRejection. Added for Events.json
+      parity (tel_serv.networkRejectionUpdate); pure network-side push, no
+      AP RPC to piggyback on, triggered by force_network_rejection.
+
+  # --- radio.netsel.* -------------------------------------------------------
+
+  - event: selection_mode
+    ind_topic: "mp/ind/radio/selection_mode"
+    payload: schemas/radio/request_network_selection_mode_rsp.json
+    qos: 1
+    retain: false
+    description: >-
+      Network selection mode change, fired after a successful
+      set_network_selection_mode. Backs
+      INetworkSelectionListener::onSelectionModeChanged. Added for
+      Events.json parity (tel_network_select.selectionModeUpdate); mirrors
+      rat_pref's pattern of firing as a side effect of its own "set" RPC
+      rather than a standalone force action, since one already exists here.
+      Reuses request_network_selection_mode.rsp's payload shape.
+
+  # --- radio.ims.* -----------------------------------------------------------
+
+  - event: ims_registration_info
+    ind_topic: "mp/ind/radio/ims_registration_info"
+    payload: schemas/radio/request_ims_registration_info_rsp.json
+    qos: 1
+    retain: false
+    description: >-
+      IMS registration status change. Backs
+      IImsServingSystemListener::onImsRegStatusChange. Added for Events.json
+      parity (tel_ims_serv.regStatusUpdate); no AP "set registration status"
+      RPC exists (it's network-driven state), so this is a standalone push,
+      triggered by force_ims_registration_info. Reuses
+      request_ims_registration_info.rsp's payload shape.
+
+  - event: ims_service_info
+    ind_topic: "mp/ind/radio/ims_service_info"
+    payload: schemas/radio/request_ims_service_info_rsp.json
+    qos: 1
+    retain: false
+    description: >-
+      IMS per-service (sms/voice) availability change. Backs
+      IImsServingSystemListener::onImsServiceInfoChange. Added for
+      Events.json parity (tel_ims_serv.serviceInfoUpdate); standalone push,
+      triggered by force_ims_service_info. Reuses
+      request_ims_service_info.rsp's payload shape.
+
+  - event: ims_pdp_status
+    ind_topic: "mp/ind/radio/ims_pdp_status"
+    payload: schemas/radio/request_ims_pdp_status_rsp.json
+    qos: 1
+    retain: false
+    description: >-
+      IMS PDP context status change. Backs
+      IImsServingSystemListener::onImsPdpStatusInfoChange. Added for
+      Events.json parity (tel_ims_serv.pdpStatusInfoUpdate); standalone
+      push, triggered by force_ims_pdp_status. Reuses
+      request_ims_pdp_status.rsp's payload shape.
+
+  - event: ims_service_config
+    ind_topic: "mp/ind/radio/ims_service_config"
+    payload: schemas/radio/set_ims_service_config_req.json
+    qos: 1
+    retain: false
+    description: >-
+      IMS service config change, fired after a successful
+      set_ims_service_config. Backs
+      IImsSettingsListener::onImsServiceConfigsChange. Added for Events.json
+      parity (tel_ims_settings.imsServiceConfigsUpdate); mirrors rat_pref's
+      pattern of firing as a side effect of its own "set" RPC rather than a
+      standalone force action. Reuses set_ims_service_config.req's payload
+      shape (service/enable), since that is exactly what changed.
+
+  - event: ims_sip_user_agent
+    ind_topic: "mp/ind/radio/ims_sip_user_agent"
+    payload: schemas/radio/request_ims_sip_user_agent_rsp.json
+    qos: 1
+    retain: false
+    description: >-
+      SIP user-agent string change, fired after a successful
+      set_ims_sip_user_agent. Backs
+      IImsSettingsListener::onImsSipUserAgentChange. Added for Events.json
+      parity (tel_ims_settings.imsSipUserAgentUpdate); mirrors rat_pref's
+      side-effect pattern rather than a standalone force action. Reuses
+      request_ims_sip_user_agent.rsp's payload shape.
+
   # --- radio.subsys_ready -- one retained topic per manager ----------------
   # Same rationale as data.yaml's three subsys_ready topics: each manager
   # maps to an independently-booting subsystem on real hardware and
@@ -351,3 +670,20 @@ indications:
     qos: 1
     retain: true
     description: "INetworkSelectionManager subsystem readiness."
+
+  - event: subsys_ready_ims
+    ind_topic: "mp/ind/radio/subsys_ready/ims"
+    payload: schemas/radio/subsys_ready_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      IImsServingSystemManager subsystem readiness.
+
+  - event: subsys_ready_ims_settings
+    ind_topic: "mp/ind/radio/subsys_ready/ims_settings"
+    payload: schemas/radio/subsys_ready_ind.json
+    qos: 1
+    retain: true
+    description: >-
+      IImsSettingsManager subsystem readiness. The IMS AO publishes both
+      readiness topics because the PA bridge has one callback per topic.

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.request_ims_pdp_status.rsp",
+  "title": "Request IMS PDP Status Response",
+  "description": "Mirrors telux::tel::ImsPdpStatusInfo verbatim. failureReason (telux::common::DataCallEndReason) is flattened to its EndReasonType enum name plus the raw reason code from whichever union member `type` selects -- same flatten-a-tagged-union convention as elsewhere on this wire.",
+  "type": "object",
+  "required": ["isPdpConnected", "failureCode", "failureReasonType", "failureReasonCode", "apnName"],
+  "properties": {
+    "isPdpConnected": { "type": "boolean" },
+    "failureCode": {
+      "type": "string",
+      "enum": ["OTHER_FAILURE", "OPTION_UNSUBSCRIBED", "UNKNOWN_PDP", "REASON_NOT_SPECIFIED",
+               "CONNECTION_BRINGUP_FAILURE", "CONNECTION_IKE_AUTH_FAILURE", "USER_AUTH_FAILED"]
+    },
+    "failureReasonType": {
+      "type": "string",
+      "enum": ["CE_UNKNOWN", "CE_MOBILE_IP", "CE_INTERNAL", "CE_CALL_MANAGER_DEFINED",
+               "CE_3GPP_SPEC_DEFINED", "CE_PPP", "CE_EHRPD", "CE_IPV6", "CE_HANDOFF"]
+    },
+    "failureReasonCode": { "type": "integer" },
+    "apnName": { "type": "string" }
+  },
+  "additionalProperties": false
+}

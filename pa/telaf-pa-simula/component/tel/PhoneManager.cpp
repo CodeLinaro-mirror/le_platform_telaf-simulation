@@ -77,6 +77,47 @@ wireToEcallModeReason(const std::string& s)
     return telux::tel::ECallModeReason::NORMAL;
 }
 
+telux::tel::VoiceServiceState
+wireToVoiceServiceState(const std::string& s)
+{
+    if (s == "NOT_REG_AND_NOT_SEARCHING") return telux::tel::VoiceServiceState::NOT_REG_AND_NOT_SEARCHING;
+    if (s == "REG_HOME")                  return telux::tel::VoiceServiceState::REG_HOME;
+    if (s == "NOT_REG_AND_SEARCHING")     return telux::tel::VoiceServiceState::NOT_REG_AND_SEARCHING;
+    if (s == "REG_DENIED")                return telux::tel::VoiceServiceState::REG_DENIED;
+    if (s == "REG_ROAMING")               return telux::tel::VoiceServiceState::REG_ROAMING;
+    if (s != "UNKNOWN")
+        LOG_WARN(
+          "[PhoneManager] wireToVoiceServiceState: unrecognized value=%s, defaulting to UNKNOWN",
+          s.c_str()
+        );
+    return telux::tel::VoiceServiceState::UNKNOWN;
+}
+
+telux::tel::RadioTechnology
+wireToRadioTechnology(const std::string& s)
+{
+    if (s == "RADIO_TECH_GPRS")     return telux::tel::RadioTechnology::RADIO_TECH_GPRS;
+    if (s == "RADIO_TECH_EDGE")     return telux::tel::RadioTechnology::RADIO_TECH_EDGE;
+    if (s == "RADIO_TECH_UMTS")     return telux::tel::RadioTechnology::RADIO_TECH_UMTS;
+    if (s == "RADIO_TECH_LTE")      return telux::tel::RadioTechnology::RADIO_TECH_LTE;
+    if (s == "RADIO_TECH_GSM")      return telux::tel::RadioTechnology::RADIO_TECH_GSM;
+    if (s == "RADIO_TECH_TD_SCDMA") return telux::tel::RadioTechnology::RADIO_TECH_TD_SCDMA;
+    if (s == "RADIO_TECH_LTE_CA")   return telux::tel::RadioTechnology::RADIO_TECH_LTE_CA;
+    if (s == "RADIO_TECH_NR5G")     return telux::tel::RadioTechnology::RADIO_TECH_NR5G;
+    if (s != "RADIO_TECH_UNKNOWN")
+        LOG_WARN(
+          "[PhoneManager] wireToRadioTechnology: unrecognized value=%s, defaulting to RADIO_TECH_UNKNOWN",
+          s.c_str()
+        );
+    return telux::tel::RadioTechnology::RADIO_TECH_UNKNOWN;
+}
+
+telux::common::BoolValue
+wireToBoolValue(bool b)
+{
+    return b ? telux::common::BoolValue::STATE_TRUE : telux::common::BoolValue::STATE_FALSE;
+}
+
 telux::tel::VoiceServiceTechnology
 wireToVoiceServiceTech(const std::string& s)
 {
@@ -184,6 +225,8 @@ SimulaPhoneManager::unsubscribeFromBridge_()
     bridge_.unsubscribe_event(topics::radio::signal_strength::ind);
     bridge_.unsubscribe_event(topics::radio::cell_info::ind);
     bridge_.unsubscribe_event(topics::ecall::operating_mode::ind);
+    bridge_.unsubscribe_event(topics::radio::operator_info::ind);
+    bridge_.unsubscribe_event(topics::radio::voice_service_state::ind);
     bridge_.unsubscribe_connectivity(conn_token_);
     conn_token_ = 0;
     bridge_.drain();
@@ -222,6 +265,16 @@ SimulaPhoneManager::start()
       topics::ecall::operating_mode::ind,
       "ecall.operating_mode.ind",
       [this](std::string_view topic, const Envelope& env) { handleEcallOperatingModeInd_(topic, env); }
+    );
+    bridge_.subscribe_event(
+      topics::radio::operator_info::ind,
+      "radio.operator_info.ind",
+      [this](std::string_view topic, const Envelope& env) { handleOperatorInfoInd_(topic, env); }
+    );
+    bridge_.subscribe_event(
+      topics::radio::voice_service_state::ind,
+      "radio.voice_service_state.ind",
+      [this](std::string_view topic, const Envelope& env) { handleVoiceServiceStateInd_(topic, env); }
     );
     conn_token_ = bridge_.subscribe_connectivity([this](bool operational) {
         auto pld = std::make_shared<bool>(operational);
@@ -318,6 +371,34 @@ SimulaPhoneManager::handleEcallOperatingModeInd_(std::string_view topic, const E
     auto pld = std::make_shared<StateIndPld>();
     pld->env = env;
     post_fifo({ EcallOperatingModeEvt_Signal, pld });
+}
+
+void
+SimulaPhoneManager::handleOperatorInfoInd_(std::string_view topic, const Envelope& env)
+{
+    LOG_DEBUG(
+      "[PhoneManager] handleOperatorInfoInd_ topic=%.*s corrId=%s",
+      static_cast<int>(topic.size()),
+      topic.data(),
+      env.corrId.c_str()
+    );
+    auto pld = std::make_shared<StateIndPld>();
+    pld->env = env;
+    post_fifo({ OperatorInfoEvt_Signal, pld });
+}
+
+void
+SimulaPhoneManager::handleVoiceServiceStateInd_(std::string_view topic, const Envelope& env)
+{
+    LOG_DEBUG(
+      "[PhoneManager] handleVoiceServiceStateInd_ topic=%.*s corrId=%s",
+      static_cast<int>(topic.size()),
+      topic.data(),
+      env.corrId.c_str()
+    );
+    auto pld = std::make_shared<StateIndPld>();
+    pld->env = env;
+    post_fifo({ VoiceServiceStateEvt_Signal, pld });
 }
 
 void
@@ -551,6 +632,8 @@ PhoneMgrNotReady_St(chart::Hsm* h, chart::Event const* e)
         case SignalStrengthEvt_Signal:
         case CellInfoEvt_Signal:
         case EcallOperatingModeEvt_Signal:
+        case OperatorInfoEvt_Signal:
+        case VoiceServiceStateEvt_Signal:
             return chart::Status::HANDLED;
  
         case SetInitCb_Signal:
@@ -794,6 +877,55 @@ PhoneMgrReady_St(chart::Hsm* h, chart::Event const* e)
             self->broadcastToListeners_([info](const std::shared_ptr<telux::tel::IPhoneListener>& l) {
                 l->onECallOperatingModeChange(DEFAULT_PHONE_ID, info);
             });
+            return chart::Status::HANDLED;
+        }
+
+        case OperatorInfoEvt_Signal:
+        {
+            auto pld = event_cast<StateIndPld>(*e);
+            if (!pld->env.data)
+                return chart::Status::HANDLED;
+            telux::tel::PlmnInfo info{};
+            info.longName = pld->env.data->value("longName", std::string());
+            info.shortName = pld->env.data->value("shortName", std::string());
+            info.plmn = pld->env.data->value("plmn", std::string());
+            info.isHome = wireToBoolValue(pld->env.data->value("isHome", false));
+            LOG_DEBUG(
+              "[PhoneManager] OperatorInfoEvt_Signal longName=%s shortName=%s plmn=%s isHome=%d",
+              info.longName.c_str(),
+              info.shortName.c_str(),
+              info.plmn.c_str(),
+              static_cast<int>(info.isHome)
+            );
+            self->broadcastToListeners_([info](const std::shared_ptr<telux::tel::IPhoneListener>& l) {
+                l->onOperatorInfoChange(DEFAULT_PHONE_ID, info);
+            });
+            return chart::Status::HANDLED;
+        }
+
+        case VoiceServiceStateEvt_Signal:
+        {
+            auto pld = event_cast<StateIndPld>(*e);
+            if (!pld->env.data)
+                return chart::Status::HANDLED;
+            auto info = std::make_shared<telux::tel::VoiceServiceInfo>(
+              wireToVoiceServiceState(pld->env.data->value("voiceServiceState", std::string())),
+              static_cast<telux::tel::VoiceServiceDenialCause>(
+                pld->env.data->value("denialCause", -1)
+              ),
+              wireToRadioTechnology(pld->env.data->value("radioTech", std::string()))
+            );
+            LOG_DEBUG(
+              "[PhoneManager] VoiceServiceStateEvt_Signal voiceServiceState=%d denialCause=%d radioTech=%d",
+              static_cast<int>(info->getVoiceServiceState()),
+              static_cast<int>(info->getVoiceServiceDenialCause()),
+              static_cast<int>(info->getRadioTechnology())
+            );
+            self->broadcastToListeners_(
+              [info](const std::shared_ptr<telux::tel::IPhoneListener>& l) {
+                  l->onVoiceServiceStateChanged(DEFAULT_PHONE_ID, info);
+              }
+            );
             return chart::Status::HANDLED;
         }
 

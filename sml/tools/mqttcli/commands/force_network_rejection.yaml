@@ -1,0 +1,14 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# ctrl/cmd/action example: raw payload (no envelope), validated against
+# action.radio.force_network_rejection.req before send.
+#
+# Drives IServingSystemListener::onNetworkRejection.
+topic: ctrl/cmd/action/radio/force_network_rejection
+data:
+  rat: RADIO_TECH_LTE
+  domain: PS_ONLY
+  rejectCause: 17
+  mcc: "310"
+  mnc: "410"

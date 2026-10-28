@@ -1,0 +1,155 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+# Radio simulation aliases. Loaded by sml.tools.alias together with
+# aliases.yaml so the common alias file does not carry radio-only shortcuts.
+
+radio.status:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_status.yaml]
+
+radio.4g:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_profile_4g.yaml]
+
+radio.5g_nsa:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_profile_5g_nsa.yaml]
+
+radio.5g_sa:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_profile_5g_sa.yaml]
+
+radio.out_of_service:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_profile_out_of_service.yaml]
+
+radio.weak_signal:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_profile_weak_signal.yaml]
+
+radio.weak_signal_nr5g:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_profile_weak_signal_nr5g.yaml]
+
+radio.failure:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_profile_radio_failure.yaml]
+
+radio.recovery:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_profile_recovery.yaml]
+
+radio.disable:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_set_radio_disabled.yaml]
+
+radio.enable:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_set_radio_enabled.yaml]
+
+radio.registration_denied:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_inject_registration_denied.yaml]
+
+radio.handover:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_scenario_lte_handover.yaml]
+
+radio.roaming:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_scenario_roaming_lte.yaml]
+
+radio.ims_voice_unavailable:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_scenario_lte_data_ims_voice_unavailable.yaml]
+
+radio.tunnel_loss_recovery:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_scenario_tunnel_loss_recovery.yaml]
+
+radio.power_cycle:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_scenario_radio_power_cycle.yaml]
+
+radio.out_of_service_sys_info:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/radio_set_service_out_of_service.yaml]
+
+radio.rat_change:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/rat_change_sequence.yaml]
+
+# Raw force_* injectors (ctrl/cmd/action/radio/*).
+
+radio.cell_info:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_cell_info.yaml]
+
+radio.dc_status:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_dc_status.yaml]
+
+radio.ims_pdp_status:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_ims_pdp_status.yaml]
+
+radio.ims_registration_info:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_ims_registration_info.yaml]
+
+radio.ims_service_info:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_ims_service_info.yaml]
+
+radio.lte_cs_capability:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_lte_cs_capability.yaml]
+
+radio.network_rejection:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_network_rejection.yaml]
+
+radio.network_time:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_network_time.yaml]
+
+radio.operator_info:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_operator_info.yaml]
+
+radio.rf_band_info:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_rf_band_info.yaml]
+
+radio.sys_info:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_sys_info.yaml]
+
+radio.voice_service_state:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_voice_service_state.yaml]
+
+radio.signal_strength:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_signal_strength.yaml]
+
+radio.signal_strength_all:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_signal_strength_all.yaml]
+
+radio.signal_strength_gsm:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_signal_strength_gsm.yaml]
+
+radio.signal_strength_umts:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_signal_strength_umts.yaml]
+
+radio.signal_strength_nr5g:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_signal_strength_nr5g.yaml]
+
+radio.signal_strength_restore:
+  tool: mqttcli
+  args: [pub, mqttcli/commands/force_signal_strength_restore.yaml]

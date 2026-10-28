@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "radio.perform_network_scan.rsp",
+  "title": "Perform Network Scan Response",
+  "description": "One entry per visible PLMN. Mirrors telux::tel::OperatorInfo/NetworkScanInfo's per-network status flags (available/home/forbidden/in-use), which taf_radio_IsCellularNetworkInUse/Available/Home/Forbidden read straight off a cached entry -- no wire round trip of their own, per the existing convention of pure-local getters over an already-fetched cache.",
+  "type": "object",
+  "required": ["networks"],
+  "properties": {
+    "networks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["mcc", "mnc", "name", "rat", "isAvailable", "isHome", "isForbidden", "isInUse"],
+        "properties": {
+          "mcc": { "type": "string" },
+          "mnc": { "type": "string" },
+          "name": { "type": "string" },
+          "rat": {
+            "type": "string",
+            "enum": ["RADIO_TECH_UNKNOWN", "RADIO_TECH_GPRS", "RADIO_TECH_EDGE", "RADIO_TECH_UMTS",
+                     "RADIO_TECH_LTE", "RADIO_TECH_GSM", "RADIO_TECH_TD_SCDMA", "RADIO_TECH_LTE_CA",
+                     "RADIO_TECH_NR5G"]
+          },
+          "isAvailable": { "type": "boolean" },
+          "isHome": { "type": "boolean" },
+          "isForbidden": { "type": "boolean" },
+          "isInUse": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

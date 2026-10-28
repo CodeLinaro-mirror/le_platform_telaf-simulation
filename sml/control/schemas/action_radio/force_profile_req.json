@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.radio.force_profile.req",
+  "title": "Force Radio Profile Request",
+  "description": "Apply one of the reusable radio simulation profiles.",
+  "type": "object",
+  "required": ["profile"],
+  "properties": {
+    "profile": {
+      "type": "string",
+      "enum": ["4g", "5g-nsa", "5g-sa", "out-of-service", "weak-signal", "radio-failure", "recovery"]
+    }
+  },
+  "additionalProperties": false
+}
