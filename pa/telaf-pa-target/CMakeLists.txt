@@ -43,6 +43,7 @@ set(CMAKE_INSTALL_RPATH "$ORIGIN:")
 # taf_pa_net links telux_data, so it must come after telaf-pa-simula.
 set(MODULE_LIST
     component/taf_pa_common
+    component/stub
     component/taf_pa_deviceinfo
     component/taf_pa_data
     component/taf_pa_sim

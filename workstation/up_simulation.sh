@@ -119,7 +119,7 @@ if [ -n "${TELAF_IN_CONTAINER}" ]; then # [Docker-Container-Env]
     # is on a tmpfs path, so it is lost across container restarts while the
     # named volumes are not), and those failures are noise that hides the real
     # group problem -- see the /etc/group note below.
-    for _g in system diag radio inet locclient ubi gps sensors shutdown; do
+    for _g in system diag radio inet locclient ubi gps sensors logd shutdown; do
         getent group "$_g" >/dev/null 2>&1 || groupadd "$_g"
     done
     unset _g
