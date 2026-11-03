@@ -11,7 +11,7 @@
 # script must never become a second source of staged artifacts.
 #
 # Prerequisite: telaf-pa-simula must already have been built once, because
-# taf_prop_pa_pms links against libtelux_common from its staging/lib.
+# taf_prop_pms links against libtelux_common from its staging/lib.
 
 set -e
 

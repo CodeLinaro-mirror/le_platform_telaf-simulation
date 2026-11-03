@@ -21,7 +21,7 @@ set(MODULE_LIST
     component/data
     component/power
     # prop-prefix sublayers. This is the runtime provider of
-    # taf_prop_pa_pms_* -- the strong PA NEEDs that soname since telaf-pa
+    # taf_prop_pms_* -- the strong PA NEEDs that soname since telaf-pa
     component/telaf-np
 )
 
@@ -104,7 +104,7 @@ set(CODEGEN_CONSUMERS
     telux_data     # component/data/*.cpp + component/net/*.cpp -> topics.h
     telux_tel      # component/sim/*.cpp (compiled into it)   -> topics.h
     telux_power    # component/power/*.cpp            -> topics.h
-    taf_prop_pa_pms  # component/telaf-np/component/taf_prop_pms/ -> topics.h
+    taf_prop_pms  # component/telaf-np/component/taf_prop_pms/ -> topics.h
 )
 foreach(consumer ${CODEGEN_CONSUMERS})
     if(NOT TARGET ${consumer})

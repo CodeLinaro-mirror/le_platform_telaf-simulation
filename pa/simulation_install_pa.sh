@@ -213,7 +213,7 @@ verify_dt_needed()
 # Strong PA lib stem -> sublayer stem it must NEED. Deliberately short: only
 # edges where the wrong provider is a runtime crash rather than a mere waste.
 declare -A EXPECTED_NEEDED=(
-    ["libComponent_taf_pa_pms.so"]="libComponent_taf_prop_pa_pms.so"
+    ["libComponent_taf_pa_pms.so"]="libComponent_taf_prop_pms.so"
 )
 
 # SIMULA-staged libs that legitimately have no DT_NEEDED referrer. Being on

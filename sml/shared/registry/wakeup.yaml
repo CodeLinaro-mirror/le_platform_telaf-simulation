@@ -28,7 +28,7 @@ rpcs:
     qos: 1
     description: >-
       PA sets the modem wakeup-source filter bitset (mirrors
-      taf_prop_pa_pms_SetWsFilter / taf_prop_pa_pms_EnableAllWs, which is a
+      taf_prop_pms_SetWsFilter / taf_prop_pms_EnableAllWs, which is a
       QMI PDC write on hardware). mpss stores it as modem ground truth.
 
   - method: get_ws_filter
@@ -39,7 +39,7 @@ rpcs:
     qos: 1
     description: >-
       PA reads back the configured filter bitset
-      (taf_prop_pa_pms_GetWsFilter).
+      (taf_prop_pms_GetWsFilter).
 
 indications:
   - event: event

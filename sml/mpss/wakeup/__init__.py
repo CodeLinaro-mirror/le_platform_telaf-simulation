@@ -47,7 +47,7 @@ from generated.python.validators import validate as validate_payload
 
 _log = logging.getLogger("sml.mpss.wakeup")
 
-# taf_prop_pa_pms_ModemWakeupSource_t (telaf-np's prop-prefix ABI). The
+# taf_prop_pms_ModemWakeupSource_t (telaf-np's prop-prefix ABI). The
 # ns-prefix ABI only had the first three bits.
 MODEM_WS_INCOMING_SMS = 0x0001
 MODEM_WS_INCOMING_VCALL = 0x0002

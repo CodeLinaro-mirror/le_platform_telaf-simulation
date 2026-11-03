@@ -27,7 +27,7 @@ version: "1.0"
 persistent: [data_profiles, ws_filter]
 
 # Modem wakeup-source filter bitset used when no persisted ws_filter.json
-# exists yet (see taf_prop_pa_pms_ModemWakeupSource_t bits in
+# exists yet (see taf_prop_pms_ModemWakeupSource_t bits in
 # sml/mpss/wakeup/__init__.py). 0 matches the modem's own power-up state:
 # no source allowed through until the PA calls EnableAllWs / set_ws_filter.
 wakeup_default_filter: 0

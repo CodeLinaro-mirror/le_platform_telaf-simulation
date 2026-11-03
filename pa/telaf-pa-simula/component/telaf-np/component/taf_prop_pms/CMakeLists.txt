@@ -24,11 +24,11 @@ set(CHART_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../../chart/include)
 # so call sites can #include "generated/cpp/topics.h"
 set(SML_ROOT_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../sml)
 
-add_library(taf_prop_pa_pms SHARED
-    taf_prop_pa_pms.cpp
+add_library(taf_prop_pms SHARED
+    taf_prop_pms.cpp
 )
 
-target_include_directories(taf_prop_pa_pms PRIVATE
+target_include_directories(taf_prop_pms PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../include
     ${TELUX_SDK_INCLUDE}
     ${SIMULA_COMMON_INCLUDE}
@@ -38,16 +38,16 @@ target_include_directories(taf_prop_pa_pms PRIVATE
 
 # The parent simula build sets -fvisibility=hidden tree-wide; this library
 # exports a C ABI, so a trailing -fvisibility=default is required.
-target_compile_options(taf_prop_pa_pms PRIVATE -fvisibility=default)
+target_compile_options(taf_prop_pms PRIVATE -fvisibility=default)
 
-target_link_libraries(taf_prop_pa_pms PRIVATE
+target_link_libraries(taf_prop_pms PRIVATE
     taf_prop_common
     telux_common              # ModemBridge::instance(), Envelope
     nlohmann_json::nlohmann_json
     Threads::Threads
 )
 
-set_target_properties(taf_prop_pa_pms PROPERTIES
-    OUTPUT_NAME Component_taf_prop_pa_pms)
+set_target_properties(taf_prop_pms PROPERTIES
+    OUTPUT_NAME Component_taf_prop_pms)
 
-install(TARGETS taf_prop_pa_pms LIBRARY DESTINATION lib)
+install(TARGETS taf_prop_pms LIBRARY DESTINATION lib)
