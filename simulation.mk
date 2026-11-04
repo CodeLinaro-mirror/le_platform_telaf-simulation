@@ -49,6 +49,10 @@ OS_VERSION=$(shell grep -oP 'VERSION_ID=\K"(.+)"' /etc/os-release | tr -d '"')
 # Sub-Makefile to handle all target dependencies and extended host tools
 include $(SIMULATION_HOME)/deps/dependence.mk
 
+export PATH := $(SIMULATION_HOST_XTOOLS)/bin:$(PATH)
+export LEGATO_SYSROOT ?= $(SYSROOT)
+export CMAKE_PREFIX_PATH := $(SIMULATION_DEPS_ROOTFS)$(if $(CMAKE_PREFIX_PATH),:$(CMAKE_PREFIX_PATH))
+
 SIMULATION_DEPS += _openssl _curl _boost _dlt
 SIMULATION_DEPS_ALL = _pre_deps $(SIMULATION_DEPS) _post_deps
 
@@ -133,6 +137,10 @@ MKTOOLS_FLAGS_SIMULATION_EX += -X -DBOOST_BIND_GLOBAL_PLACEHOLDERS
 MKTOOLS_FLAGS_SIMULATION_EX += \
   --cxxflags=-I$(SIMULATION_DEPS_ROOTFS)/include \
   --ldflags=-L$(SIMULATION_DEPS_ROOTFS)/lib
+
+ifneq ($(TELAF_SIMULATION_ENABLE_CAPI),n)
+MKTOOLS_FLAGS_SIMULATION_EX += --cxxflags=-I$(SIMULATION_DEPS_ROOTFS)/include/CommonAPI-3.2
+endif
 
 # Bake RUNPATH into all built binaries/libs so 3rd-party deps' libs are found at runtime
 MKTOOLS_FLAGS_SIMULATION_EX += \

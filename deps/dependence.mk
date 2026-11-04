@@ -149,7 +149,7 @@ $(SIMULATION_DEPS_ROOTFS)/include/vsomeip/vsomeip.hpp:
 	$Q $(MAKE) --no-print-directory simula-vsomeip
 
 simula-vsomeip: vsomeip_
-vsomeip_: _cmake _boost
+vsomeip_: _cmake _boost _dlt
 #-> 1. [clean]
 	$Q echo "[$@] cleaning compression and directories" \
 	  && rm -rf $(SIMULATION_DEPS_SOURCE)/$(_VSOMEIP_VERSION) $(SIMULATION_DEPS_SOURCE)/$@ $(SIMULATION_DEPS_SOURCE)/__download_$(_VSOMEIP_VERSION).log
@@ -343,6 +343,8 @@ CAPI_CORE_TOOLS_URL?=https://github.com/GENIVI/capicxx-core-tools.git
 _capi_tools: $(SIMULATION_HOST_XTOOLS)/bin/commonapi_core_generator/commonapi-core-generator-linux-x86_64 \
              $(SIMULATION_HOST_XTOOLS)/bin/commonapi_someip_generator/commonapi-someip-generator-linux-x86_64 \
              $(SIMULATION_DEPS_ROOTFS)/bin/E01HelloWorldService
+	$Q ln -sfn commonapi_core_generator/commonapi-core-generator-linux-x86_64 $(SIMULATION_HOST_XTOOLS)/bin/capicxx-core-gen
+	$Q ln -sfn commonapi_someip_generator/commonapi-someip-generator-linux-x86_64 $(SIMULATION_HOST_XTOOLS)/bin/capicxx-someip-gen
 	$Q echo "[$@] Already preparation"
 
 $(SIMULATION_HOST_XTOOLS)/bin/commonapi_core_generator/commonapi-core-generator-linux-x86_64:
