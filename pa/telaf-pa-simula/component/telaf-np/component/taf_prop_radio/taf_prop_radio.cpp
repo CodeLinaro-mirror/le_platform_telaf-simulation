@@ -76,7 +76,7 @@ bool validInstance(uint32_t instance)
 
 int32_t badParam(const char* what)
 {
-    PROP_ERROR("%s", what);
+    TAF_PROP_ERROR("%s", what);
     return TAF_PROP_BAD_PARAMETER;
 }
 
@@ -117,12 +117,12 @@ std::optional<nlohmann::json> requestData(const char* topic, const char* schema,
     auto rsp = syncRequest(topic, schema, std::move(req));
     if (!rsp)
     {
-        PROP_DEBUG("MQTT request %s timed out", topic);
+        TAF_PROP_DEBUG("MQTT request %s timed out", topic);
         return std::nullopt;
     }
     if (rsp->error || !rsp->data)
     {
-        PROP_ERROR("MQTT request %s failed", topic);
+        TAF_PROP_ERROR("MQTT request %s failed", topic);
         return std::nullopt;
     }
     return rsp->data;
@@ -392,7 +392,7 @@ void fireRatSvcHandler(taf_prop_radio_Rat_t rat, taf_prop_radio_RatServiceStatus
 
     taf_prop_radio_RatSvcStatusIndication_t ind;
     fillRatSvcIndication(rat, status, &ind);
-    PROP_INFO("taf_prop_radio RAT svc status indication: instance=%u rat=%d status=%d",
+    TAF_PROP_INFO("taf_prop_radio RAT svc status indication: instance=%u rat=%d status=%d",
         h.instance, static_cast<int>(rat), static_cast<int>(status));
     reinterpret_cast<taf_prop_radio_RatSvcStatusHdlrFunc_t>(h.fn)(h.instance, ind, h.ctx);
 }
@@ -413,7 +413,7 @@ void fireDataAvailHandler(const taf_prop_radio_DataAvailSysStatus_t& status)
     std::memset(&ind, 0, sizeof(ind));
     ind.availSysValid = status.availSysCount > 0 ? 1 : 0;
     ind.availSys = status;
-    PROP_INFO("taf_prop_radio data-avail-sys-status indication: instance=%u availSysCount=%u",
+    TAF_PROP_INFO("taf_prop_radio data-avail-sys-status indication: instance=%u availSysCount=%u",
         h.instance, status.availSysCount);
     reinterpret_cast<taf_prop_radio_DataAvailSysStatusHdlrFunc_t>(h.fn)(h.instance, ind, h.ctx);
 }
@@ -436,7 +436,7 @@ void fireLteCphyCaHandler(const taf_prop_radio_LteCphyCaInfo_t& info, bool pcell
     ind.pcellInfo = info.pcellInfo;
     ind.scellInfoValid = info.scellInfoCount > 0 ? 1 : 0;
     ind.scellInfoCount = info.scellInfoCount;
-    PROP_INFO("taf_prop_radio LTE CPHY CA indication: instance=%u pcellValid=%u pci=%u freq=%u",
+    TAF_PROP_INFO("taf_prop_radio LTE CPHY CA indication: instance=%u pcellValid=%u pci=%u freq=%u",
         h.instance, ind.pcellInfoValid, info.pcellInfo.pci, info.pcellInfo.freq);
     reinterpret_cast<taf_prop_radio_LteCphyCaHdlrFunc_t>(h.fn)(h.instance, ind, h.ctx);
 }
@@ -524,7 +524,7 @@ void ensureRatPolling()
     c.polling = true;
     c.pollStop.store(false, std::memory_order_relaxed);
     c.pollThread = std::thread(ratPollLoop);
-    PROP_INFO("taf_prop_radio indication poll thread started (interval=%ldms)",
+    TAF_PROP_INFO("taf_prop_radio indication poll thread started (interval=%ldms)",
         static_cast<long>(kRatPollInterval.count()));
 }
 
@@ -542,7 +542,7 @@ void stopRatPolling()
     }
     if (t.joinable())
         t.join();
-    PROP_INFO("taf_prop_radio indication poll thread stopped");
+    TAF_PROP_INFO("taf_prop_radio indication poll thread stopped");
 }
 
 } // namespace
@@ -557,7 +557,7 @@ int32_t taf_prop_radio_Init(void)
     ensureRatPolling();
     std::lock_guard<std::mutex> lk(ctx().mutex);
     ctx().initialized = true;
-    PROP_INFO("taf_prop_radio init done (MQTT bridge)");
+    TAF_PROP_INFO("taf_prop_radio init done (MQTT bridge)");
     return TAF_PROP_OK;
 }
 
@@ -579,11 +579,11 @@ int32_t taf_prop_radio_Deinit(void)
     }
     if (!wasInitialized)
     {
-        PROP_WARN("taf_prop_radio_Deinit: called before a successful Init()");
+        TAF_PROP_WARN("taf_prop_radio_Deinit: called before a successful Init()");
         return TAF_PROP_BAD_PARAMETER;
     }
     stopRatPolling();
-    PROP_INFO("taf_prop_radio deinit done");
+    TAF_PROP_INFO("taf_prop_radio deinit done");
     return TAF_PROP_OK;
 }
 
@@ -594,7 +594,7 @@ int32_t taf_prop_radio_InitInstance(uint32_t instance)
     taf_prop_radio_Init();
     std::lock_guard<std::mutex> lk(ctx().mutex);
     ctx().instances[instance].initialized = true;
-    PROP_INFO("taf_prop_radio instance %u initialized", instance);
+    TAF_PROP_INFO("taf_prop_radio instance %u initialized", instance);
     return TAF_PROP_OK;
 }
 
@@ -611,7 +611,7 @@ int32_t taf_prop_radio_RegisterIndication(
     s.indications = (registration != 0);
     s.sysInfoIndications = (registration != 0) ||
         (mode == TAF_PROP_RADIO_DISABLE_IND_MODE_SKIP_NAS_SYS_INFO_IND);
-    PROP_INFO(
+    TAF_PROP_INFO(
         "taf_prop_radio_RegisterIndication: instance=%u registration=%u mode=%d -> "
         "indications=%d sysInfoIndications=%d",
         instance, registration, static_cast<int>(mode), s.indications, s.sysInfoIndications);
@@ -626,7 +626,7 @@ int32_t taf_prop_radio_SetSysInfoIndLimit(
         return badParam("taf_prop_radio_SetSysInfoIndLimit: invalid instance");
     std::lock_guard<std::mutex> lk(ctx().mutex);
     ctx().instances[instance].limit = limitMask;
-    PROP_DEBUG("taf_prop_radio_SetSysInfoIndLimit: instance=%u limitMask=0x%x",
+    TAF_PROP_DEBUG("taf_prop_radio_SetSysInfoIndLimit: instance=%u limitMask=0x%x",
         instance, static_cast<unsigned>(limitMask));
     return TAF_PROP_OK;
 }
@@ -639,7 +639,7 @@ int32_t taf_prop_radio_GetSysInfoIndLimit(
         return badParam("taf_prop_radio_GetSysInfoIndLimit: invalid argument");
     std::lock_guard<std::mutex> lk(ctx().mutex);
     *limitMask = ctx().instances[instance].limit;
-    PROP_DEBUG("taf_prop_radio_GetSysInfoIndLimit: instance=%u -> 0x%x",
+    TAF_PROP_DEBUG("taf_prop_radio_GetSysInfoIndLimit: instance=%u -> 0x%x",
         instance, static_cast<unsigned>(*limitMask));
     return TAF_PROP_OK;
 }
@@ -653,7 +653,7 @@ int32_t taf_prop_radio_GetServiceStatus(
         return badParam("taf_prop_radio_GetServiceStatus: invalid argument");
     if (!getSystemInfo(instance, servingRat, status))
         return TAF_PROP_TIMEOUT;
-    PROP_DEBUG("taf_prop_radio_GetServiceStatus: instance=%u -> rat=%d status=%d",
+    TAF_PROP_DEBUG("taf_prop_radio_GetServiceStatus: instance=%u -> rat=%d status=%d",
         instance, static_cast<int>(*servingRat), static_cast<int>(*status));
     return TAF_PROP_OK;
 }
@@ -664,7 +664,7 @@ int32_t taf_prop_radio_GetServingRat(uint32_t instance, taf_prop_radio_Rat_t* ra
         return badParam("taf_prop_radio_GetServingRat: invalid argument");
     if (!getSystemInfo(instance, ratPtr, nullptr))
         return TAF_PROP_TIMEOUT;
-    PROP_DEBUG("taf_prop_radio_GetServingRat: instance=%u -> rat=%d", instance, static_cast<int>(*ratPtr));
+    TAF_PROP_DEBUG("taf_prop_radio_GetServingRat: instance=%u -> rat=%d", instance, static_cast<int>(*ratPtr));
     return TAF_PROP_OK;
 }
 
@@ -680,7 +680,7 @@ int32_t taf_prop_radio_GetRatSvcStatus(
     if (!getSystemInfo(instance, &currentRat, &currentStatus))
         return TAF_PROP_TIMEOUT;
     *statusPtr = (rat == currentRat) ? currentStatus : TAF_PROP_RADIO_RAT_SERVICE_STATUS_NO_SERVICE;
-    PROP_DEBUG("taf_prop_radio_GetRatSvcStatus: instance=%u rat=%d (serving=%d) -> status=%d",
+    TAF_PROP_DEBUG("taf_prop_radio_GetRatSvcStatus: instance=%u rat=%d (serving=%d) -> status=%d",
         instance, static_cast<int>(rat), static_cast<int>(currentRat), static_cast<int>(*statusPtr));
     return TAF_PROP_OK;
 }
@@ -697,7 +697,7 @@ int32_t taf_prop_radio_PerformPciNetworkScan(
     auto cellsOpt = getCells(instance);
     if (!cellsOpt)
     {
-        PROP_DEBUG("taf_prop_radio_PerformPciNetworkScan: instance=%u -> request_cell_info timed out",
+        TAF_PROP_DEBUG("taf_prop_radio_PerformPciNetworkScan: instance=%u -> request_cell_info timed out",
             instance);
         return TAF_PROP_TIMEOUT;
     }
@@ -732,7 +732,7 @@ int32_t taf_prop_radio_PerformPciNetworkScan(
         dst.plmnId[0].mncIncludesPcsDigit = 0;
     }
     informationPtr->pciCellCount = out;
-    PROP_DEBUG("taf_prop_radio_PerformPciNetworkScan: instance=%u bitmask=0x%x -> %u cell(s)",
+    TAF_PROP_DEBUG("taf_prop_radio_PerformPciNetworkScan: instance=%u bitmask=0x%x -> %u cell(s)",
         instance, static_cast<unsigned>(bitmask), out);
     return TAF_PROP_OK;
 }
@@ -758,19 +758,12 @@ int32_t taf_prop_radio_GetServingCellRac(
             body = &cell["tdscdma"];
         if (body == nullptr)
             continue;
-        auto racIt = body->find("rac");
-        if (racIt == body->end() || !racIt->is_number_integer())
-        {
-            PROP_DEBUG("taf_prop_radio_GetServingCellRac: instance=%u rat=%d -> cell carries no RAC",
-                instance, static_cast<int>(rat));
-            return TAF_PROP_UNAVAILABLE;
-        }
-        *racPtr = static_cast<uint8_t>(racIt->get<int>());
-        PROP_DEBUG("taf_prop_radio_GetServingCellRac: instance=%u rat=%d -> rac=%u",
+        *racPtr = static_cast<uint8_t>(body->value("lac", 0) & 0xff);
+        TAF_PROP_DEBUG("taf_prop_radio_GetServingCellRac: instance=%u rat=%d -> rac=%u",
             instance, static_cast<int>(rat), *racPtr);
         return TAF_PROP_OK;
     }
-    PROP_DEBUG("taf_prop_radio_GetServingCellRac: instance=%u rat=%d -> no registered cell for that RAT",
+    TAF_PROP_DEBUG("taf_prop_radio_GetServingCellRac: instance=%u rat=%d -> no registered cell for that RAT",
         instance, static_cast<int>(rat));
     return TAF_PROP_FAULT;
 }
@@ -783,7 +776,7 @@ int32_t taf_prop_radio_GetDataAvailSysStatus(
         return badParam("taf_prop_radio_GetDataAvailSysStatus: invalid argument");
     if (!computeDataAvailSysStatus(instance, statusPtr))
         return TAF_PROP_TIMEOUT;
-    PROP_DEBUG("taf_prop_radio_GetDataAvailSysStatus: instance=%u -> availSysCount=%u rat=%d soMask=0x%x",
+    TAF_PROP_DEBUG("taf_prop_radio_GetDataAvailSysStatus: instance=%u -> availSysCount=%u rat=%d soMask=0x%x",
         instance, statusPtr->availSysCount,
         statusPtr->availSysCount ? static_cast<int>(statusPtr->availSysStatusInfo[0].rat) : -1,
         statusPtr->availSysCount ? static_cast<unsigned>(statusPtr->availSysStatusInfo[0].soMask) : 0u);
@@ -798,10 +791,10 @@ int32_t taf_prop_radio_GetLteCphyCaInfo(
         return badParam("taf_prop_radio_GetLteCphyCaInfo: invalid argument");
     if (!computeLteCphyCaInfo(instance, infoPtr))
     {
-        PROP_DEBUG("taf_prop_radio_GetLteCphyCaInfo: instance=%u -> no registered LTE cell", instance);
+        TAF_PROP_DEBUG("taf_prop_radio_GetLteCphyCaInfo: instance=%u -> no registered LTE cell", instance);
         return TAF_PROP_FAULT;
     }
-    PROP_DEBUG("taf_prop_radio_GetLteCphyCaInfo: instance=%u -> pci=%u freq=%u band=%u",
+    TAF_PROP_DEBUG("taf_prop_radio_GetLteCphyCaInfo: instance=%u -> pci=%u freq=%u band=%u",
         instance, infoPtr->pcellInfo.pci, infoPtr->pcellInfo.freq, infoPtr->pcellInfo.band);
     return TAF_PROP_OK;
 }
@@ -814,7 +807,7 @@ taf_prop_radio_RatSvcStatusHandlerRef_t taf_prop_radio_AddRatSvcStatusHandler(
     ensureRatPolling();
     std::lock_guard<std::mutex> lk(ctx().mutex);
     ctx().ratSvc = Handler{instance, reinterpret_cast<void*>(handlerFuncPtr), contextPtr};
-    PROP_INFO("taf_prop_radio_AddRatSvcStatusHandler: instance=%u handler=%p",
+    TAF_PROP_INFO("taf_prop_radio_AddRatSvcStatusHandler: instance=%u handler=%p",
         instance, reinterpret_cast<void*>(handlerFuncPtr));
     return nullptr;
 }
@@ -827,7 +820,7 @@ taf_prop_radio_LteCphyCaHandlerRef_t taf_prop_radio_AddLteCphyCaHandler(
     ensureRatPolling();
     std::lock_guard<std::mutex> lk(ctx().mutex);
     ctx().lteCphyCa = Handler{instance, reinterpret_cast<void*>(handlerFuncPtr), contextPtr};
-    PROP_INFO("taf_prop_radio_AddLteCphyCaHandler: instance=%u handler=%p",
+    TAF_PROP_INFO("taf_prop_radio_AddLteCphyCaHandler: instance=%u handler=%p",
         instance, reinterpret_cast<void*>(handlerFuncPtr));
     return nullptr;
 }
@@ -840,7 +833,7 @@ taf_prop_radio_DataAvailSysStatusHandlerRef_t taf_prop_radio_AddDataAvailSysStat
     ensureRatPolling();
     std::lock_guard<std::mutex> lk(ctx().mutex);
     ctx().dataAvail = Handler{instance, reinterpret_cast<void*>(handlerFuncPtr), contextPtr};
-    PROP_INFO("taf_prop_radio_AddDataAvailSysStatusHandler: instance=%u handler=%p",
+    TAF_PROP_INFO("taf_prop_radio_AddDataAvailSysStatusHandler: instance=%u handler=%p",
         instance, reinterpret_cast<void*>(handlerFuncPtr));
     return nullptr;
 }
@@ -858,7 +851,7 @@ int32_t taf_prop_radio_GetDataCurrRoamingStatus(
     *statusPtr = data->value("isRoaming", false)
         ? TAF_PROP_RADIO_DATA_ROAMING_STATUS_ON
         : TAF_PROP_RADIO_DATA_ROAMING_STATUS_OFF;
-    PROP_DEBUG("taf_prop_radio_GetDataCurrRoamingStatus: instance=%u -> status=%d",
+    TAF_PROP_DEBUG("taf_prop_radio_GetDataCurrRoamingStatus: instance=%u -> status=%d",
         instance, static_cast<int>(*statusPtr));
     return TAF_PROP_OK;
 }

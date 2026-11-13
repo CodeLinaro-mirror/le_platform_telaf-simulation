@@ -208,103 +208,103 @@ typedef void (*taf_prop_radio_DataAvailSysStatusHdlrFunc_t)
     void* contextPtr
 );
 
-PROP_SHARED int32_t taf_prop_radio_Init
+TAF_PROP_SHARED int32_t taf_prop_radio_Init
 (
     void
 );
 
-PROP_SHARED int32_t taf_prop_radio_InitInstance
+TAF_PROP_SHARED int32_t taf_prop_radio_InitInstance
 (
     uint32_t instance
 );
 
-PROP_SHARED int32_t taf_prop_radio_RegisterIndication
+TAF_PROP_SHARED int32_t taf_prop_radio_RegisterIndication
 (
     uint32_t instance,
     uint8_t registration,
     taf_prop_radio_DisableIndicationMode_t mode
 );
 
-PROP_SHARED int32_t taf_prop_radio_SetSysInfoIndLimit
+TAF_PROP_SHARED int32_t taf_prop_radio_SetSysInfoIndLimit
 (
     uint32_t instance,
     taf_prop_radio_SysInfoIndLimitMask_t limitMask
 );
 
-PROP_SHARED int32_t taf_prop_radio_GetServiceStatus
+TAF_PROP_SHARED int32_t taf_prop_radio_GetServiceStatus
 (
     uint32_t instance,
     taf_prop_radio_Rat_t *servingRat,
     taf_prop_radio_RatServiceStatus_t* status
 );
 
-PROP_SHARED int32_t taf_prop_radio_GetSysInfoIndLimit
+TAF_PROP_SHARED int32_t taf_prop_radio_GetSysInfoIndLimit
 (
     uint32_t instance,
     taf_prop_radio_SysInfoIndLimitMask_t *limitMask
 );
 
-PROP_SHARED int32_t taf_prop_radio_PerformPciNetworkScan
+TAF_PROP_SHARED int32_t taf_prop_radio_PerformPciNetworkScan
 (
     uint32_t instance,
     taf_prop_radio_RatBitMask_t bitmask,
     taf_prop_radio_PciScanInformation_t* informationPtr
 );
 
-PROP_SHARED int32_t taf_prop_radio_GetServingRat
+TAF_PROP_SHARED int32_t taf_prop_radio_GetServingRat
 (
     uint32_t instance,
     taf_prop_radio_Rat_t* ratPtr
 );
 
-PROP_SHARED int32_t taf_prop_radio_GetRatSvcStatus
+TAF_PROP_SHARED int32_t taf_prop_radio_GetRatSvcStatus
 (
     uint32_t instance,
     taf_prop_radio_Rat_t rat,
     taf_prop_radio_RatServiceStatus_t* statusPtr
 );
 
-PROP_SHARED int32_t taf_prop_radio_GetServingCellRac
+TAF_PROP_SHARED int32_t taf_prop_radio_GetServingCellRac
 (
     uint32_t instance,
     taf_prop_radio_Rat_t rat,
     uint8_t* racPtr
 );
 
-PROP_SHARED int32_t taf_prop_radio_GetDataAvailSysStatus
+TAF_PROP_SHARED int32_t taf_prop_radio_GetDataAvailSysStatus
 (
     uint32_t instance,
     taf_prop_radio_DataAvailSysStatus_t* statusPtr
 );
 
-PROP_SHARED int32_t taf_prop_radio_GetLteCphyCaInfo
+TAF_PROP_SHARED int32_t taf_prop_radio_GetLteCphyCaInfo
 (
     uint32_t instance,
     taf_prop_radio_LteCphyCaInfo_t* infoPtr
 );
 
-PROP_SHARED taf_prop_radio_RatSvcStatusHandlerRef_t taf_prop_radio_AddRatSvcStatusHandler
+TAF_PROP_SHARED taf_prop_radio_RatSvcStatusHandlerRef_t taf_prop_radio_AddRatSvcStatusHandler
 (
     uint32_t instance,
     taf_prop_radio_RatSvcStatusHdlrFunc_t handlerFuncPtr,
     void* contextPtr
 );
 
-PROP_SHARED taf_prop_radio_LteCphyCaHandlerRef_t taf_prop_radio_AddLteCphyCaHandler
+TAF_PROP_SHARED taf_prop_radio_LteCphyCaHandlerRef_t taf_prop_radio_AddLteCphyCaHandler
 (
     uint32_t instance,
     taf_prop_radio_LteCphyCaHdlrFunc_t handlerFuncPtr,
     void* contextPtr
 );
 
-PROP_SHARED taf_prop_radio_DataAvailSysStatusHandlerRef_t taf_prop_radio_AddDataAvailSysStatusHandler
+TAF_PROP_SHARED taf_prop_radio_DataAvailSysStatusHandlerRef_t taf_prop_radio_AddDataAvailSysStatusHandler
 (
     uint32_t instance,
     taf_prop_radio_DataAvailSysStatusHdlrFunc_t handlerFuncPtr,
     void* contextPtr
 );
 
-PROP_SHARED int32_t taf_prop_radio_GetDataCurrRoamingStatus
+TAF_PROP_SHARED int32_t taf_prop_radio_GetDataCurrRoamingStatus
 (
     uint32_t instance,
     taf_prop_radio_DataRoamingStatus_t* statusPtr

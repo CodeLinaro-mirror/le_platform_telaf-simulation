@@ -5,6 +5,7 @@
 
 #include "taf_prop_common.h"
 #include <stdlib.h>
+#include <syslog.h>
 
 #define MAX_MSG_SIZE 1024
 

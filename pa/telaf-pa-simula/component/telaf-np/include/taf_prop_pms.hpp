@@ -3,8 +3,16 @@
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
-#ifndef __TAF_PROP_PMS_HPP__
-#define __TAF_PROP_PMS_HPP__
+/*
+ * ABI STABILITY REQUIREMENT
+ * This header is part of the prop interface.
+ * All declarations must use C-style linkage only (no C++ classes,
+ * templates, references, or overloaded functions) to guarantee ABI
+ * stability across independently compiled shared libraries.
+ */
+
+#ifndef TAF_PROP_PMS_H
+#define TAF_PROP_PMS_H
 
 #include "taf_prop_common.h"
 
@@ -14,23 +22,10 @@ extern "C" {
 
 //--------------------------------------------------------------------------------------------------
 /**
- * The reference type for no-ship pms Mpss active-object (opaque handle)
+ * The reference type for no-ship pms Mpss active-object
  */
 //--------------------------------------------------------------------------------------------------
 typedef struct taf_prop_pms_Mpss * taf_prop_pms_MpssRef_t;
-
-
-//--------------------------------------------------------------------------------------------------
-/**
- * Error codes for callback function
- */
-//--------------------------------------------------------------------------------------------------
-typedef enum
-{
-    /* MPSS-side wakeup service is unavailable */
-    TAF_PROP_PMS_ERR_SVC_GONE = 0,
-
-} taf_prop_pms_ErrCode_t;
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -53,94 +48,65 @@ typedef enum
 //--------------------------------------------------------------------------------------------------
 typedef void ( * taf_prop_pms_ErrCallback )
 (
-    taf_prop_pms_ErrCode_t errCode,
+    taf_prop_result_t errCode,
     void * errCbCtx
 );
 
 //--------------------------------------------------------------------------------------------------
 /**
- * Initialize the MQTT bridge link and return the reference handle for other APIs.
+ * Initialize the dependent QMI client and return the reference handle for other APIs.
  *
- * @return
- *  - TAF_PROP_OK            Function succeeded.
- *  - TAF_PROP_BAD_PARAMETER Bad parameters.
- *  - TAF_PROP_DUPLICATE     Duplicated to call this function.
- *  - TAF_PROP_FAULT         Failed to initialize the MQTT bridge link toward MPSS.
- *
- * @b NOTE: DO NOT call taf_prop_pms_XXX APIs in callback function, otherwise deadlock will occur!
  */
-//--------------------------------------------------------------------------------------------------
-PROP_SHARED prop_result_t taf_prop_pms_Init
+//-------------------------------------------------------------------------------------------------
+TAF_PROP_SHARED taf_prop_result_t taf_prop_pms_Init
 (
     taf_prop_pms_MpssRef_t * mpssRefPtr,  ///< [IN/OUT] Reference handle for active-object.
     taf_prop_pms_ErrCallback errCbFn,     ///< [IN] Error notification callback function.
-    void * errCbCtx                        ///< [IN] Callback function context.
+    void * errCbCtx                         ///< [IN] Callback function context.
 );
 
 //--------------------------------------------------------------------------------------------------
 /**
- * Release the passed reference pointer (the MQTT bridge is process-shared).
+ * Deinitialize the dependent QMI client and release the passed reference pointer.
  *
- * @return
- *  - TAF_PROP_OK            Function succeeded.
- *  - TAF_PROP_BAD_PARAMETER Bad parameters.
- *  - TAF_PROP_NOT_PERMITTED Can not perform this function due to some bad preconditions.
  */
-//--------------------------------------------------------------------------------------------------
-PROP_SHARED prop_result_t taf_prop_pms_Deinit
+//-------------------------------------------------------------------------------------------------
+TAF_PROP_SHARED taf_prop_result_t taf_prop_pms_Deinit
 (
-    taf_prop_pms_MpssRef_t * mpssRefPtr   ///< [IN] Pointer for the recorded reference handle
+    taf_prop_pms_MpssRef_t * mpssRefPtr  ///< [IN] Pointer for the recorded reference handle
 );
 
 //--------------------------------------------------------------------------------------------------
 /**
  * Set the wakeup source filter(bitset) for specific MPSS services.
  *
- * @return
- *  - TAF_PROP_OK            Function succeeded.
- *  - TAF_PROP_BAD_PARAMETER Bad parameters.
- *  - TAF_PROP_NOT_PERMITTED Can not perform this function due to some bad preconditions.
- *  - TAF_PROP_TIMEOUT       No response received from MPSS within the RPC timeout.
- *  - TAF_PROP_FAULT         MPSS rejected the bitset.
  */
-//--------------------------------------------------------------------------------------------------
-PROP_SHARED prop_result_t taf_prop_pms_SetWsFilter
+//-------------------------------------------------------------------------------------------------
+TAF_PROP_SHARED taf_prop_result_t taf_prop_pms_SetWsFilter
 (
-    taf_prop_pms_MpssRef_t mpssRef,         ///< [IN] Recorded reference from _Init API.
-    taf_prop_pms_ModemWakeupSource_t bitset ///< [IN] Filter bitset for special indications.
+    taf_prop_pms_MpssRef_t mpssRef,          ///< [IN] Recorded reference from _Init API.
+    taf_prop_pms_ModemWakeupSource_t bitset  ///< [IN] Filter bitset for special indications.
 );
 
 //--------------------------------------------------------------------------------------------------
 /**
- * Get the wakeup source filter(bitset) from MPSS (the modem ground truth).
+ * Get the wakeup source filter(bitset) from remote QMI PDC service.
  *
- * @return
- *  - TAF_PROP_OK            Function succeeded.
- *  - TAF_PROP_BAD_PARAMETER Bad parameters.
- *  - TAF_PROP_NOT_PERMITTED Can not perform this function due to some bad preconditions.
- *  - TAF_PROP_TIMEOUT       No response received from MPSS within the RPC timeout.
- *  - TAF_PROP_FAULT         MPSS failed to report the bitset.
  */
-//--------------------------------------------------------------------------------------------------
-PROP_SHARED prop_result_t taf_prop_pms_GetWsFilter
+//-------------------------------------------------------------------------------------------------
+TAF_PROP_SHARED taf_prop_result_t taf_prop_pms_GetWsFilter
 (
-    taf_prop_pms_MpssRef_t mpssRef,          ///< [IN]  Recorded reference from _Init API.
-    taf_prop_pms_ModemWakeupSource_t *bitset ///< [OUT] Configured filter bitset in remote sevice
+    taf_prop_pms_MpssRef_t mpssRef,           ///< [IN]  Recorded reference from _Init API.
+    taf_prop_pms_ModemWakeupSource_t *bitset  ///< [OUT] Configured filter bitset in remote service
 );
 
 //--------------------------------------------------------------------------------------------------
 /**
  * Enable all wakeup source indications for MPSS.
  *
- * @return
- *  - TAF_PROP_OK            Function succeeded.
- *  - TAF_PROP_BAD_PARAMETER Bad parameters.
- *  - TAF_PROP_NOT_PERMITTED Can not perform this function due to some bad preconditions.
- *  - TAF_PROP_TIMEOUT       No response received from MPSS within the RPC timeout.
- *  - TAF_PROP_FAULT         Failed to enable all indications for MPSS side.
  */
-//--------------------------------------------------------------------------------------------------
-PROP_SHARED prop_result_t taf_prop_pms_EnableAllWs
+//-------------------------------------------------------------------------------------------------
+TAF_PROP_SHARED taf_prop_result_t taf_prop_pms_EnableAllWs
 (
     taf_prop_pms_MpssRef_t mpssRef
 );
@@ -149,4 +115,4 @@ PROP_SHARED prop_result_t taf_prop_pms_EnableAllWs
 }
 #endif
 
-#endif
+#endif /* TAF_PROP_PMS_H */

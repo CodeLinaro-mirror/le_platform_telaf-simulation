@@ -112,7 +112,7 @@ syncRequest(
 
 extern "C" {
 
-prop_result_t
+taf_prop_result_t
 taf_prop_pms_Init(
   taf_prop_pms_MpssRef_t* mpssRefPtr,
   taf_prop_pms_ErrCallback errCbFn,
@@ -121,12 +121,12 @@ taf_prop_pms_Init(
 {
     if (mpssRefPtr == nullptr)
     {
-        PROP_ERROR("taf_prop_pms_Init: null mpssRefPtr");
+        TAF_PROP_ERROR("taf_prop_pms_Init: null mpssRefPtr");
         return TAF_PROP_BAD_PARAMETER;
     }
     if (*mpssRefPtr != nullptr)
     {
-        PROP_WARN("taf_prop_pms_Init: already initialized");
+        TAF_PROP_WARN("taf_prop_pms_Init: already initialized");
         return TAF_PROP_OK;
     }
 
@@ -137,16 +137,16 @@ taf_prop_pms_Init(
     auto* ctx = new PmsCtx{errCbFn, errCbCtx};
     *mpssRefPtr = reinterpret_cast<taf_prop_pms_MpssRef_t>(ctx);
 
-    PROP_INFO("taf_prop_pms init done (MQTT bridge)");
+    TAF_PROP_INFO("taf_prop_pms init done (MQTT bridge)");
     return TAF_PROP_OK;
 }
 
-prop_result_t
+taf_prop_result_t
 taf_prop_pms_Deinit(taf_prop_pms_MpssRef_t* mpssRefPtr)
 {
     if (mpssRefPtr == nullptr || *mpssRefPtr == nullptr)
     {
-        PROP_ERROR("taf_prop_pms_Deinit: null reference");
+        TAF_PROP_ERROR("taf_prop_pms_Deinit: null reference");
         return TAF_PROP_BAD_PARAMETER;
     }
 
@@ -154,11 +154,11 @@ taf_prop_pms_Deinit(taf_prop_pms_MpssRef_t* mpssRefPtr)
     delete reinterpret_cast<PmsCtx*>(*mpssRefPtr);
     *mpssRefPtr = nullptr;
 
-    PROP_INFO("taf_prop_pms deinit done");
+    TAF_PROP_INFO("taf_prop_pms deinit done");
     return TAF_PROP_OK;
 }
 
-prop_result_t
+taf_prop_result_t
 taf_prop_pms_SetWsFilter(
   taf_prop_pms_MpssRef_t mpssRef,
   taf_prop_pms_ModemWakeupSource_t bitset
@@ -166,14 +166,14 @@ taf_prop_pms_SetWsFilter(
 {
     if (mpssRef == nullptr)
     {
-        PROP_ERROR("taf_prop_pms_SetWsFilter: null reference");
+        TAF_PROP_ERROR("taf_prop_pms_SetWsFilter: null reference");
         return TAF_PROP_BAD_PARAMETER;
     }
 
     const int bits = static_cast<int>(bitset);
     if ((bits & ~kAllWakeupSources) != 0)
     {
-        PROP_ERROR("taf_prop_pms_SetWsFilter: unknown bits in 0x%04x", bits);
+        TAF_PROP_ERROR("taf_prop_pms_SetWsFilter: unknown bits in 0x%04x", bits);
         return TAF_PROP_BAD_PARAMETER;
     }
 
@@ -188,20 +188,20 @@ taf_prop_pms_SetWsFilter(
 
     if (!rsp)
     {
-        PROP_ERROR("taf_prop_pms_SetWsFilter: no response from MPSS");
+        TAF_PROP_ERROR("taf_prop_pms_SetWsFilter: no response from MPSS");
         return TAF_PROP_TIMEOUT;
     }
     if (rsp->error)
     {
-        PROP_ERROR("taf_prop_pms_SetWsFilter: MPSS rejected bitset 0x%04x", bits);
+        TAF_PROP_ERROR("taf_prop_pms_SetWsFilter: MPSS rejected bitset 0x%04x", bits);
         return TAF_PROP_FAULT;
     }
 
-    PROP_INFO("wakeup source filter set to 0x%04x", bits);
+    TAF_PROP_INFO("wakeup source filter set to 0x%04x", bits);
     return TAF_PROP_OK;
 }
 
-prop_result_t
+taf_prop_result_t
 taf_prop_pms_GetWsFilter(
   taf_prop_pms_MpssRef_t mpssRef,
   taf_prop_pms_ModemWakeupSource_t* bitset
@@ -209,7 +209,7 @@ taf_prop_pms_GetWsFilter(
 {
     if (mpssRef == nullptr || bitset == nullptr)
     {
-        PROP_ERROR("taf_prop_pms_GetWsFilter: null reference or out param");
+        TAF_PROP_ERROR("taf_prop_pms_GetWsFilter: null reference or out param");
         return TAF_PROP_BAD_PARAMETER;
     }
 
@@ -221,23 +221,23 @@ taf_prop_pms_GetWsFilter(
 
     if (!rsp)
     {
-        PROP_ERROR("taf_prop_pms_GetWsFilter: no response from MPSS");
+        TAF_PROP_ERROR("taf_prop_pms_GetWsFilter: no response from MPSS");
         return TAF_PROP_TIMEOUT;
     }
     if (rsp->error || !rsp->data)
     {
-        PROP_ERROR("taf_prop_pms_GetWsFilter: MPSS failed to report the bitset");
+        TAF_PROP_ERROR("taf_prop_pms_GetWsFilter: MPSS failed to report the bitset");
         return TAF_PROP_FAULT;
     }
 
     const int bits = rsp->data->value("bitset", 0);
     *bitset = static_cast<taf_prop_pms_ModemWakeupSource_t>(bits);
 
-    PROP_DEBUG("wakeup source filter read back as 0x%04x", bits);
+    TAF_PROP_DEBUG("wakeup source filter read back as 0x%04x", bits);
     return TAF_PROP_OK;
 }
 
-prop_result_t
+taf_prop_result_t
 taf_prop_pms_EnableAllWs(taf_prop_pms_MpssRef_t mpssRef)
 {
     // "Enable all" is SetWsFilter with every known bit set -- no separate RPC,
