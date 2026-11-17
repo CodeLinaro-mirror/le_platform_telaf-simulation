@@ -1,21 +1,25 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #
-# net_socks domain registry -- PA<->MPSS wire contract for the SOCKS-proxy
+# net_socks domain registry -- PA<->APSS wire contract for the SOCKS-proxy
 # family of telaf/interfaces/taf_net.api (telux::data::net::ISocksManager).
+#
+# APSS owns the proxy enable state: the PA acquires ISocksManager with
+# OperationType::DATA_LOCAL, so the SOCKS proxy is an application-processor
+# daemon and its state survives a modem restart.
 #
 # Scope note: ISocksManager is by far the smallest of the five net families --
 # it has exactly one operational method (enableSocks). The remaining
 # taf_net SOCKS-shaped entry points are Legato-local: they manipulate
-# tafNetSvc's own auth/association lists in-process and only reach the modem
+# tafNetSvc's own auth/association lists in-process and only reach the PA
 # via this single enable/disable toggle, so one RPC covers the family.
 
 domain: net_socks
-
+counterpart: apss
 rpcs:
   - method: enable_socks
-    req_topic: "mp/req/net_socks/enable_socks"
-    rsp_topic: "mp/rsp/net_socks/enable_socks"
+    req_topic: "ap/req/net_socks/enable_socks"
+    rsp_topic: "ap/rsp/net_socks/enable_socks"
     req_payload: schemas/net_socks/enable_socks_req.json
     rsp_payload: schemas/net_socks/enable_socks_rsp.json
     qos: 1
@@ -25,7 +29,7 @@ rpcs:
 
 indications:
   - event: subsys_ready_net_socks
-    ind_topic: "mp/ind/net_socks/subsys_ready"
+    ind_topic: "ap/ind/net_socks/subsys_ready"
     payload: schemas/net_socks/subsys_ready_net_socks_ind.json
     qos: 1
     retain: true

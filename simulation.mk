@@ -130,6 +130,20 @@ ifneq ($(TELAF_SIMULATION_ENABLE_IVSS_DATA),n)
   export TELAF_SIMULATION_ENABLE_RADIO := y
 endif
 
+export TELAF_SIMULATION_ENABLE_IVSS_TELEPHONY ?= n
+ifneq ($(TELAF_SIMULATION_ENABLE_IVSS_TELEPHONY),n)
+  export TELAF_SIMULATION_ENABLE_SOMEIP_GW := y
+  export TELAF_SIMULATION_ENABLE_IVSS_DATA := y
+  export TELAF_SIMULATION_ENABLE_CAPI := y
+  export TELAF_SIMULATION_ENABLE_MNGD_CONN := y
+  export TELAF_SIMULATION_ENABLE_DCS := y
+  export TELAF_SIMULATION_ENABLE_SIM := y
+  export TELAF_SIMULATION_ENABLE_RADIO := y
+  export TELAF_SIMULATION_ENABLE_DEVICE_INFO := y
+endif
+
+# Set to 'y' to build the IVSS CommonAPI client test during 'make simula-x'
+export TELAF_SIMULATION_IVSS_TEST ?= n
 
 
 SIMULATION_SOMEIP_GW_DEPS_y := _vsomeip
@@ -169,7 +183,7 @@ else
   $(shell echo -n "V1" > $(SIMULATION_HOME)/workstation/cg.version)
 endif
 
-.PHONY: simulation
+.PHONY: simulation build-ivss-client-test
 
 ifeq ($(XDEBUG),on)
   export DEBUG=1
@@ -203,8 +217,14 @@ pre-simulation-build: $(SIMULATION_HOME)/workstation/up_simulation.sh $(SIMULATI
 	$Q echo "[Simulation]: Building PA layers ..."
 	$Q bash $(SIMULATION_ROOT)/pa/simulation_build_pa.sh
 	$Q echo "[Simulation]: PA layers finished"
+
 post-simulation-build: CURRENT_SYSTEM_OUTPUT=$(TELAF_BUILD)/simulation/_staging_system.simulation.update_ro/systems/current
 post-simulation-build:
+ifneq ($(TELAF_SIMULATION_IVSS_TEST),n)
+	$Q echo "[Simulation]: Building IVSS CommonAPI client test ..."
+	$Q cd $(SIMULATION_ROOT)/stub/ivss/test/ClientTest && /bin/bash ./make.sh
+	$Q echo "[Simulation]: IVSS CommonAPI client test build finished"
+endif
 	$Q echo "[Simulation]: Installing PA libraries ..."
 	$Q bash $(SIMULATION_ROOT)/pa/simulation_install_pa.sh
 	$Q echo "[Simulation]: Creating Tarball ..."

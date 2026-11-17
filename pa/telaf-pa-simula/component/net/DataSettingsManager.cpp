@@ -43,6 +43,15 @@ constexpr auto kRpcTimeout = std::chrono::seconds(30);
 struct IndPld
 {
     Envelope env;
+    // Which simulator subsystem published this readiness indication. The SDK
+    // exposes one IDataSettingsManager, but it is fronted by net_settings on
+    // apss and net_modem on mpss, so the chart has to tell the two
+    // subsys_ready indications apart to require both before going Ready.
+    enum class Half
+    {
+        Settings,
+        Modem
+    } half{ Half::Settings };
 };
 
 void
@@ -238,19 +247,32 @@ SimulaDataSettingsManager::start()
     // chart are invisible to TELAF_CHART_SPY.
     set_instrument(std::make_unique<chart::SpyInstrument>(name()));
     start_at(SetNotReady_St);
+    // This manager fronts ONE SDK interface whose methods are split across two
+    // simulator processes (see sml/shared/registry/net_modem.yaml): the
+    // AP-local settings live on apss under net_settings, while WWAN
+    // connectivity / DDS / band interference stay on mpss under net_modem
+    // because only the modem can honour them. Hence two readiness
+    // subscriptions below, and the chart requires BOTH before going Ready --
+    // otherwise a client could call setWwanConnectivityConfig() while mpss is
+    // still down and get a silent timeout instead of NOTREADY.
     bridge_.subscribe_event(
       topics::net_settings::subsys_ready_net_settings::ind,
       "net_settings.subsys_ready_net_settings.ind",
       [this](std::string_view t, const Envelope& e) { handleReadyInd_(t, e); }
     );
     bridge_.subscribe_event(
-      topics::net_settings::wwan_connectivity_changed::ind,
-      "net_settings.wwan_connectivity_changed.ind",
+      topics::net_modem::subsys_ready_net_modem::ind,
+      "net_modem.subsys_ready_net_modem.ind",
+      [this](std::string_view t, const Envelope& e) { handleReadyInd_(t, e); }
+    );
+    bridge_.subscribe_event(
+      topics::net_modem::wwan_connectivity_changed::ind,
+      "net_modem.wwan_connectivity_changed.ind",
       [this](std::string_view t, const Envelope& e) { handleWwanInd_(t, e); }
     );
     bridge_.subscribe_event(
-      topics::net_settings::dds_changed::ind,
-      "net_settings.dds_changed.ind",
+      topics::net_modem::dds_changed::ind,
+      "net_modem.dds_changed.ind",
       [this](std::string_view t, const Envelope& e) { handleDdsInd_(t, e); }
     );
     bridge_.subscribe_event(
@@ -272,8 +294,9 @@ void
 SimulaDataSettingsManager::unsubscribeFromBridge_()
 {
     bridge_.unsubscribe_event(topics::net_settings::subsys_ready_net_settings::ind);
-    bridge_.unsubscribe_event(topics::net_settings::wwan_connectivity_changed::ind);
-    bridge_.unsubscribe_event(topics::net_settings::dds_changed::ind);
+    bridge_.unsubscribe_event(topics::net_modem::subsys_ready_net_modem::ind);
+    bridge_.unsubscribe_event(topics::net_modem::wwan_connectivity_changed::ind);
+    bridge_.unsubscribe_event(topics::net_modem::dds_changed::ind);
     bridge_.unsubscribe_event(topics::net_settings::ippt_config_sync::ind);
     bridge_.unsubscribe_event(topics::net_settings::ip_config_sync::ind);
     bridge_.unsubscribe_connectivity(conn_token_);
@@ -281,10 +304,15 @@ SimulaDataSettingsManager::unsubscribeFromBridge_()
 }
 
 void
-SimulaDataSettingsManager::handleReadyInd_(std::string_view, const Envelope& env)
+SimulaDataSettingsManager::handleReadyInd_(std::string_view topic, const Envelope& env)
 {
     auto p = std::make_shared<IndPld>();
     p->env = env;
+    // Both halves land here; the topic says which one, so the chart can track
+    // them independently and only report the manager ready when both are up.
+    p->half = (topic == topics::net_modem::subsys_ready_net_modem::ind)
+                ? IndPld::Half::Modem
+                : IndPld::Half::Settings;
     post_fifo({ ReadinessEvt_Signal, p });
 }
 void
@@ -473,8 +501,8 @@ SimulaDataSettingsManager::setBandInterferenceConfig(
                         { "n79WaitTimeInSec", c->n79WaitTimeInSec } };
     auto r = common::simula::makeRequestEnvelope(bridge_.currentPaId(), d);
     bridge_.send_request(
-      topics::net_settings::set_band_interference::req,
-      "net_settings.set_band_interference.rsp",
+      topics::net_modem::set_band_interference::req,
+      "net_modem.set_band_interference.rsp",
       r,
       [cb](auto x) { complete(cb, std::move(x)); },
       kRpcTimeout
@@ -488,8 +516,8 @@ SimulaDataSettingsManager::requestBandInterferenceConfig(RequestBandInterference
         return telux::common::Status::NOTREADY;
     auto r = common::simula::makeRequestEnvelope(bridge_.currentPaId(), nlohmann::json::object());
     bridge_.send_request(
-      topics::net_settings::request_band_interference::req,
-      "net_settings.request_band_interference.rsp",
+      topics::net_modem::request_band_interference::req,
+      "net_modem.request_band_interference.rsp",
       r,
       [cb](auto x) {
           if (!cb)
@@ -533,8 +561,8 @@ SimulaDataSettingsManager::setWwanConnectivityConfig(
     auto r =
       common::simula::makeRequestEnvelope(bridge_.currentPaId(), { { "slot", s }, { "allow", a } });
     bridge_.send_request(
-      topics::net_settings::set_wwan_connectivity::req,
-      "net_settings.set_wwan_connectivity.rsp",
+      topics::net_modem::set_wwan_connectivity::req,
+      "net_modem.set_wwan_connectivity.rsp",
       r,
       [cb](auto x) { complete(cb, std::move(x)); },
       kRpcTimeout
@@ -551,8 +579,8 @@ SimulaDataSettingsManager::requestWwanConnectivityConfig(
         return telux::common::Status::NOTREADY;
     auto r = common::simula::makeRequestEnvelope(bridge_.currentPaId(), { { "slot", s } });
     bridge_.send_request(
-      topics::net_settings::request_wwan_connectivity::req,
-      "net_settings.request_wwan_connectivity.rsp",
+      topics::net_modem::request_wwan_connectivity::req,
+      "net_modem.request_wwan_connectivity.rsp",
       r,
       [cb, s](auto x) {
           if (!cb)
@@ -834,8 +862,8 @@ SimulaDataSettingsManager::requestDdsSwitch(DdsInfo d, telux::common::ResponseCa
       { { "slot", d.slotId }, { "ddsType", fromDds(d.type) } }
     );
     bridge_.send_request(
-      topics::net_settings::request_dds_switch::req,
-      "net_settings.request_dds_switch.rsp",
+      topics::net_modem::request_dds_switch::req,
+      "net_modem.request_dds_switch.rsp",
       r,
       [cb](auto x) { complete(cb, std::move(x)); },
       kRpcTimeout
@@ -849,8 +877,8 @@ SimulaDataSettingsManager::requestCurrentDds(RequestCurrentDdsResponseCb cb)
         return telux::common::Status::NOTREADY;
     auto r = common::simula::makeRequestEnvelope(bridge_.currentPaId(), nlohmann::json::object());
     bridge_.send_request(
-      topics::net_settings::request_current_dds::req,
-      "net_settings.request_current_dds.rsp",
+      topics::net_modem::request_current_dds::req,
+      "net_modem.request_current_dds.rsp",
       r,
       [cb](auto x) {
           if (!cb)
@@ -905,7 +933,17 @@ SetNotReady_St(chart::Hsm* h, chart::Event const* e)
         case ReadinessEvt_Signal:
         {
             auto p = common::simula::event_cast<IndPld>(*e);
-            if (p->env.data && p->env.data->value("status", std::string()) == "AVAILABLE")
+            const bool available =
+              p->env.data && p->env.data->value("status", std::string()) == "AVAILABLE";
+            if (p->half == IndPld::Half::Modem)
+                self->modem_half_ready_ = available;
+            else
+                self->settings_half_ready_ = available;
+            // Only callable once BOTH subsystems are up: going Ready on the
+            // first AVAILABLE would let a client invoke a method whose owning
+            // process is still down and get a silent timeout rather than the
+            // NOTREADY the SDK contract promises.
+            if (self->bothHalvesReady_())
                 return self->to(SetReady_St);
             return chart::Status::HANDLED;
         }
@@ -964,6 +1002,12 @@ SetReady_St(chart::Hsm* h, chart::Event const* e)
             if (!p->env.data)
                 return chart::Status::HANDLED;
             const auto status = p->env.data->value("status", std::string());
+            // Track the reporting half first, so a later re-AVAILABLE from the
+            // other process cannot resurrect Ready while this one is still down.
+            if (p->half == IndPld::Half::Modem)
+                self->modem_half_ready_ = (status == "AVAILABLE");
+            else
+                self->settings_half_ready_ = (status == "AVAILABLE");
             if (status == "UNAVAILABLE" || status == "FAILED")
             {
                 self->publishStatus_(
@@ -979,6 +1023,12 @@ SetReady_St(chart::Hsm* h, chart::Event const* e)
             auto operational = common::simula::event_cast<bool>(*e);
             if (operational && !*operational)
             {
+                // The broker went away, so neither half's retained readiness
+                // can be trusted any more. Clear both: MQTT replays the
+                // retained indications on resubscribe, and each half must
+                // re-assert AVAILABLE before the manager is callable again.
+                self->settings_half_ready_ = false;
+                self->modem_half_ready_    = false;
                 self->publishStatus_(telux::common::ServiceStatus::SERVICE_UNAVAILABLE);
                 return self->to(SetNotReady_St);
             }

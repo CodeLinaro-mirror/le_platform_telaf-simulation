@@ -1,12 +1,13 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #
-# net_l2tp domain registry -- PA<->MPSS wire contract for the L2TP family of
+# net_l2tp domain registry -- PA<->APSS wire contract for the L2TP family of
 # telaf/interfaces/taf_net.api (telux::data::net::IL2tpManager).
 #
-# MPSS owns the tunnel/session tables and the system-level L2TP config
-# (enable/MSS/MTU) because they are modem ground truth (World State invariant
-# (d)). The PA caches none of it: requestConfig is answered from
+# APSS owns the tunnel/session tables and the system-level L2TP config
+# (enable/MSS/MTU): a tunnel is an interface in the application processor's own
+# kernel L2TP subsystem, so that state is AP-local and survives a modem
+# restart. The PA caches none of it: requestConfig is answered from
 # request_l2tp_config, which is also what backs the whole
 # taf_net_GetFirstTunnelEntry / GetNextTunnelEntry / GetTunnelLocalId /
 # GetTunnelPeerId / GetTunnelProtocol / GetFirstSessionEntry / ... accessor
@@ -14,11 +15,11 @@
 # round-trip, so they need no wire contract of their own.
 
 domain: net_l2tp
-
+counterpart: apss
 rpcs:
   - method: set_l2tp_config
-    req_topic: "mp/req/net_l2tp/set_l2tp_config"
-    rsp_topic: "mp/rsp/net_l2tp/set_l2tp_config"
+    req_topic: "ap/req/net_l2tp/set_l2tp_config"
+    rsp_topic: "ap/rsp/net_l2tp/set_l2tp_config"
     req_payload: schemas/net_l2tp/set_l2tp_config_req.json
     rsp_payload: schemas/net_l2tp/set_l2tp_config_rsp.json
     qos: 1
@@ -30,8 +31,8 @@ rpcs:
       being resolved PA-side.
 
   - method: request_l2tp_config
-    req_topic: "mp/req/net_l2tp/request_l2tp_config"
-    rsp_topic: "mp/rsp/net_l2tp/request_l2tp_config"
+    req_topic: "ap/req/net_l2tp/request_l2tp_config"
+    rsp_topic: "ap/rsp/net_l2tp/request_l2tp_config"
     req_payload: schemas/net_l2tp/request_l2tp_config_req.json
     rsp_payload: schemas/net_l2tp/request_l2tp_config_rsp.json
     qos: 1
@@ -42,8 +43,8 @@ rpcs:
       accessor family.
 
   - method: add_tunnel
-    req_topic: "mp/req/net_l2tp/add_tunnel"
-    rsp_topic: "mp/rsp/net_l2tp/add_tunnel"
+    req_topic: "ap/req/net_l2tp/add_tunnel"
+    rsp_topic: "ap/rsp/net_l2tp/add_tunnel"
     req_payload: schemas/net_l2tp/add_tunnel_req.json
     rsp_payload: schemas/net_l2tp/add_tunnel_rsp.json
     qos: 1
@@ -52,8 +53,8 @@ rpcs:
       taf_net_AddL2tpTunnel and IL2tpManager::addTunnel.
 
   - method: remove_tunnel
-    req_topic: "mp/req/net_l2tp/remove_tunnel"
-    rsp_topic: "mp/rsp/net_l2tp/remove_tunnel"
+    req_topic: "ap/req/net_l2tp/remove_tunnel"
+    rsp_topic: "ap/rsp/net_l2tp/remove_tunnel"
     req_payload: schemas/net_l2tp/remove_tunnel_req.json
     rsp_payload: schemas/net_l2tp/remove_tunnel_rsp.json
     qos: 1
@@ -64,8 +65,8 @@ rpcs:
       the tunnel it referred to.
 
   - method: add_session
-    req_topic: "mp/req/net_l2tp/add_session"
-    rsp_topic: "mp/rsp/net_l2tp/add_session"
+    req_topic: "ap/req/net_l2tp/add_session"
+    rsp_topic: "ap/rsp/net_l2tp/add_session"
     req_payload: schemas/net_l2tp/add_session_req.json
     rsp_payload: schemas/net_l2tp/add_session_rsp.json
     qos: 1
@@ -74,8 +75,8 @@ rpcs:
       other sessions. Backs IL2tpManager::addSession.
 
   - method: remove_session
-    req_topic: "mp/req/net_l2tp/remove_session"
-    rsp_topic: "mp/rsp/net_l2tp/remove_session"
+    req_topic: "ap/req/net_l2tp/remove_session"
+    rsp_topic: "ap/rsp/net_l2tp/remove_session"
     req_payload: schemas/net_l2tp/remove_session_req.json
     rsp_payload: schemas/net_l2tp/remove_session_rsp.json
     qos: 1
@@ -83,8 +84,8 @@ rpcs:
       Remove one session from a tunnel. Backs IL2tpManager::removeSession.
 
   - method: bind_session
-    req_topic: "mp/req/net_l2tp/bind_session"
-    rsp_topic: "mp/rsp/net_l2tp/bind_session"
+    req_topic: "ap/req/net_l2tp/bind_session"
+    rsp_topic: "ap/rsp/net_l2tp/bind_session"
     req_payload: schemas/net_l2tp/bind_session_req.json
     rsp_payload: schemas/net_l2tp/bind_session_rsp.json
     qos: 1
@@ -93,8 +94,8 @@ rpcs:
       IL2tpManager::bindSessionToBackhaul.
 
   - method: unbind_session
-    req_topic: "mp/req/net_l2tp/unbind_session"
-    rsp_topic: "mp/rsp/net_l2tp/unbind_session"
+    req_topic: "ap/req/net_l2tp/unbind_session"
+    rsp_topic: "ap/rsp/net_l2tp/unbind_session"
     req_payload: schemas/net_l2tp/unbind_session_req.json
     rsp_payload: schemas/net_l2tp/unbind_session_rsp.json
     qos: 1
@@ -103,8 +104,8 @@ rpcs:
       IL2tpManager::unbindSessionFromBackhaul.
 
   - method: query_session_bindings
-    req_topic: "mp/req/net_l2tp/query_session_bindings"
-    rsp_topic: "mp/rsp/net_l2tp/query_session_bindings"
+    req_topic: "ap/req/net_l2tp/query_session_bindings"
+    rsp_topic: "ap/rsp/net_l2tp/query_session_bindings"
     req_payload: schemas/net_l2tp/query_session_bindings_req.json
     rsp_payload: schemas/net_l2tp/query_session_bindings_rsp.json
     qos: 1
@@ -114,7 +115,7 @@ rpcs:
 
 indications:
   - event: subsys_ready_net_l2tp
-    ind_topic: "mp/ind/net_l2tp/subsys_ready"
+    ind_topic: "ap/ind/net_l2tp/subsys_ready"
     payload: schemas/net_l2tp/subsys_ready_net_l2tp_ind.json
     qos: 1
     retain: true

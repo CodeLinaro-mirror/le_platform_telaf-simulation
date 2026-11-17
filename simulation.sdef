@@ -75,6 +75,10 @@ apps:
     $TELAF_ROOT/apps/ivss/service/tafIvssDataSvc/tafIvssDataSvc
 #endif
 
+#if ${TELAF_SIMULATION_ENABLE_IVSS_TELEPHONY} = y
+    $TELAF_ROOT/apps/ivss/service/tafIvssTelephonySvc/tafIvssTelephonySvc
+#endif
+
 
     // --- Test Apps ---
     // $TELAF_ROOT/apps/test/tafSomeipGWTest/tafSomeipClntUnitTest/tafSomeipClntUnitTest
@@ -85,6 +89,7 @@ apps:
     // $TELAF_ROOT/apps/test/tafSimTest/tafSimIntegrationTest/tafSimIntTest
     // $TELAF_ROOT/apps/test/tafNetTest/tafNetIntTest/tafNetIntTest
     // $TELAF_ROOT/apps/test/tafNetTest/tafNetUnitTest/tafNetUnitTest
+    // $TELAF_ROOT/apps/test/tafNetTest/tafDualNadTest/tafDualNadTest
     // $TELAF_ROOT/apps/test/tafLocationTest/tafLocationUnitTest/tafLocationUnitTest
     // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdConnUnitTest/tafMngdConnUnitTest
     // $TELAF_ROOT/apps/tafMngdServices/tafMngdTest/tafMngdConnIntTest/tafMngdConnIntTest

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "action.net.force_dds.req",
+  "$id": "action.net_modem.force_dds.req",
   "title": "Force Current DDS",
-  "description": "Publishes mp/ind/net_settings/dds_changed so the PA drives IDataSettingsListener::onDdsChange. Mirrors telux::data::DdsInfo.",
+  "description": "Publishes mp/ind/net_modem/dds_changed so the PA drives IDataSettingsListener::onDdsChange. Mirrors telux::data::DdsInfo.",
   "type": "object",
   "required": ["slot", "ddsType"],
   "properties": {

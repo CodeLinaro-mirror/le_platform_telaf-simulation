@@ -20,6 +20,7 @@ from sml.mpss.data.connection import (
 from sml.mpss.data.tests._helpers import wait_for_state, wait_until
 from sml.config.models import CallTimingPresetSeed, InterfacePresetSeed, IpConfigSeed
 from generated.python.topics import data as topics_data
+from generated.python.topics import net_modem as topics_modem
 
 
 # ---------------------------------------------------------------------------
@@ -412,6 +413,141 @@ class TestForceDns:
         ao.force_dns({"profileId": 1})
         time.sleep(0.05)
         assert len(pub.calls) == before
+
+
+# ---------------------------------------------------------------------------
+# Cross-domain: net_modem WWAN connectivity gate / teardown
+# ---------------------------------------------------------------------------
+
+class TestWwanConnectivityGate:
+    """The invariant: WWAN disallowed on this slot => no live WWAN sessions
+    and no new ones.
+
+    net_modem owns the permission flag; this AO owns the sessions it governs.
+    The coupling travels over net_modem's wwan_connectivity_changed indication
+    (see shared/registry/net_modem.yaml, which promises that disallowing
+    "tears down active WWAN calls ... the data domain then publishes
+    NET_NO_NET for each").
+    """
+
+    @staticmethod
+    def _wwan(ao, allowed, slot=1):
+        _send(ao, topics_modem.wwan_connectivity_changed.ind,
+              {"slot": slot, "isConnectivityAllowed": allowed})
+
+    @staticmethod
+    def _start(ao, profile_id=1):
+        _send(ao, topics_data.start_data_call.req,
+              {"profileId": profile_id, "ipFamily": "IPV4V6", "ifname": "",
+               "opType": "DATA_LOCAL", "slot": 1})
+
+    def test_active_call_torn_down_to_no_net_on_disallow(self):
+        pub = _MockPublish()
+        ao = _make_ao(pub)
+        self._start(ao)
+        assert wait_until(lambda: any(
+            c["payload"]["data"]["status"] == "CONNECTED" for c in _evt_calls(pub)))
+        pub.reset()
+
+        self._wwan(ao, False)
+
+        states = [c["payload"]["data"] for c in _evt_calls(pub)]
+        assert any(s["status"] == "NO_NET" for s in states), \
+            f"expected a NO_NET call_state indication, got {states}"
+
+    def test_teardown_reports_network_drop_end_reason(self):
+        pub = _MockPublish()
+        ao = _make_ao(pub)
+        self._start(ao)
+        assert wait_until(lambda: any(
+            c["payload"]["data"]["status"] == "CONNECTED" for c in _evt_calls(pub)))
+        pub.reset()
+
+        self._wwan(ao, False)
+
+        no_net = [c["payload"]["data"] for c in _evt_calls(pub)
+                  if c["payload"]["data"]["status"] == "NO_NET"]
+        assert no_net, "no NO_NET indication published"
+        # Distinguishes a network-side drop from a clean client stop, which is
+        # what the PA uses to decide whether to retry.
+        assert no_net[0]["end_reason"] == {"type": 0x02, "code": 206}
+
+    def test_new_call_refused_while_disallowed(self):
+        pub = _MockPublish()
+        ao = _make_ao(pub)
+        self._wwan(ao, False)
+        pub.reset()
+
+        self._start(ao, profile_id=7)
+
+        rsps = _rsp_calls(pub, topics_data.start_data_call.rsp)
+        assert rsps, "start_data_call produced no response"
+        assert "error" in rsps[0]["payload"], f"expected rejection, got {rsps[0]['payload']}"
+        assert rsps[0]["payload"]["error"]["code"] == "INVALID_OPERATION"
+
+    def test_refused_call_leaks_no_ifname(self):
+        """The gate must precede pool allocation, else a refused call burns an
+        interface name and the pool drains on repeated attempts."""
+        pub = _MockPublish()
+        ao = _make_ao(pub)
+        self._wwan(ao, False)
+        for pid in range(1, 7):
+            self._start(ao, profile_id=pid)
+
+        assert not ao._pool.is_in_use("rmnet_data0")
+
+    def test_call_allowed_again_after_reallow(self):
+        pub = _MockPublish()
+        ao = _make_ao(pub)
+        self._wwan(ao, False)
+        self._wwan(ao, True)
+        pub.reset()
+
+        self._start(ao, profile_id=2)
+
+        rsps = _rsp_calls(pub, topics_data.start_data_call.rsp)
+        assert rsps and "error" not in rsps[0]["payload"], \
+            f"call should be permitted after re-allow, got {rsps}"
+
+    def test_other_slot_disallow_does_not_touch_our_sessions(self):
+        """The permission is slot-scoped; slot 2 going down must not drop a
+        slot 1 call."""
+        pub = _MockPublish()
+        ao = _make_ao(pub)
+        self._start(ao)
+        assert wait_until(lambda: any(
+            c["payload"]["data"]["status"] == "CONNECTED" for c in _evt_calls(pub)))
+        pub.reset()
+
+        self._wwan(ao, False, slot=2)
+
+        states = [c["payload"]["data"]["status"] for c in _evt_calls(pub)]
+        assert "NO_NET" not in states, f"slot-2 disallow dropped a slot-1 call: {states}"
+
+    def test_call_permitted_before_any_wwan_indication(self):
+        """The indication only fires on a change, so an AO that has heard
+        nothing must default to allowed rather than refusing everything."""
+        pub = _MockPublish()
+        ao = _make_ao(pub)
+
+        self._start(ao, profile_id=3)
+
+        rsps = _rsp_calls(pub, topics_data.start_data_call.rsp)
+        assert rsps and "error" not in rsps[0]["payload"]
+
+    def test_repeated_disallow_publishes_no_duplicate_no_net(self):
+        pub = _MockPublish()
+        ao = _make_ao(pub)
+        self._start(ao)
+        assert wait_until(lambda: any(
+            c["payload"]["data"]["status"] == "CONNECTED" for c in _evt_calls(pub)))
+        self._wwan(ao, False)
+        pub.reset()
+
+        self._wwan(ao, False)
+
+        states = [c["payload"]["data"]["status"] for c in _evt_calls(pub)]
+        assert "NO_NET" not in states, f"second disallow re-published teardown: {states}"
 
 
 # ---------------------------------------------------------------------------

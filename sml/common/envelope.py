@@ -23,9 +23,23 @@ from generated.python.validators import ValidationError, validate as validate_pa
 # Pattern used in WireSchema envelope `corrId` field.
 _CORR_ID_RE = re.compile(r"^[0-9a-f]{4,8}$")
 
-# The one cross-process indication apss consumes that isn't its own request.
-_WAKEUP_EVENT_TOPIC = "mp/ind/wakeup/event"
-_WAKEUP_EVENT_SCHEMA_ID = "wakeup.event.ind"
+# Cross-domain/cross-process indications that a subscriber consumes even though
+# they are not its own request topics. These need an explicit entry because the
+# `mp/ind/` namespace cannot be resolved by a blanket prefix rule: the
+# `subsys_ready` topics carry a sub-path (`mp/ind/data/subsys_ready/profile`)
+# whose schema id is NOT the dotted topic tail, so a generic ("mp/ind/", "ind")
+# rule would mis-resolve 10 of them. Keep this map to the handful of
+# indications that are genuinely consumed across a boundary.
+#
+#   * wakeup/event            -- apss consumes it from mpss (D11/O1-b relay).
+#   * net_modem/wwan_...      -- mpss' data domain consumes it from mpss'
+#                                net_modem domain to honour the SDK contract
+#                                that disallowing WWAN tears down active calls.
+_CONSUMED_IND_SCHEMA_IDS = {
+    "mp/ind/wakeup/event": "wakeup.event.ind",
+    "mp/ind/net_modem/wwan_connectivity_changed":
+        "net_modem.wwan_connectivity_changed.ind",
+}
 
 _PREFIX_SUFFIX = (
     ("mp/req/", "req"),
@@ -41,8 +55,9 @@ def resolve_schema_id(topic: str) -> Optional[str]:
     Shared by every business AO's `_dispatch_message` and by
     `sml.tools.mqttcli.pubfile` -- one conversion rule, per invariant (g).
     """
-    if topic == _WAKEUP_EVENT_TOPIC:
-        return _WAKEUP_EVENT_SCHEMA_ID
+    consumed = _CONSUMED_IND_SCHEMA_IDS.get(topic)
+    if consumed is not None:
+        return consumed
     for prefix, suffix in _PREFIX_SUFFIX:
         if topic.startswith(prefix):
             return topic[len(prefix):].replace("/", ".") + f".{suffix}"

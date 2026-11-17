@@ -48,6 +48,9 @@ class SlavexContainer():
             cname, ipaddr = current_slave_fd.readline().strip().split()
             return (cname, ipaddr)
 
+    def current_slave(self):
+        return self._get_current_slave()
+
     def login_slave(self):
         cname, ipaddr = self._get_current_slave()
         os.system("ssh -o LogLevel=quiet root@{}".format(ipaddr))
